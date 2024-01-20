@@ -110,7 +110,7 @@
         <input type="hidden" name="attr_faction"/>
           <section class="header f-center">
             <h1><span name="attr_character_name"></span></h1>
-            <h3><span name="attr_type"></span><span> [</span><span name="attr_size"></span><span>]</span></h3>
+            <h3><span name="attr_side"></span><span name="attr_type"></span><span> [</span><span name="attr_size"></span><span>]</span></h3>
           </section>
 
           <section class="common f-center">
@@ -137,7 +137,7 @@
           </section>
           
           <section class="flag2">
-            <img name="attr_sideImage">
+            <img name="attr_factionImage">
           </section>
 
           <section class="special">
@@ -255,23 +255,23 @@
     on("change:attrs sheet:opened", function() { 
         getAttrs(["faction","special"], function(values) {
             let faction = values.faction;
-            let factionImage,sideImage;
+            let factionImage,side;
 
             if (faction === "Ultramarines") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
-                sideImage = "https://s3.amazonaws.com/files.d20.io/images/353910541/qTDBir-RF9CMfb_Bj4aMRw/thumb.png?1691543453";
+                side = "Loyalist ";
             }
             if (faction === "Blood Angels") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541";
-                sideImage = "https://s3.amazonaws.com/files.d20.io/images/353910541/qTDBir-RF9CMfb_Bj4aMRw/thumb.png?1691543453";
+                side = "Loyalist "
             }
             if (faction === "Deathguard") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406";
-                sideImage = "https://s3.amazonaws.com/files.d20.io/images/353911096/Kij_DpolaFkHJ5gZeumQog/thumb.png?1691543725";
+                side = "Traitor ";
             } 
             if (faction === "Space Wolves") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748";
-                sideImage = "https://s3.amazonaws.com/files.d20.io/images/353910541/qTDBir-RF9CMfb_Bj4aMRw/thumb.png?1691543453";
+                side = "Loyalist ";
             }    
         
 
@@ -280,12 +280,20 @@
 
             setAttrs({
                 "factionImage": factionImage,
-                "sideImage": sideImage,
+                "side": side,
                 "special0": special[0],
                 "special1": special[1],
                 "special2": special[2],
                 "special3": special[3],
                 "special4": special[4],
+                "special5": special[5],
+                "special6": special[6],
+                "special7": special[7],
+                "special8": special[8],
+                "special9": special[9],
+
+
+
             });
         });    
     }); 
