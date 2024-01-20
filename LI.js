@@ -294,12 +294,11 @@ const LI = (()=> {
         outputCard.inline = [];
     };
 
-    const DisplayDice = (roll,faction,size) => {
+    const DisplayDice = (roll,tablename,size) => {
         roll = roll.toString();
-        if (!Factions[faction] || !faction) {
-            faction = "Neutral";
+        if (!tablename) {
+            tablename = "Neutral";
         }
-        let tablename = Factions[faction].dice;
         let table = findObjs({type:'rollabletable', name: tablename})[0];
         let obj = findObjs({type:'tableitem', _rollabletableid: table.id, name: roll })[0];        
         let avatar = obj.get('avatar');
@@ -1505,7 +1504,7 @@ const LI = (()=> {
         let roll = randomInteger(6);
         if (Tag.length === 1) {
             let playerID = msg.playerid;
-            let faction = "Neutral";
+            let side = "Neutral";
             if (!state.LI.players[playerID] || state.LI.players[playerID] === undefined) {
                 if (msg.selected) {
                     let id = msg.selected[0]._id;
@@ -1513,16 +1512,17 @@ const LI = (()=> {
                         let tok = findObjs({_type:"graphic", id: id})[0];
                         let char = getObj("character", tok.get("represents")); 
                         faction = Attribute(char,"faction");
-                        state.LI.players[playerID] = faction;
+                        let side = (TraitorForces.includes(faction)) ? "Traitor":"Loyalist";
+                        state.LI.players[playerID] = side;
                     }
                 } else {
                     sendChat("","Click on one of your tokens then select Roll again");
                     return;
                 }
             } else {
-                faction = state.LI.players[playerID];
+                side = state.LI.players[playerID];
             }
-            let res = "/direct " + DisplayDice(roll,faction,40);
+            let res = "/direct " + DisplayDice(roll,side,40);
             sendChat("player|" + playerID,res);
         } else {
             
@@ -1566,9 +1566,7 @@ const LI = (()=> {
         RemoveDepLines();
 
         state.LI = {
-            factions: [[],[]],
-            players: {},
-            playerInfo: [[],[]],
+            players: {}, //keyed by playerID, shows which side
             markers: [[],[]],
             turn: 0,
             lineArray: [],
