@@ -1,0 +1,296 @@
+<input type="hidden" class="sheet-tabstoggle" name="attr_sheetTab"  value="display"  />
+<div>
+    <button type="action" name="act_input" >Input</button>
+    <button type="action" name="act_display" >Display</button>
+    <button type="action" name="act_abilities" >Special Rules</button>
+</div>
+
+<div class="sheet-input">
+    <div class="2colrow">
+        <div class="col">
+            <h3>Unit Information</h3>
+            <label>Name:</label><input type="text" name="attr_character_name">
+            <br>
+            <label for="attr_faction">Faction:</label>
+            <select name="attr_faction">
+                <option value="" selected disabled hidden>Choose here</option>
+                <option value="Ultramarines">Ultramarines</option>
+                <option value="Blood Angels">Blood Angels</option>
+                <option value="Deathguard">Deathguard</option>
+                <option value="Salamanders">Salamanders</option>
+
+            </select>
+        </div>
+        <div class="col">
+            <h3>Attributes</h3>
+            <label>Movement:</label><input type="number" name="attr_movement">
+            <label>Save:</label><input type="text" name="attr_save">
+            <label>CAF:</label><input type="text" name="attr_caf">
+            <label>Morale:</label><input type="text" name="attr_morale">
+            <label>Wounds:</label><input type="number" name="attr_wounds">
+
+            <label for="attr_type">Type:</label>
+            <select name="attr_type">
+                <option value="" selected disabled hidden>Choose here</option>
+                <option value="Infantry">Infantry</option>
+                <option value="Walker">Walker</option>
+                <option value="Vehicle">Vehicle</option>
+                <option value="Super-Heavy Vehicle">Super-Heavy Vehicle</option>
+                <option value="Titan">Titan</option>
+            </select>       
+            
+            <label for="attr_size">Size:</label>
+            <select name="attr_size">
+                <option value="" selected disabled hidden>Choose here</option>
+                <option value=1>1</option>
+                <option value=2>2</option>
+                <option value=3>3</option>
+                <option value=4>4</option>
+                <option value=5>5</option>
+            </select>  
+            
+          </div>
+    </div>    
+    <label>Special Rules:</label><input type="text" name="attr_special">
+    
+
+    <div class="row">
+        <h3>Weapons</h3>
+
+        <div class="weapons">
+            <table>
+            <thead>
+                <tr>
+                <th>Equipped</th>
+                <th>Weapon</th>
+                <th>Range</th>
+                <th>Dice</th>
+                <th>To Hit</th>
+                <th>AP</th>
+                <th>Traits</th>
+                <th>F/X</th>
+                <th>Sound</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><select name="attr_weapon1equipped">
+                        <option value = "Off">Off</option>
+                        <option value = "Equipped">Equipped</option>
+                    </select></td>
+                    <td><input type="text" name="attr_weapon1name"></td>    
+                    <td><input type="text" name="attr_weapon1range"></td>
+                    <td><input type="number" name="attr_weapon1dice"></td>
+                    <td><input type="text" name="attr_weapon1tohit"></td>
+                    <td><input type="text" name="attr_weapon1ap"></td>
+                    <td><input type="text" name="attr_weapon1traits"></td>
+                    <td><input type="text" name="attr_weapon1fx"></td>
+                    <td><input type="text" name="attr_weapon1sound"></td>                
+                </tr>
+                
+
+
+            </tbody>
+            </table>    
+        </div>    
+    </div>    
+
+
+</div>
+
+
+
+<div class="sheet-display">
+    <input type="hidden" name="attr_faction"/>
+
+    <div class="mysheet">
+      <div class="attributes">
+
+        <main>
+        <input type="hidden" name="attr_faction"/>
+          <section class="header f-center">
+            <h1><span name="attr_character_name"></span></h1>
+            <h3><span name="attr_type"></span><span> [</span><span name="attr_size"></span><span>]</span></h3>
+          </section>
+
+          <section class="common f-center">
+              <img alt="Character Avatar" name="attr_character_avatar"/>
+          </section>
+
+          <section class="att">
+            <h3>Attributes</h3>
+            <div class="attinfo">
+                <div><span>Move</span></div>
+                <div><span>Save</span></div>
+                <div><span>CAF</span></div>
+                <div><span>Morale</span></div>
+                <div><span>Wounds</span></div>
+                <h4><span name="attr_movement"></span><span>"</span></h4>
+                <h4><span name="attr_save"></span></h4>
+                <h4><span name="attr_caf"></span></h4>
+                <h4><span name="attr_morale"></span></h4>
+                <h4><span name="attr_wounds"></span></h4>
+            </section>
+
+          <section class="flag">
+            <img name="attr_factionImage">
+          </section>
+          
+          <section class="flag2">
+            <img name="attr_factionImage">
+          </section>
+
+          <section class="special">
+            <h3>Special Rules</h3>
+            <h4><span name="attr_special0"></span></h4>
+            <h4><span name="attr_special1"></span></h4>
+            <h4><span name="attr_special2"></span></h4>
+            <h4><span name="attr_special3"></span></h4>
+            <h4><span name="attr_special4"></span></h4>
+            <h4><span name="attr_special5"></span></h4>
+            <h4><span name="attr_special6"></span></h4>
+            <h4><span name="attr_special7"></span></h4>
+            <h4><span name="attr_special8"></span></h4>
+            <h4><span name="attr_special9"></span></h4>
+          </section>
+
+          <section class="weapon">
+            <h3>Weapons</h3>
+            <div class="weaponinfo">
+                <div><span>Weapon</span></div>
+                <div><span>Range</span></div>
+                <div><span>Dice</span></div>
+                <div><span>To Hit</span></div>
+                <div><span>AP</span></div>
+                <div><span>Traits</span></div>
+            </div>
+                <input type="hidden" name="attr_weapon1equipped" class="weapon1-status" value="Off">
+                <div class="weapon1">
+                    <h4><span name="attr_weapon1name"></span></h4>
+                    <h4><span name="attr_weapon1range"></span></h4>
+                    <h4><span name="attr_weapon1dice"></span></h4>
+                    <h4><span name="attr_weapon1tohit"></span></h4>
+                    <h4><span name="attr_weapon1ap"></span></h4>
+                    <h4><span name="attr_weapon1traits"></span></h4>
+            </div>
+
+
+          </section>
+        </main>
+      </div>
+    </div>    
+</div>
+
+<div class="sheet-abilities">
+  <input type="hidden" name="attr_faction"/>
+  <div class="mysheet">
+      <div class="attributes">
+          <input type="hidden" name="attr_faction"/>
+          <div class="spheader">
+              <h2>Special Rules & Traits</h2>
+              <br>
+          </div>
+          <input type="hidden" name="attr_faction"/>
+          <div class="spbody">
+              <div class = "item">
+                  <span style="font-weight:bold;" name="attr_spec1Name"></span>
+                  <span name="attr_spec1Text"></span>
+              </div>
+              <div class = "item">
+                  <span style="font-weight:bold;" name="attr_spec2Name"></span>
+                  <span name="attr_spec2Text"></span>
+              </div>
+              <div class = "item">
+                  <span style="font-weight:bold;" name="attr_spec3Name"></span>
+                  <span name="attr_spec3Text"></span>
+              </div>
+              <div class = "item">                
+                  <span style="font-weight:bold;" name="attr_spec4Name"></span>
+                  <span name="attr_spec4Text"></span>
+              </div>
+              <div class = "item">                                
+                  <span style="font-weight:bold;" name="attr_spec5Name"></span>
+                  <span name="attr_spec5Text"></span>
+              </div>
+              <div class = "item">                
+                  <span style="font-weight:bold;" name="attr_spec6Name"></span>
+                  <span name="attr_spec6Text"></span>
+              </div>
+              <div class = "item">                
+                  <span style="font-weight:bold;" name="attr_spec7Name"></span>
+                  <span name="attr_spec7Text"></span>
+              </div>
+              <div class = "item">                
+                  <span style="font-weight:bold;" name="attr_spec8Name"></span>
+                  <span name="attr_spec8Text"></span>
+              </div>
+              <div class = "item">                
+                  <span style="font-weight:bold;" name="attr_spec9Name"></span>
+                  <span name="attr_spec9Text"></span>
+              </div>
+              <div class = "item">                
+                  <span style="font-weight:bold;" name="attr_spec10Name"></span>
+                  <span name="attr_spec10Text"></span>
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+<script type="text/worker">
+    const buttonlist = ["input","display","abilities"];
+    buttonlist.forEach(button => {
+        on(`clicked:${button}`, function() {
+            setAttrs({
+                sheetTab: button
+            });
+        });
+    });
+
+    on("sheet:opened", function() {
+        setAttrs({sheetTab:"display"});
+    });
+
+    on("change:attrs sheet:opened", function() { 
+        getAttrs(["faction","special"], function(values) {
+            let faction = values.faction;
+            let factionImage = "";
+
+            if (faction === "Ultramarines") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
+            }
+            if (faction === "Blood Angels") {
+              factionImage = "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541";
+            }
+            if (faction === "Deathguard") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406";
+            }
+            if (faction === "Space Wolves") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748";
+            }    
+
+            let special = values.special;
+            special = special.split(";");
+            special = special.trim();
+
+            setAttrs({
+                "factionImage": factionImage,
+                "special0": special[0],
+                "special1": special[1],
+                "special2": special[2],
+                "special3": special[3],
+                "special4": special[4],
+                "special5": special[5],
+                "special6": special[6],
+                "special7": special[7],
+                "special8": special[8],
+                "special9": special[9],
+            });
+        });    
+    }); 
+
+
+ 
+
+</script>
