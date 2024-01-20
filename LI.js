@@ -8,11 +8,14 @@ const LI = (()=> {
     let TerrainArray = {};
     let edgeArray = [];
 
+    let TraitorForces = ["Deathguard"];
 
     let ModelArray = {}; //Individual Models, Tanks etc
     let UnitArray = {}; //Units of Models - Detachments
     let FormationArray = {}; //Formations of Detachments
+    let nameArray = {}; //used to track #s of each type of unit
 
+    let unitCreationInfo = {};
     let hexMap = {}; 
     let xSpacing = 75.1985619844599;
     let ySpacing = 66.9658278242677;
@@ -206,7 +209,12 @@ const LI = (()=> {
             name = name.split("//")[0];
         }
         name = name.trim();
-       
+        if (nameArray[name]) {
+            nameArray[name]++;
+        } else {
+            nameArray[name] = 1;
+        }
+        name += " " + nameArray[name];
 
         return name;
     }
@@ -465,23 +473,40 @@ const LI = (()=> {
     };
 
     class Model {
-        constructor(tokenID,unitID,player,existing){
-            if (!existing) {existing = false};
+        constructor(tokenID,unitID,formationID){
             let token = findObjs({_type:"graphic", id: tokenID})[0];
+            let name;
+            let hp = parseInt(token.get("bar1_value"));
             let char = getObj("character", token.get("represents")); 
             let attributeArray = AttributeArray(char.id);
             let faction = attributeArray.faction;
+            let player = (TraitorForces.includes(faction)) ? 1:0;
+
+            if (!state.LI.models[tokenID]) {
+                name = Naming(char.get("name"),faction);
+                state.LI.models[tokenID] = {
+                    name: name,
+                    unitID: unitID,
+                    formationID: formationID,
+                }
+            } else {
+                name = state.LI.models[tokenID].name;
+                unitID = state.LI.models[tokenID].unitID;
+                formationID = state.LI.models[tokenID].formationID;
+            }
+
             let type = attributeArray.type;
             let location = new Point(token.get("left"),token.get("top"));
             let hex = pointToHex(location);
             let hexLabel = hex.label();
 
-            let size = "Standard";
+            let size = parseInt(attributeArray.size);
             let radius = 1;
+            let large = false;
             let vertices = TokenVertices(token);
 
             if (token.get("width") > 100 || token.get("height") > 100) {
-                size = "Large";
+                large = true;
                 let w = token.get("width")/2;
                 let h = token.get("height")/2;
                 radius = Math.ceil(Math.sqrt(w*w + h*h)/70);
@@ -559,11 +584,12 @@ const LI = (()=> {
                 special = " ";
             }
 
-
-            //this.name = name;
+            this.name = name;
             this.type = type;
             this.id = tokenID;
             this.unitID = unitID;
+            this.formationID = formationID;
+            this.rank = parseInt(attributeArray.rank) || 1;
             this.player = player;
             this.faction = faction;
             this.location = location;
@@ -571,25 +597,23 @@ const LI = (()=> {
             this.hexLabel = hexLabel;
             this.startHex = hex;
             this.special = special;
-    
+            this.wounds = parseInt(attributeArray.wounds) || 1;
             this.token = token;
             this.weaponArray = weaponArray;
            
             this.size = size;
             this.radius = radius;
             this.vertices = vertices;
-            
+            this.large = large;
             this.largeHexList = []; //hexes that have parts of larger token, mainly for LOS 
             ModelArray[tokenID] = this;
             hexMap[hexLabel].tokenIDs.push(token.id);
-            if (this.size === "Large") {
+            if (this.large === true) {
                 LargeTokens(this); 
             }
 
             let unit = UnitArray[this.unitID];
-            if (unit.modelIDs.includes(this.id) === false) {
-                unit.add(this);
-            }
+            unit.add(this);
 
 
 
@@ -603,9 +627,16 @@ const LI = (()=> {
 
     class Unit {
         constructor(faction,unitID,unitName,formationID) {
-            if (!unitID) {
-                unitID = stringGen();
+            if (!state.LI.units[unitID]) {
+                state.LI.units[unitID] = {
+                    name: unitName,
+                    formationID: formationID,
+                }
+            } else {
+                unitName = state.LI.units[unitID].name;
+                formationID = state.LI.units[unitID].formationID;
             }
+
             let player = (TraitorForces.includes(faction)) ? 1:0;
 
             this.id = unitID;
@@ -617,13 +648,7 @@ const LI = (()=> {
             this.order = "";
             
             this.hitArray = []; //used to track hits
-            state.LI.modelCounts[this.id] = 0
             UnitArray[unitID] = this;
-            let info = {
-                name: unitName,
-                formationID: formationID,
-            }
-            state.LI.units[unitID] = info;
         }
 
         add(model) {
@@ -638,7 +663,6 @@ const LI = (()=> {
                     })
                 }
             }
-            state.LI.modelCounts[this.id]++;
         }
 
         remove(model) {
@@ -661,8 +685,9 @@ const LI = (()=> {
         }
 
         halfStrength() {
+///change needed
             let result = false;
-            if (((this.modelIDs.length <= Math.floor(state.LI.modelCounts[this.id] / 2)) || (state.LI.modelCounts[this.id] === 1 && parseInt(ModelArray[this.modelIDs[0]].token.get("bar1_value")) <= Math.floor(parseInt(ModelArray[this.modelIDs[0]].token.get("bar1_max")))/2))) {
+            if (((this.modelIDs.length <= Math.floor(state.LI.unitStrength[this.id] / 2)) || (state.LI.unitStrength[this.id] === 1 && parseInt(ModelArray[this.modelIDs[0]].token.get("bar1_value")) <= Math.floor(parseInt(ModelArray[this.modelIDs[0]].token.get("bar1_max")))/2))) {
                 result = true;
             }
             return result;
@@ -671,6 +696,42 @@ const LI = (()=> {
        
 
     }
+
+    class Formation {
+        constructor(faction,id,name) {
+            let breakPoint = 0;
+            if (!state.LI.formations[id]) {
+                state.LI.formations[id] = {
+                    name: name,
+                    breakPoint: 0,
+                }
+            } else {
+                name = state.LI.formations[id].name;
+                breakPoint = state.LI.formations[id].breakPoint;
+            }
+            this.name = name;
+            this.breakPoint = breakPoint
+            this.id = id;
+            this.faction = faction;
+            this.unitIDs = [];
+
+            FormationArray[id] = this;
+        }
+
+        add(unit) {
+            if (this.unitIDs.includes(unit.id) === false) {
+                this.unitIDs.push(unit.id);
+                unit.formationID = this.id;
+            }
+        }
+
+
+
+
+    }
+
+
+
 
     const UnitMarkers = ["Plus-1d4::2006401","Minus-1d4::2006429","Plus-1d6::2006402","Minus-1d6::2006434","Plus-1d20::2006409","Minus-1d20::2006449","Hot-or-On-Fire-2::2006479","Animal-Form::2006480","Red-Cloak::2006523","A::6001458","B::6001459","C::6001460","D::6001461","E::6001462","F::6001463","G::6001464","H::6001465","I::6001466","J::6001467","L::6001468","M::6001469","O::6001471","P::6001472","Q::6001473","R::6001474","S::6001475"];
 
@@ -1511,8 +1572,9 @@ const LI = (()=> {
             markers: [[],[]],
             turn: 0,
             lineArray: [],
-            teams: {}, //teamIDs -> unitIDs
+            models: {}, //unitIDs, formationIDs
             units: {}, //unitIDs -> names, formationIDs
+            formations: {}, //names and starting strength
             objectives: [],
             deployLines: [],
             mission: '1',
@@ -1547,8 +1609,42 @@ const LI = (()=> {
         let refChar = getObj("character", refToken.get("represents")); 
         let faction = Attribute(refChar,"faction");
 
+        let formationKeys = Object.keys(FormationArray);
+        SetupCard("Unit Creation","",faction);
+        let newID = stringGen();
+        outputCard.body.push("Select Existing Formation or New");
+        ButtonInfo("New","!UnitCreation2;" + newID + ";?{Formation Name}");
+        for (let i=0;i<formationKeys.length;i++) {
+            let formation = FormationArray[formationKeys[i]];
+            if (formation.faction !== faction) {continue};
+            let action = "!UnitCreation2;" + formation.id;
+            ButtonInfo(formation.name,action);
+        }
+
+        PrintCard();
+
+        unitCreationInfo = {
+            faction: faction,
+            tokenIDs: tokenIDs,
+            unitName: unitName,
+        }
+    }
+
+    const UnitCreation2 = (msg) => {
+        let Tag = msg.content.split(";");
+        let unitName = unitCreationInfo.unitName;
+        let faction = unitCreationInfo.faction;
+        let player = (TraitorForces.includes(faction)) ? 1:0;
+        let tokenIDs = unitCreationInfo.tokenIDs;
+        let formationID = Tag[1];
+        let formation = FormationArray[formationID];
+        if (!formation) {
+            formation = new Formation(faction,formationID,Tag[2]);
+        }
+
+        SetupCard("Unit Creation","",faction);
         let unitID = stringGen();
-        let unit = new Unit(faction,unitID,unitName);
+        let unit = new Unit(faction,unitID,unitName,formationID);
         let markerNumber = state.LI.markers[player].length;
         if (!markerNumber || markerNumber === 0) {
             markerNumber = 1;   
@@ -1557,10 +1653,9 @@ const LI = (()=> {
             state.LI.markers[player].splice(markerNumber-1,1);
         }
         unit.symbol = UnitMarkers[markerNumber-1];
-        let unitInfo = unit.faction + ";" + unit.id + ";" + unit.name; 
         for (let i=0;i<tokenIDs.length;i++) {
             let tokenID = tokenIDs[i];
-            let model = new Model(tokenID,unitID,player);
+            let model = new Model(tokenID,unitID,formationID);
             model.token.set({
                 name: model.name,
                 tint_color: "transparent",
@@ -1568,10 +1663,16 @@ const LI = (()=> {
                 showname: true,
                 bar1_value: model.wounds,
             })
-            if (model.wounds > 1) {
+            if (parseInt(model.wounds) > 1) {
                 model.token.set("bar1_max",model.wounds);
             }
-
+            if (parseInt(model.size) > 3) {
+                formation.breakPoint += model.wounds;
+                state.LI.formations[formationID].breakPoint += model.wounds;
+            } else {
+                formation.breakPoint += 1;
+                state.LI.formations[formationID].breakPoint += 1;
+            }
             model.token.set("statusmarkers","");
             model.token.set("status_"+unit.symbol,true);
         }
@@ -2075,6 +2176,8 @@ const LI = (()=> {
                 log(ModelArray);
                 log("Unit Array");
                 log(UnitArray)
+                log("Formation Array");
+                log(FormationArray);
                 break;
             case '!StartNew':
                 ClearState();
@@ -2084,6 +2187,9 @@ const LI = (()=> {
                 break;
             case '!UnitCreation':
                 UnitCreation(msg);
+                break;
+            case '!UnitCreation2':
+                UnitCreation2(msg);
                 break;
             case '!TokenInfo':
                 TokenInfo(msg);
