@@ -29,7 +29,7 @@ const LI = (()=> {
     }
 
     const TurnMarkers = ["","https://s3.amazonaws.com/files.d20.io/images/361055772/zDURNn_0bbTWmOVrwJc6YQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055766/UZPeb6ZiiUImrZoAS58gvQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055764/yXwGQcriDAP8FpzxvjqzTg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055768/7GFjIsnNuIBLrW_p65bjNQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055770/2WlTnUslDk0hpwr8zpZIOg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055771/P9DmGozXmdPuv4SWq6uDvw/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055765/V5oPsriRTHJQ7w3hHRBA3A/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055767/EOXU3ujXJz-NleWX33rcgA/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055769/925-C7XAEcQCOUVN1m1uvQ/thumb.png?1695998303"];
-    
+
     const sm = {
         
     };
@@ -92,37 +92,41 @@ const LI = (()=> {
         
     }
 
+    //LOS: true = doesnt block, false = blocks unless within same terrain then 6"
+    //Cover: cover save
+    //Class: Difficult, Obstructing, Dangerous, Obstacle, Impassable, Open, Structure
 
     const TerrainInfo = {
-        "#000000": {name: "Hill 1", height: 1,los: "Open",cover: false,move: "Normal"},
-        "#434343": {name: "Hill 2", height: 2,los: "Open",cover: false,move: "Normal"},  
-        "#666666": {name: "Hill 3",height:3,los: "Open",cover: false,move: "Normal"},
-        "#c0c0c0": {name: "Hill 4",height:4,los: "Open",cover: false,move: "Normal"},
-        "#d9d9d9": {name: "Hill 5",height:5,los: "Open",cover: false,move: "Normal"},
+        "#000000": {name: "Hill 1", height: 1,los: true,cover: 7,class: "Open"},
+        "#434343": {name: "Hill 2", height: 2,los: true,cover: 7,class: "Open"},  
+        "#666666": {name: "Hill 3",height:3,los: true,cover: 7,class: "Open"},
+        "#c0c0c0": {name: "Hill 4",height:4,los: true,cover: 7,class: "Open"},
+        "#d9d9d9": {name: "Hill 5",height:5,los: true,cover: 7,class: "Open"},
     
-        "#ffffff": {name: "Spire", height: 2,los: "Blocked",cover: false,move: "Impassable"}, 
-        "#00ffff": {name: "Stream", height: 0,los: "Open",cover: false,move: "Difficult"}, 
-        "#00ff00": {name: "Woods",height: 2,los: "Partial",cover: true,move: "Difficult"},
-        "#b6d7a8": {name: "Scrub",height: 2,los: "Open",cover: true,move: "Normal"},
-        "#9900ff": {name: "Ditch Hill",height: -1,los: "Open",cover: false,move: "Normal"},
-        "#fce5cd": {name: "Craters",height: 0,los: "Open",cover: true,move: "Difficult"},
+        "#ffffff": {name: "Spire", height: 2,los: false,cover: 7,class: "Impassable"}, 
+        "#00ff00": {name: "Woods",height: 2,los: false,cover: 5,class: "Obstructing"},
+        "#b6d7a8": {name: "Scrub",height: 0,los: true,cover: 6,class: "Difficult"},
+        "#fce5cd": {name: "Craters",height: 0,los: true,cover: 6,class: "Difficult"},
+        "#980000": {name: "Ruins",height: 2,los: false,cover: 5,class: "Obstructing"},
 
 
 
     };
 
-
+    //generally obstacles and such
     const MapTokenInfo = {
-        "Woods": {name: "Woods",height: 2,los: "Partial",cover: true,move: "Difficult"},
-        "Hedge": {name: "Hedge",height: 0,los: "Open",cover: true,move: "Normal"},
-        "Crops": {name: "Crops",height: 0,los: "Open",cover: true,move: "Normal"},
-        "Ruins": {name: "Ruins",height: 1,los: "Partial",cover: true,move: "Dangerous if Rush/Charge"},
-        "Wood Building A": {name: "Building",height: 1,los: "Blocked",cover: true,move: "Difficult"},
-        "Minefield": {name: "Minefield",height: 0,los: "Open",cover: false,move: "Dangerous"},
-        "Razorwire": {name: "Razorwire",height: 0,los: "Open",cover: false,move: "Dangerous for Infantry"},
-        "Drums": {name: "Storage Drums",height: .5,los: "Partial",cover: true,move:"Normal"},
+        "wall": {name: "Wall",height: 0,los: true,cover: 7,class: "Obstacle"},
+
+
+
     }
 
+
+
+
+
+
+    
 
     const simpleObj = (o) => {
         let p = JSON.parse(JSON.stringify(o));
@@ -476,8 +480,6 @@ const LI = (()=> {
             let radius = 1;
             let vertices = TokenVertices(token);
 
-            let defense = parseInt(attributeArray.defense);
-
             if (token.get("width") > 100 || token.get("height") > 100) {
                 size = "Large";
                 let w = token.get("width")/2;
@@ -487,7 +489,6 @@ const LI = (()=> {
 
             //weapons
             let weaponArray = [];
-            let wnames = [];
             let infoArray = [];
 
             for (let i=1;i<11;i++) {
@@ -495,11 +496,9 @@ const LI = (()=> {
                 let wequipped = attributeArray["weapon"+i+"equipped"];
                 if (wequipped !== "Equipped") {continue};
                 if (!wname || wname === "" || wname === undefined || wname === " ") {continue};
-                let wtype = attributeArray["weapon" + i + "type"];
-                let wrange = parseInt(attributeArray["weapon"+i+"range"]);
+          
                 
             }
-            wnames = wnames.toString();
 
             //update sheet with info
             let specials = attributeArray.special;
@@ -575,7 +574,6 @@ const LI = (()=> {
     
             this.token = token;
             this.weaponArray = weaponArray;
-            this.weapons = wnames;
            
             this.size = size;
             this.radius = radius;
@@ -587,21 +585,31 @@ const LI = (()=> {
             if (this.size === "Large") {
                 LargeTokens(this); 
             }
-            this.opponent = "";
-            this.specialsUsed = [];
+
+            let unit = UnitArray[this.unitID];
+            if (unit.modelIDs.includes(this.id) === false) {
+                unit.add(this);
+            }
+
+
+
+
         }
 
-        kill() {
-            
-        }
+
+
+
     }
 
     class Unit {
-        constructor(player,faction,unitID,unitName) {
+        constructor(faction,unitID,unitName,formationID) {
             if (!unitID) {
                 unitID = stringGen();
             }
+            let player = (TraitorForces.includes(faction)) ? 1:0;
+
             this.id = unitID;
+            this.formationID = formationID;
             this.name = unitName;
             this.modelIDs = [];
             this.player = player;
@@ -611,11 +619,17 @@ const LI = (()=> {
             this.hitArray = []; //used to track hits
             state.LI.modelCounts[this.id] = 0
             UnitArray[unitID] = this;
+            let info = {
+                name: unitName,
+                formationID: formationID,
+            }
+            state.LI.units[unitID] = info;
         }
 
         add(model) {
             if (this.modelIDs.includes(model.id) === false) {
-                if (model.token.get("aura1_color") === colours.green || model.type === "Hero") {
+//add COmmanders?
+                if (model.token.get("aura1_color") === colours.green) {
                     this.modelIDs.unshift(model.id);
                 } else {
                     this.modelIDs.push(model.id);
@@ -1132,7 +1146,7 @@ const LI = (()=> {
                 centre: centre,
                 height: t.height,
                 cover: t.cover,
-                move: t.move,
+                class: t.class,
                 los: t.los,
             };
             TerrainArray[id] = info;
@@ -1497,7 +1511,8 @@ const LI = (()=> {
             markers: [[],[]],
             turn: 0,
             lineArray: [],
-            modelCounts: {},
+            teams: {}, //teamIDs -> unitIDs
+            units: {}, //unitIDs -> names, formationIDs
             objectives: [],
             deployLines: [],
             mission: '1',
@@ -1521,7 +1536,56 @@ const LI = (()=> {
     }
 
     const UnitCreation = (msg) => {
-        
+        let Tag = msg.content.split(";");
+        let unitName = Tag[1];
+        let tokenIDs = [];
+        for (let i=0;i<msg.selected.length;i++) {
+            tokenIDs.push(msg.selected[i]._id);
+        }
+        if (tokenIDs.length === 0) {return};
+        let refToken = findObjs({_type:"graphic", id: tokenIDs[0]})[0];
+        let refChar = getObj("character", refToken.get("represents")); 
+        let faction = Attribute(refChar,"faction");
+
+        let unitID = stringGen();
+        let unit = new Unit(faction,unitID,unitName);
+        let markerNumber = state.LI.markers[player].length;
+        if (!markerNumber || markerNumber === 0) {
+            markerNumber = 1;   
+        } else {
+            markerNumber = randomInteger(markerNumber);
+            state.LI.markers[player].splice(markerNumber-1,1);
+        }
+        unit.symbol = UnitMarkers[markerNumber-1];
+        let unitInfo = unit.faction + ";" + unit.id + ";" + unit.name; 
+        for (let i=0;i<tokenIDs.length;i++) {
+            let tokenID = tokenIDs[i];
+            let model = new Model(tokenID,unitID,player);
+            model.token.set({
+                name: model.name,
+                tint_color: "transparent",
+                showplayers_bar1: true,
+                showname: true,
+                bar1_value: model.wounds,
+            })
+            if (model.wounds > 1) {
+                model.token.set("bar1_max",model.wounds);
+            }
+
+            model.token.set("statusmarkers","");
+            model.token.set("status_"+unit.symbol,true);
+        }
+
+        ModelArray[unit.modelIDs[0]].token.set({
+            aura1_color: colours.green,
+            aura1_radius: 0.2,
+        })
+        sendChat("",unitName + " Created");
+
+
+
+
+
     }
 
 
