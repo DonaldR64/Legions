@@ -6,6 +6,8 @@ const LI = (()=> {
     const rowLabels = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","AA","BB","CC","DD","EE","FF","GG","HH","II","JJ","KK","LL","MM","NN","OO","PP","QQ","RR","SS","TT","UU","VV","WW","XX","YY","ZZ","AAA","BBB","CCC","DDD","EEE","FFF","GGG","HHH","III","JJJ","KKK","LLL","MMM","NNN","OOO","PPP","QQQ","RRR","SSS","TTT","UUU","VVV","WWW","XXX","YYY","ZZZ"];
 
     let TerrainArray = {};
+    let edgeArray = [];
+
 
     let ModelArray = {}; //Individual Models, Tanks etc
     let UnitArray = {}; //Units of Models - Detachments
@@ -953,7 +955,6 @@ const LI = (()=> {
         outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
     }
 
-
     const LoadPage = () => {
         //build Page Info and flesh out Hex Info
         pageInfo.page = getObj('page', Campaign().get("playerpageid"));
@@ -961,6 +962,8 @@ const LI = (()=> {
         pageInfo.scale = pageInfo.page.get("snapping_increment");
         pageInfo.width = pageInfo.page.get("width") * 70;
         pageInfo.height = pageInfo.page.get("height") * 70;
+
+        pageInfo.page.set("gm_opacity",1);
 
         HexInfo.directions = {
             "Northeast": new Hex(1, -1, 0),
@@ -973,7 +976,6 @@ const LI = (()=> {
 
         let edges = findObjs({_pageid: Campaign().get("playerpageid"),_type: "path",layer: "map",stroke: "#d5a6bd",});
         let c = pageInfo.width/2;
-        let edgeArray = [];
         for (let i=0;i<edges.length;i++) {
             edgeArray.push(edges[i].get("left"));
         }
@@ -981,9 +983,15 @@ const LI = (()=> {
             sendChat("","Add Edge(s) to map and reload API");
             return;
         } else if (edgeArray.length === 1) {
-            EDGE = edgeArray[0];
-        } else if (edgeArray.length > 1) {
-            sendChat("","Error with > 1 edges, Fix and Reload API");
+            if (edgeArray[0] < c) {
+                edgeArray.push(pageInfo.width)
+            } else {
+                edgeArray.unshift(0);
+            }
+        } else if (edgeArray.length === 2) {
+            edgeArray.sort((a,b) => parseInt(a) - parseInt(b));
+        } else if (edgeArray.length > 2) {
+            sendChat("","Error with > 2 edges, Fix and Reload API");
             return
         }
     }
@@ -995,9 +1003,7 @@ const LI = (()=> {
         let halfToggleX = HexInfo.halfX;
         let rowLabelNum = 0;
         let columnLabel = 1;
-        //let xSpacing = 75.1985619844599;
-        //let ySpacing = 66.9658278242677;
-        let startX = 37.5992809922301;
+        let startX = xSpacing/2;
         let startY = 43.8658278242683;
 
         for (let j = startY; j <= pageInfo.height;j+=ySpacing){
@@ -1008,11 +1014,14 @@ const LI = (()=> {
                 let hexInfo = {
                     id: label,
                     centre: point,
-                    terrain: [],
-                    tokenIDs: [],
-                    elevation: 0, //modeld on hills
-                    los: "Open",
-                    cover: false,
+                    terrain: [], //array of names of terrain in hex
+                    terrainIDs: [], //used to see if tokens in same building or such
+                    buildingID: "",
+                    tokenIDs: [], //ids of tokens in hex
+                    elevation: 0, //based on hills, in metres
+                    height: 0, //height of top of terrain over elevation, in metres
+                    cover: 0,
+                    los: true,
                 };
                 hexMap[label] = hexInfo;
                 columnLabel += 2;
@@ -1022,28 +1031,25 @@ const LI = (()=> {
             rowLabelNum += 1;
             columnLabel = (columnLabel % 2 === 0) ? 1:2; //swaps odd and even
         }
-
+    
         BuildTerrainArray();
+
+        let taKeys = Object.keys(TerrainArray);
 
         let keys = Object.keys(hexMap);
         const burndown = () => {
             let key = keys.shift();
-            
             if (key){
                 let c = hexMap[key].centre;
-                if (c.x >= EDGE) {
+                if (c.x >= edgeArray[1] || c.x <= edgeArray[0]) {
                     //Offboard
                     hexMap[key].terrain = ["Offboard"];
                 } else {
-                    let elevation = hexMap[key].elevation;
-                    let height = hexMap[key].height;
-                    let los = hexMap[key].los;
-                    let cover = hexMap[key].cover;
-                    let taKeys = Object.keys(TerrainArray);
-                    let move = hexMap[key].move;
+                    let temp = DeepCopy(hexMap[key]);
                     for (let t=0;t<taKeys.length;t++) {
                         let polygon = TerrainArray[taKeys[t]];
-                        if (hexMap[key].terrain.includes(polygon.name)) {continue};
+                        if (!polygon) {continue};
+                        if (temp.terrain.includes(polygon.name)) {continue};
                         let check = false;
                         let pts = [];
                         pts.push(c);
@@ -1051,30 +1057,35 @@ const LI = (()=> {
                         let num = 0;
                         for (let i=0;i<5;i++) {
                             check = pointInPolygon(pts[i],polygon);
+                            if (i === 0 && check === true) {
+                                //centre pt is in hex, can skip rest
+                                num = 3;
+                                break;
+                            }
                             if (check === true) {num ++};
                         }
                         if (num > 2) {
-                            hexMap[key].terrain.push(polygon.name);
-                            hexMap[key].terrainIDs.push(polygon.id);
-                            if (polygon.los === "Blocked") {
-                                los = "Blocked";
-                            } else if (los !== "Blocked" && polygon.los === "Partial") {
-                                los = "Partial";
+                            temp.terrain.push(polygon.name);
+                            temp.terrainIDs.push(polygon.id);
+                            temp.cover = Math.max(temp.cover,polygon.cover);
+                            if (polygon.los === false) {
+                                temp.los = false;
                             }
-                            if (polygon.cover === true) {
-                                cover = true;
+                            if (polygon.cover > 2) {
+                                temp.buildingID = polygon.id;
                             }
                             if (polygon.name.includes("Hill")) {
-                                elevation = Math.max(elevation,polygon.height);
-                            } 
+                                temp.elevation = temp.elevation + polygon.height;
+                                temp.height = temp.height + polygon.height;
+                            } else {
+                                temp.height = Math.max(temp.height,polygon.height);
+                            };
                         };
                     };
-                    if (hexMap[key].terrain.length === 0) {
-                        hexMap[key].terrain.push("Open Ground");
+                    if (temp.terrain.length === 0) {
+                        temp.terrain.push("Open Ground");
                     }
-                    hexMap[key].elevation = elevation;
-                    hexMap[key].cover = cover;
-                    hexMap[key].los = los;
+                    hexMap[key] = temp;
                 }
                 setTimeout(burndown,0);
             }
@@ -1083,11 +1094,84 @@ const LI = (()=> {
 
         let elapsed = Date.now()-startTime;
         log("Hex Map Built in " + elapsed/1000 + " seconds");
-        //add tokens to hex map, rebuild Team/Unit Arrays
-        //RebuildArrays();
+        //add tokens to hex map, rebuild team/Unit Arrays
+        RebuildArrays();
     }
 
+    const BuildTerrainArray = () => {
+        TerrainArray = {};
+        //first look for graphic lines outlining hills etc
+        let paths = findObjs({_pageid: Campaign().get("playerpageid"),_type: "path",layer: "map"});
+        paths.forEach((pathObj) => {
+            let vertices = [];
+            toFront(pathObj);
+            let colour = pathObj.get("stroke").toLowerCase();
+            let t = TerrainInfo[colour];
+            if (!t) {return};  
+            let path = JSON.parse(pathObj.get("path"));
+            let centre = new Point(pathObj.get("left"), pathObj.get("top"));
+            let w = pathObj.get("width");
+            let h = pathObj.get("height");
+            let rot = pathObj.get("rotation");
+            let scaleX = pathObj.get("scaleX");
+            let scaleY = pathObj.get("scaleY");
+
+            //covert path vertices from relative coords to actual map coords
+            path.forEach((vert) => {
+                let tempPt = getAbsoluteControlPt(vert, centre, w, h, rot, scaleX, scaleY);
+                if (isNaN(tempPt.x) || isNaN(tempPt.y)) {return}
+                vertices.push(tempPt);            
+            });
+            let id = stringGen();
+            if (TerrainArray[id]) {
+                id += stringGen();
+            }
+
+            let info = {
+                name: t.name,
+                pathID: pathObj.id,
+                id: id,
+                vertices: vertices,
+                centre: centre,
+                height: t.height,
+                cover: t.cover,
+                move: t.move,
+                los: t.los,
+            };
+            TerrainArray[id] = info;
+        });
+        //add tokens on map eg woods, crops
+        let mta = findObjs({_pageid: Campaign().get("playerpageid"),_type: "graphic",_subtype: "token",layer: "map",});
+        mta.forEach((token) => {
+            let truncName = token.get("name").toLowerCase();
+            truncName = truncName.trim();
+            let t = MapTokenInfo[truncName];
+            if (!t) {
+                return;
+            };
+            let vertices = TokenVertices(token);
+            let centre = new Point(token.get('left'),token.get('top'));
+            let id = stringGen();
+            if (TerrainArray[id]) {
+                id += stringGen();
+            }
+            let info = {
+                name: t.name,
+                id: id,
+                vertices: vertices,
+                centre: centre,
+                height: t.height,
+                cover: t.cover,
+                move: t.move,
+                los: t.los,
+            };
+            TerrainArray[id] = info;
+        });
+    };
+
     const RebuildArrays = () => {
+        return
+        
         TeamArray = {};
         let startTime = Date.now();
         let tokenArray = findObjs({_pageid: Campaign().get("playerpageid"),_type: "graphic",_subtype: "token",layer: "objects",});
@@ -1112,73 +1196,6 @@ const LI = (()=> {
         let elapsed = Date.now()-startTime;
         log(tokenArray.length + " Teams added to array in " + elapsed/1000 + " seconds");
     }
-
-
-
-    const BuildTerrainArray = () => {
-        TerrainArray = {};
-        //first look for graphic lines outlining hills etc
-        let paths = findObjs({_pageid: Campaign().get("playerpageid"),_type: "path",layer: "map"});
-        paths.forEach((pathObj) => {
-            let vertices = [];
-            toFront(pathObj);
-            let colour = pathObj.get("stroke").toLowerCase();
-            let t = TerrainInfo[colour];
-            if (!t) {return};    
-            let path = JSON.parse(pathObj.get("path"));
-            let centre = new Point(pathObj.get("left"), pathObj.get("top"));
-            let w = pathObj.get("width");
-            let h = pathObj.get("height");
-            let rot = pathObj.get("rotation");
-            let scaleX = pathObj.get("scaleX");
-            let scaleY = pathObj.get("scaleY");
-
-            //covert path vertices from relative coords to actual map coords
-            path.forEach((vert) => {
-                let tempPt = getAbsoluteControlPt(vert, centre, w, h, rot, scaleX, scaleY);
-                if (isNaN(tempPt.x) || isNaN(tempPt.y)) {return}
-                vertices.push(tempPt);            
-            });
-            let id = stringGen();
-            if (TerrainArray[id]) {
-                id += stringGen();
-            }
-            let info = {
-                name: t.name,
-                id: id,
-                vertices: vertices,
-                centre: centre,
-                height: t.height,
-                cover: t.cover,
-                los: t.los,
-            };
-            TerrainArray[id] = info;
-        });
-        //add tokens on map eg woods, crops
-        let mta = findObjs({_pageid: Campaign().get("playerpageid"),_type: "graphic",_subtype: "token",layer: "map",});
-        mta.forEach((token) => {
-            let truncName = token.get("name").replace(/[0-9]/g, '');
-            truncName = truncName.trim();
-            let t = MapTokenInfo[truncName];
-            if (!t) {return};
-            let vertices = TokenVertices(token);
-            let centre = new Point(token.get('left'),token.get('top'));
-            let id = stringGen();
-            if (TerrainArray[id]) {
-                id += stringGen();
-            }
-            let info = {
-                name: t.name,
-                id: id,
-                vertices: vertices,
-                centre: centre,
-                height: t.height,
-                cover: t.cover,
-                los: t.los,
-            };
-            TerrainArray[id] = info;
-        });
-    };
 
     const modelHeight = (model) => {
         let hex = hexMap[model.hexLabel];
@@ -1436,55 +1453,7 @@ const LI = (()=> {
             let res = "/direct " + DisplayDice(roll,faction,40);
             sendChat("player|" + playerID,res);
         } else {
-            let type = Tag[1];
-            //type being used for times where fed back by another function
             
-
-
-
-
-
-
-
-            }
-            if (type === "Dangerous") {
-                let tokenID = Tag[2];
-                let model = ModelArray[tokenID];
-                let unit = UnitArray[model.unitID];
-                let rolls = [];
-                let fails = 0;
-                let wounds = parseInt(model.token.get("bar1_value"));
-                for (let i=0;i<model.toughness;i++) {
-                    let roll = randomInteger(6);
-                    rolls.push(roll);
-                    if (roll === 1) {fails += 1};
-                }
-                rolls.sort();
-                rolls.reverse();
-                let line = '[🎲](#" class="showtip" title="' + rolls + ')';
-
-                SetupCard(model.name,"Dangerous Terrain",model.nation);
-                wounds = Math.max(wounds - fails,0);
-                model.token.set("bar1_value",wounds);
-                if (fails === 0) {
-                    line += " " + model.name + " passes";
-                    if (rolls.length > 1) {
-                        line += " all " + rolls.length + " tests";
-                    }
-                } else {
-                    if (wounds === 0) {
-                        line += " [#ff0000]" + model.name + ' fails and is destroyed[/#]';
-                        model.kill();
-                    } else {
-                        let s = (wounds === 1) ? "":"s";
-                        line += " [#ff0000]" + model.name + ' takes ' + fails + ' wound' + s + ' but survives[/#]';
-                    }
-                }
-                outputCard.body.push(line);
-                PrintCard();
-            }
-
-
 
 
         }
@@ -2076,8 +2045,8 @@ const LI = (()=> {
     };
     const registerEventHandlers = () => {
         on('chat:message', handleInput);
-        on('change:graphic',changeGraphic);
-        on('destroy:graphic',destroyGraphic);
+        //on('change:graphic',changeGraphic);
+        //on('destroy:graphic',destroyGraphic);
     };
     on('ready', () => {
         log("===> Legions Imperialis Rules: " + rules + " <===");
