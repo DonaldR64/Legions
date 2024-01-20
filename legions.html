@@ -248,51 +248,39 @@
         });
     });
 
-    on("sheet:opened", function() { 
+    on("sheet:opened", function() {
+        setAttrs({sheetTab:"display"});
+    });
+
+    on("change:attrs sheet:opened", function() { 
         getAttrs(["faction","special"], function(values) {
             let faction = values.faction;
-            let special = values.special.split(",").trim();
+            let factionImage = "";
 
-            let factionImage,sideImage;
-            switch (faction) {
-                case 'Ultramarines':
-                    factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
-                    sideImage = "https://s3.amazonaws.com/files.d20.io/images/353910541/qTDBir-RF9CMfb_Bj4aMRw/thumb.png?1691543453";
-                    break;
-                case 'Blood Angels':
-                    factionImage = "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541";
-                    sideImage = "https://s3.amazonaws.com/files.d20.io/images/353910541/qTDBir-RF9CMfb_Bj4aMRw/thumb.png?1691543453";
-                    break;
-                case 'Deathguard':
-                    factionImage = "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406";
-                    sideImage = "https://s3.amazonaws.com/files.d20.io/images/353910386/0pN3w44koPbLgfGvNmqpwA/thumb.png?1691543378";
-                    break;
-                case 'Space Wolves':
-                    factionImage = "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748";
-                    sideImage = "https://s3.amazonaws.com/files.d20.io/images/353910541/qTDBir-RF9CMfb_Bj4aMRw/thumb.png?1691543453";
-                    break;
+            if (faction === "Ultramarines") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
             }
+            if (faction === "Blood Angels") {
+              factionImage = "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541";
+            }
+            if (faction === "Deathguard") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406";
+            } 
+            if (faction === "Space Wolves") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748";
+            }    
+        
 
-
-
-
-
-
+            let special = values.special;
+            special = special.split(",");
 
             setAttrs({
-                "sheetTab": "display",
                 "factionImage": factionImage,
-                "sideImage": sideImage,
                 "special0": special[0],
                 "special1": special[1],
                 "special2": special[2],
                 "special3": special[3],
                 "special4": special[4],
-                "special5": special[5],
-                "special6": special[6],
-                "special7": special[7],
-                "special8": special[8],
-                "special9": special[9],
             });
         });    
     }); 
