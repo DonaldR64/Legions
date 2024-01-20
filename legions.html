@@ -251,13 +251,15 @@
     on("sheet:opened", function() { 
         getAttrs(["faction","special"], function(values) {
             let faction = values.faction;
-            let factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
+            let special = values.special.split(",").trim();
+
+            let factionImage = "";
 
             if (faction === "Ultramarines") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
             }
             if (faction === "Blood Angels") {
-              factionImage = "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541";
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541";
             }
             if (faction === "Deathguard") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406";
@@ -265,10 +267,6 @@
             if (faction === "Space Wolves") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748";
             }    
-
-            let special = values.special;
-            special = special.split(",");
-            special = special.trim();
 
             setAttrs({
                 "sheetTab": "display",
