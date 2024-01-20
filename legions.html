@@ -248,11 +248,7 @@
         });
     });
 
-    on("sheet:opened", function() {
-        setAttrs({sheetTab:"display"});
-    });
-
-    on("change:attrs sheet:opened", function() { 
+    on("sheet:opened", function() { 
         getAttrs(["faction","special"], function(values) {
             let faction = values.faction;
             let factionImage = "";
@@ -275,6 +271,7 @@
             special = special.trim();
 
             setAttrs({
+                "sheetTab": "display",
                 "factionImage": factionImage,
                 "special0": special[0],
                 "special1": special[1],
