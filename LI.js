@@ -117,10 +117,10 @@ const LI = (()=> {
 
     };
 
-    //generally obstacles and such
+    //generally obstacles and such, maybe look at being able to burn woods
     const MapTokenInfo = {
         "wall": {name: "Wall",height: 0,los: true,cover: 7,class: "Obstacle"},
-
+        "woods": {name: "Woods",height: 2,los: false,cover: 5,class: "Obstructing"},
 
 
     }
@@ -146,6 +146,7 @@ const LI = (()=> {
     };
 
     const tokenImage = (img) => {
+        if (!img) {return};
         //modifies imgsrc to fit api's requirement for token
         img = getCleanImgSrc(img);
         img = img.replace("%3A", ":");
@@ -2005,7 +2006,21 @@ log(name)
                 }
                 state.LI.objectives.push(obj);
             } else if (findCommonElements(BuildingNames,name) === true) {
+                //reset buildings
                 let buildingModel = new Model(token.id);
+                let sides = token.get("sides").split("|");
+            log(buildingModel.hexLabel)
+            log(sides)
+                if (sides[0] !== "") {
+                    img = tokenImage(sides[0]);
+                    if (img) {
+                        token.set({
+                            currentSide: 0,
+                            imgsrc: img,
+                        });
+                    }
+                }
+
                 token.set({
                     bar1_value: buildingModel.wounds,
                     bar1_max: buildingModel.wounds,
@@ -2035,7 +2050,8 @@ log(name)
     }
     const PlaceTurnMarker = (num) => {
         let turnMarker = getCleanImgSrc(TurnMarkers[state.LI.turn]);        
-        let x = Math.floor(((pageInfo.width * num) + edgeArray[num]) / 2);
+        let alt = (num === 0) ? 1:0
+        let x = Math.floor(((pageInfo.width * alt) + edgeArray[alt]) / 2);
         let y = Math.floor((pageInfo.height/2));
         let newToken = createObj("graphic", {   
             left: x,
