@@ -1269,8 +1269,8 @@ const LI = (()=> {
     const modelHeight = (model) => {
         let hex = hexMap[model.hexLabel];
         let height = parseInt(hex.elevation);
-        if (hex.terrain.includes("Building")) {
-            height += parseInt(hex.toplevel);
+        if (hex.terrain.includes("Building") && model.type === "Infantry") {
+            height = parseInt(hex.height);
         }
         if (model.type === "Aircraft") {
             height = 20;
@@ -1706,19 +1706,26 @@ const LI = (()=> {
         let elevation = modelHeight(model);
         let cover = h.cover;
         let unit = UnitArray[model.unitID];
+        let save = parseInt(model.save);
 
         outputCard.body.push("Terrain: " + terrain);
-        if (cover === true) {
-            outputCard.body.push("In Cover");
-        } else {
-            outputCard.body.push("Not in Cover");
+        if (cover < 7) {
+            if (cover < save) {
+                outputCard.body.push("Cover Save: " + cover + "+");
+            } else {
+                outputCard.body.push("No Benefit from Cover Save");
+            }
         } 
-        outputCard.body.push("Elevation: " + elevation);
+        outputCard.body.push("Height: " + elevation);
         outputCard.body.push("[hr]");
         outputCard.body.push("Unit: " + unit.name);
         for (let i=0;i<unit.modelIDs.length;i++) {
             let m = ModelArray[unit.modelIDs[i]];
-            outputCard.body.push(m.name);
+            let name = m.name;
+            if (i===0) {
+                name += " (Leader)"
+            }
+            outputCard.body.push(name);
         }
         PrintCard();
     }
