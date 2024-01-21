@@ -34,8 +34,14 @@ const LI = (()=> {
 
     const TurnMarkers = ["","https://s3.amazonaws.com/files.d20.io/images/361055772/zDURNn_0bbTWmOVrwJc6YQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055766/UZPeb6ZiiUImrZoAS58gvQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055764/yXwGQcriDAP8FpzxvjqzTg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055768/7GFjIsnNuIBLrW_p65bjNQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055770/2WlTnUslDk0hpwr8zpZIOg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055771/P9DmGozXmdPuv4SWq6uDvw/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055765/V5oPsriRTHJQ7w3hHRBA3A/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055767/EOXU3ujXJz-NleWX33rcgA/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055769/925-C7XAEcQCOUVN1m1uvQ/thumb.png?1695998303"];
 
-    const sm = {
-        
+    const SM = {
+        fired: "status_Shell::5553215",
+        moved: "status_Advantage-or-Up::2006462", //if unit moved
+        fallback: "6534650::Fall-Back",
+        charge: "6534651::Charge",
+        firstfire: "6534652::First-Fire",
+        advance: "6534653::Advance",
+        march: "6534654::March",
     };
 
     let outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
@@ -555,13 +561,52 @@ const LI = (()=> {
             let weaponArray = [];
             let infoArray = [];
 
-            for (let i=1;i<11;i++) {
+            for (let i=1;i<6;i++) {
                 let wname = attributeArray["weapon"+i+"name"];
                 let wequipped = attributeArray["weapon"+i+"equipped"];
                 if (wequipped !== "Equipped") {continue};
                 if (!wname || wname === "" || wname === undefined || wname === " ") {continue};
-          
-                
+                let r = attributeArray["weapon"+i+"range"];
+                let minRange = 0;
+                let maxRange;
+                if (r === "Template") {
+                    maxRange = "Template";
+                } else if (r.includes("-")) {
+                    r = r.split("-")
+                    minRange = parseInt(r[0]);
+                    maxRange = parseInt(r[1]);
+                } else {
+                    maxRange= parseInt(r);
+                }
+                let dice = attributeArray["weapon"+i+"dice"];
+                let tohit = parseInt(attributeArray["weapon"+i+"tohit"]) || 0;
+                let ap = attributeArray["weapon"+i+"ap"] || 0;
+                if (ap !== "Special") {
+                    ap = parseInt(ap);
+                }
+                let traits = attributeArray["weapon"+i+"traits"] || " ";
+                let fx = attributeArray["weapon"+i+"fx"];
+                let sound = attributeArray["weapon"+i+"sound"];
+
+                let weapon = {
+                    name: wname,
+                    minRange: minRange,
+                    maxRange: maxRange,
+                    dice: dice,
+                    tohit: tohit,
+                    ap: ap,
+                    traits: traits,
+                    fx: fx,
+                    sound: sound,
+                }
+
+                weaponArray.push(weapon);
+
+                traits = traits.split(",");
+                _.each(traits,trait => {
+                    trait = trait.trim();
+                    infoArray.push(trait);
+                });
             }
 
             //update sheet with info
@@ -638,6 +683,11 @@ const LI = (()=> {
             this.special = special;
             this.wounds = wounds;
             this.token = token;
+
+            this.save = parseInt(attributeArray.save) || 7;
+            this.caf = parseInt(attributeArray.caf) || 0;
+            this.morale = parseInt(attributeArray.morale) || 0;
+
             this.weaponArray = weaponArray;
             this.buildingInfo = buildingInfo;
             this.size = size;
@@ -1792,6 +1842,11 @@ const LI = (()=> {
             if (unit) {
                 outputCard.body.push("[hr]");
                 outputCard.body.push("Unit: " + unit.name);
+                if (unit.order !== "") {
+                    outputCard.body.push("Order: " + unit.order);
+                } else {
+                    outputCard.body.push("No Order");
+                }
                 for (let i=0;i<unit.modelIDs.length;i++) {
                     let m = ModelArray[unit.modelIDs[i]];
                     let name = m.name;
@@ -2083,7 +2138,7 @@ log(name)
         })
     }
 
-    const Arc = (a,b) => { 
+    const Arc = (a,b) => { //which arc target b is in relative to shooter a
         let arc = "Front";
         let model1 = ModelArray[a];
         let model2 = ModelArray[b];
