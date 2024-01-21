@@ -111,7 +111,7 @@ const LI = (()=> {
         "#00ff00": {name: "Woods",height: 2,los: false,cover: 5,class: "Obstructing"},
         "#b6d7a8": {name: "Scrub",height: 0,los: true,cover: 6,class: "Difficult"},
         "#fce5cd": {name: "Craters",height: 0,los: true,cover: 6,class: "Difficult"},
-        "#980000": {name: "Ruins",height: 2,los: false,cover: 5,class: "Obstructing"},
+        "#980000": {name: "Ruins",height: 1,los: false,cover: 5,class: "Obstructing"},
 
 
 
@@ -121,16 +121,7 @@ const LI = (()=> {
     const MapTokenInfo = {
         "wall": {name: "Wall",height: 0,los: true,cover: 7,class: "Obstacle"},
         "woods": {name: "Woods",height: 2,los: false,cover: 5,class: "Obstructing"},
-
-
     }
-
-
-
-
-
-
-    
 
     const simpleObj = (o) => {
         let p = JSON.parse(JSON.stringify(o));
@@ -1135,12 +1126,11 @@ const LI = (()=> {
                     id: label,
                     centre: point,
                     terrain: [], //array of names of terrain in hex
-                    terrainIDs: [], //used to see if tokens in same building or such
-                    buildingID: "",
                     tokenIDs: [], //ids of tokens in hex
                     elevation: 0, //based on hills, in metres
                     height: 0, //height of top of terrain over elevation, in metres
-                    cover: 0,
+                    nonHillHeight: 0,//height of trees etc above hills
+                    cover: 7,
                     los: true,
                 };
                 hexMap[label] = hexInfo;
@@ -1186,19 +1176,16 @@ const LI = (()=> {
                         }
                         if (num > 2) {
                             temp.terrain.push(polygon.name);
-                            temp.terrainIDs.push(polygon.id);
-                            temp.cover = Math.max(temp.cover,polygon.cover);
+                            temp.cover = Math.min(temp.cover,polygon.cover);
                             if (polygon.los === false) {
                                 temp.los = false;
                             }
-                            if (polygon.cover > 2) {
-                                temp.buildingID = polygon.id;
-                            }
                             if (polygon.name.includes("Hill")) {
-                                temp.elevation = temp.elevation + polygon.height;
-                                temp.height = temp.height + polygon.height;
+                                temp.elevation = Math.max(temp.elevation,polygon.height);
+                                temp.height = Math.max(temp.height,(polygon.height + temp.nonHillHeight));
                             } else {
-                                temp.height = Math.max(temp.height,polygon.height);
+                                temp.nonHillHeight = Math.max(temp.nonHillHeight,polygon.height);
+                                temp.height = Math.max(temp.height,(temp.nonHillHeight + temp.elevation));
                             };
                         };
                     };
@@ -1261,7 +1248,7 @@ const LI = (()=> {
             TerrainArray[id] = info;
         });
         //add tokens on map eg woods, crops
-        let mta = findObjs({_pageid: Campaign().get("playerpageid"),_type: "graphic",_subtype: "token",layer: "map",});
+        let mta = findObjs({_pageid: Campaign().get("playerpageid"),_type: "graphic",_subtype: "token",layer: "map"});
         mta.forEach((token) => {
             let truncName = token.get("name").toLowerCase();
             truncName = truncName.trim();
@@ -1315,10 +1302,8 @@ const LI = (()=> {
                 let type = Attribute(char,"type");
                 if (type === "Building") {
                     model = new Model(token.id)
-
-
-
-
+//add back into terrain array, based on side
+                    AddBuilding(model);
                 }
 
 
@@ -1770,12 +1755,21 @@ const LI = (()=> {
 
         if (model.type === "Building") {
             SetupCard(model.name,"",faction);
-            outputCard.body.push("Wounds: " + model.token.get("bar1_value"));
-            outputCard.body.push("Height: " + model.buildingInfo.height);
-            outputCard.body.push("Armour Save: " + model.buildingInfo.armourSave + "+");
-            outputCard.body.push("Garrison Number: " + model.buildingInfo.garrisonNumber);
-            outputCard.body.push("CAF Bonus: +" + model.buildingInfo.cafBonus);
-            outputCard.body.push("Cover Save: " + model.buildingInfo.coverSave + "+");
+            let side = parseInt(model.token.get("currentSide"));
+            if (side === 0) {
+                outputCard.body.push("Wounds: " + model.token.get("bar1_value"));
+                outputCard.body.push("Height: " + model.buildingInfo.height);
+                outputCard.body.push("Armour Save: " + model.buildingInfo.armourSave + "+");
+                outputCard.body.push("Garrison Number: " + model.buildingInfo.garrisonNumber);
+                outputCard.body.push("CAF Bonus: +" + model.buildingInfo.cafBonus);
+                outputCard.body.push("Cover Save: " + model.buildingInfo.coverSave + "+");
+            } else {
+                outputCard.body.push("Building is in Ruins");
+                outputCard.body.push("Height: 1");
+                outputCard.body.push("Cover Save: 5+");
+            }
+
+
         } else if (model.type !== "System Unit" && model.type !== "Building") {
             SetupCard(model.name,"Hex: " + model.hexLabel,faction);
             let h = hexMap[model.hexLabel];
@@ -2009,8 +2003,6 @@ log(name)
                 //reset buildings
                 let buildingModel = new Model(token.id);
                 let sides = token.get("sides").split("|");
-            log(buildingModel.hexLabel)
-            log(sides)
                 if (sides[0] !== "") {
                     img = tokenImage(sides[0]);
                     if (img) {
@@ -2020,13 +2012,14 @@ log(name)
                         });
                     }
                 }
-
                 token.set({
                     bar1_value: buildingModel.wounds,
                     bar1_max: buildingModel.wounds,
                     lockMovement: true,
                     name: buildingModel.name,
                 });
+                toBack(token);
+                AddBuilding(buildingModel); //adds to map
             }
 
 
@@ -2067,6 +2060,28 @@ log(name)
         state.LI.turnMarkerIDs[num] = newToken.id;
     }
 
+    const AddBuilding = (model) => {
+        let hexes = model.largeHexList;
+        let side = parseInt(model.token.get("currentSide"));
+        let cover = model.buildingInfo.coverSave;
+        let height = model.height;
+        let name = model.name;
+        if (side > 0) {
+            name = "Ruins";
+            cover = 5;
+            height = 1;
+        } 
+    
+        _.each(hexes,hex => {
+            if (hexMap[hex.label()].terrain.includes(name) === false) {
+                hexMap[hex.label()].terrain.push(model.name);
+                hexMap[hex.label()].cover = cover;
+                hexMap[hex.label()].los = false;
+                hexMap[hex.label()].nonHillHeight = Math.max(hexMap[hex.label()].nonHillHeight,height);
+                hexMap[hex.label()].height = Math.max(hexMap[hex.label()].height,(hexMap[hex.label()].elevation + hexMap[hex.label()].nonHillHeight));
+            }
+        })
+    }
 
 
     const RemoveDead = (info) => {
@@ -2093,7 +2108,28 @@ log(name)
         if (tok.get('subtype') === "token") {
             let model = ModelArray[tok.id];
             if (!model) {return};
-            model.kill();
+            if (model.type === "Building") {
+                if (model.token.get("lockMovement") === true) {
+                    t = simpleObj(tok);
+                    delete t.id
+                    let sides = tok.get("sides").split("|");
+                    let side = tok.get("currentSide") || 0;
+                    if (sides[side] !== "") {
+                        img = tokenImage(sides[side]);
+                        if (img) {
+                            t.imgsrc = img;
+                            t.currentSide = side;
+                        }
+                    }
+                    newTok = createObj('graphic',t);
+                    delete ModelArray[tok.id];
+                    new Model(newTok.id);
+                }
+
+            } else if (model.type !== "System Unit" && model.type !== "Building") {
+                            //model.kill();
+
+            }            
         }
     }
 
@@ -2333,7 +2369,7 @@ log(name)
     const registerEventHandlers = () => {
         on('chat:message', handleInput);
         //on('change:graphic',changeGraphic);
-        //on('destroy:graphic',destroyGraphic);
+        on('destroy:graphic',destroyGraphic);
     };
     on('ready', () => {
         log("===> Legions Imperialis Rules: " + rules + " <===");
