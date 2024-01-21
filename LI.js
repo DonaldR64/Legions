@@ -9,6 +9,7 @@ const LI = (()=> {
     let edgeArray = [];
 
     let TraitorForces = ["Deathguard"];
+    let BuildingNames = ["Civitas","Militas","Imperialis","Grandus","Fortification"];
 
     let ModelArray = {}; //Individual Models, Tanks etc
     let UnitArray = {}; //Units of Models - Detachments
@@ -480,20 +481,68 @@ const LI = (()=> {
             let attributeArray = AttributeArray(char.id);
             let faction = attributeArray.faction;
             let player = (TraitorForces.includes(faction)) ? 1:0;
+            let type = attributeArray.type;
+            let buildingInfo;
+            let wounds = parseInt(attributeArray.wounds) || 1;
 
-            if (!state.LI.models[tokenID]) {
-                name = Naming(char.get("name"),faction);
-                state.LI.models[tokenID] = {
-                    unitID: unitID,
-                    formationID: formationID,
-                    faction: faction,
+            if (!faction) {
+                faction = "Neutral";
+                player = 2;
+            }
+            if (type !== "Building" && type !== "System Unit") {
+                if (!state.LI.models[tokenID]) {
+                    name = Naming(char.get("name"),faction);
+                    state.LI.models[tokenID] = {
+                        unitID: unitID,
+                        formationID: formationID,
+                        faction: faction,
+                    }
+                } else {
+                    unitID = state.LI.models[tokenID].unitID;
+                    formationID = state.LI.models[tokenID].formationID;
                 }
             } else {
-                unitID = state.LI.models[tokenID].unitID;
-                formationID = state.LI.models[tokenID].formationID;
+                let height = char.get("name").replace(/\D/g,'');
+                let as,gn,w,caf,save;
+                if (name.includes("Militas")) {
+                    name = "Militas Imperialis";
+                    as = 3;
+                    gn = 2;
+                    wounds = 3;
+                    caf = 3;
+                    save = 4;
+                } else if (name.includes("Grandus")){
+                    name = "Imperialis Grandus";
+                    as = 4;
+                    gn = 3;
+                    wounds = 2;
+                    caf = 2;
+                    save = 4;
+                } else if (name.includes("Fortification")) {
+                    name = "Fortification";
+                    as = 2;
+                    gn = 1;
+                    wounds = 2;
+                    caf = 3;
+                    save = 3;
+                } else {
+                    name = "Civitas Imperialis";
+                    as = 5;
+                    gn = 1;
+                    wounds = 2;
+                    caf = 2;
+                    save = 4;
+                }
+                buildingInfo = {
+                    height: height,
+                    armourSave: as,
+                    garrisonNumber: gn,
+                    cafBonus: caf,
+                    coverSave: save,
+                }
+
             }
 
-            let type = attributeArray.type;
             let location = new Point(token.get("left"),token.get("top"));
             let hex = pointToHex(location);
             let hexLabel = hex.label();
@@ -595,10 +644,10 @@ const LI = (()=> {
             this.hexLabel = hexLabel;
             this.startHex = hex;
             this.special = special;
-            this.wounds = parseInt(attributeArray.wounds) || 1;
+            this.wounds = wounds;
             this.token = token;
             this.weaponArray = weaponArray;
-           
+            this.buildingInfo = buildingInfo;
             this.size = size;
             this.radius = radius;
             this.vertices = vertices;
@@ -611,7 +660,9 @@ const LI = (()=> {
             ModelArray[tokenID] = this;
 
             let unit = UnitArray[this.unitID];
-            unit.add(this);
+            if (unit) {
+                unit.add(this);
+            }
         }
 
 
@@ -1260,6 +1311,18 @@ const LI = (()=> {
                     }
                     model = new Model(token.id,unit.id,formation.id);
                 }
+                let type = Attribute(char,"type");
+                if (type === "Building") {
+                    model = new Model(token.id)
+
+
+
+
+                }
+
+
+
+
             }
         });
         let elapsed = Date.now()-startTime;
@@ -1557,11 +1620,14 @@ const LI = (()=> {
                 gmnotes: "",
                 statusmarkers: "",
                 tooltip: "",
+                lockMovement: false,
             });                
         });
     
         RemoveDead("All");
         RemoveDepLines();
+
+        let tmID = (edgeArray[0] === 0) ? [""]:["",""];
 
         state.LI = {
             players: {}, //keyed by playerID, shows which side
@@ -1574,7 +1640,8 @@ const LI = (()=> {
             objectives: [],
             deployLines: [],
             mission: '1',
-            turnMarkerID: "",
+            turnMarkerIDs: tmID,
+            buildings: {},
         }
         for (let i=0;i<UnitMarkers.length;i++) {
             state.LI.markers[0].push(i);
@@ -1699,33 +1766,48 @@ const LI = (()=> {
         };
         let faction = model.faction;
         if (!faction) {faction = "Neutral"};
-        SetupCard(model.name,"Hex: " + model.hexLabel,faction);
-        let h = hexMap[model.hexLabel];
-        let terrain = h.terrain;
-        terrain = terrain.toString();
-        let elevation = modelHeight(model);
-        let cover = h.cover;
-        let unit = UnitArray[model.unitID];
-        let save = parseInt(model.save);
 
-        outputCard.body.push("Terrain: " + terrain);
-        if (cover < 7) {
-            if (cover < save) {
-                outputCard.body.push("Cover Save: " + cover + "+");
-            } else {
-                outputCard.body.push("No Benefit from Cover Save");
+        if (model.type === "Building") {
+            SetupCard(model.name,"",faction);
+            outputCard.body.push("Wounds: " + model.token.get("bar1_value"));
+            outputCard.body.push("Height: " + model.buildingInfo.height);
+            outputCard.body.push("Armour Save: " + model.buildingInfo.armourSave + "+");
+            outputCard.body.push("Garrison Number: " + model.buildingInfo.garrisonNumber);
+            outputCard.body.push("CAF Bonus: +" + model.buildingInfo.cafBonus);
+            outputCard.body.push("Cover Save: " + model.buildingInfo.coverSave + "+");
+        } else if (model.type !== "System Unit" && model.type !== "Building") {
+            SetupCard(model.name,"Hex: " + model.hexLabel,faction);
+            let h = hexMap[model.hexLabel];
+            let terrain = h.terrain;
+            terrain = terrain.toString();
+            let elevation = modelHeight(model);
+            let cover = h.cover;
+            let unit = UnitArray[model.unitID];
+            let save = parseInt(model.save);
+    
+            outputCard.body.push("Terrain: " + terrain);
+            if (cover < 7) {
+                if (cover < save) {
+                    outputCard.body.push("Cover Save: " + cover + "+");
+                } else {
+                    outputCard.body.push("No Benefit from Cover Save");
+                }
+            } 
+            outputCard.body.push("Height: " + elevation);
+            if (unit) {
+                outputCard.body.push("[hr]");
+                outputCard.body.push("Unit: " + unit.name);
+                for (let i=0;i<unit.modelIDs.length;i++) {
+                    let m = ModelArray[unit.modelIDs[i]];
+                    let name = m.name;
+                    if (i===0) {
+                        name += " (Leader)"
+                    }
+                    outputCard.body.push(name);
+                }
             }
-        } 
-        outputCard.body.push("Height: " + elevation);
-        outputCard.body.push("[hr]");
-        outputCard.body.push("Unit: " + unit.name);
-        for (let i=0;i<unit.modelIDs.length;i++) {
-            let m = ModelArray[unit.modelIDs[i]];
-            let name = m.name;
-            if (i===0) {
-                name += " (Leader)"
-            }
-            outputCard.body.push(name);
+
+
         }
         PrintCard();
     }
@@ -1888,7 +1970,9 @@ const LI = (()=> {
         });
         for (let i=0;i<tokens.length;i++) {
             let token = tokens[i];
-            let name = token.get("name");
+            let char = getObj("character", token.get("represents"));
+            let name = char.get("name").split(" ");
+log(name)
             if (name.includes("Objective")) {
                 sides = [];
                 for (let i=0;i<2;i++) {
@@ -1920,21 +2004,38 @@ const LI = (()=> {
                     hex: hex,
                 }
                 state.LI.objectives.push(obj);
+            } else if (findCommonElements(BuildingNames,name) === true) {
+                let buildingModel = new Model(token.id);
+                token.set({
+                    bar1_value: buildingModel.wounds,
+                    bar1_max: buildingModel.wounds,
+                    lockMovement: true,
+                    name: buildingModel.name,
+                });
             }
 
 
 
         }
         state.LI.turn = 1;
-        PlaceTurnMarker();
+        let tmIDs = state.LI.turnMarkerIDs;
+        for (let i=0;i<tmIDs.length;i++) {
+            let tmID = tmIDs[i];
+            let turnMarker = findObjs({_type:"graphic", id: tmID})[0];
+            if (!turnMarker) {
+                PlaceTurnMarker(i);
+            } else {
+                let newImg = getCleanImgSrc(TurnMarkers[state.LI.turn]);
+                turnMarker.set("imgsrc",newImg);
+            }
+        }        
         SetupCard("Turn 1","","Neutral");
-        outputCard.body.push("The Player that Deployed First takes the first Activation");
+        outputCard.body.push("Start Game Placeholder");
         PrintCard();
     }
-
-    const PlaceTurnMarker = () => {
+    const PlaceTurnMarker = (num) => {
         let turnMarker = getCleanImgSrc(TurnMarkers[state.LI.turn]);        
-        let x = Math.floor((pageInfo.width + EDGE) / 2);
+        let x = Math.floor(((pageInfo.width * num) + edgeArray[num]) / 2);
         let y = Math.floor((pageInfo.height/2));
         let newToken = createObj("graphic", {   
             left: x,
@@ -1947,7 +2048,7 @@ const LI = (()=> {
             layer: "map",
         });
         toFront(newToken);
-        state.LI.turnMarkerID = newToken.id;
+        state.LI.turnMarkerIDs[num] = newToken.id;
     }
 
 
