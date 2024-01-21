@@ -474,7 +474,7 @@ const LI = (()=> {
     class Model {
         constructor(tokenID,unitID,formationID){
             let token = findObjs({_type:"graphic", id: tokenID})[0];
-            let name;
+            let name = token.get("name");
             let hp = parseInt(token.get("bar1_value"));
             let char = getObj("character", token.get("represents")); 
             let attributeArray = AttributeArray(char.id);
@@ -484,12 +484,11 @@ const LI = (()=> {
             if (!state.LI.models[tokenID]) {
                 name = Naming(char.get("name"),faction);
                 state.LI.models[tokenID] = {
-                    name: name,
                     unitID: unitID,
                     formationID: formationID,
+                    faction: faction,
                 }
             } else {
-                name = state.LI.models[tokenID].name;
                 unitID = state.LI.models[tokenID].unitID;
                 formationID = state.LI.models[tokenID].formationID;
             }
@@ -605,18 +604,14 @@ const LI = (()=> {
             this.vertices = vertices;
             this.large = large;
             this.largeHexList = []; //hexes that have parts of larger token, mainly for LOS 
-            ModelArray[tokenID] = this;
             hexMap[hexLabel].tokenIDs.push(token.id);
             if (this.large === true) {
                 LargeTokens(this); 
             }
+            ModelArray[tokenID] = this;
 
             let unit = UnitArray[this.unitID];
             unit.add(this);
-
-
-
-
         }
 
 
@@ -645,9 +640,11 @@ const LI = (()=> {
             this.player = player;
             this.faction = faction;
             this.order = "";
-            
             this.hitArray = []; //used to track hits
             UnitArray[unitID] = this;
+
+            let formation = FormationArray[this.formationID];
+            formation.add(this);
         }
 
         add(model) {
@@ -1241,26 +1238,27 @@ const LI = (()=> {
     };
 
     const RebuildArrays = () => {
-        return
-        
+        FormationArray = {}
+        UnitArray = {};
         TeamArray = {};
         let startTime = Date.now();
         let tokenArray = findObjs({_pageid: Campaign().get("playerpageid"),_type: "graphic",_subtype: "token",layer: "objects",});
         _.each(tokenArray,token => {
             let char = getObj("character", token.get("represents")); 
+            let unitID,formationID;
             if (char) {
-                let nation = Attribute(char,"nation");
-                let unitID = state.LI.teams[token.id];
-                if (unitID) {
-                    let unit = UnitArray[unitID];
-                    let info = state.LI.units[unitID];
-                    if (!info || !unit) {
-                        let unitName = info.name;
-                        let fullStrength = info.fullStrength;
-                        unit = new Unit(unitName,unitID,nation,fullStrength);
+                let modelInfo = state.LI.models[token.id];
+                let formation,unit,model;
+                if (modelInfo) {
+                    formation = FormationArray[modelInfo.formationID];
+                    if (!formation) {
+                        formation = new Formation(modelInfo.faction,modelInfo.formationID);
                     }
-                    let team = new Team(token.id);
-                    unit.add(team);
+                    unit = UnitArray[modelInfo.unitID];
+                    if (!unit) {
+                        unit = new Unit(modelInfo.faction,modelInfo.unitID);
+                    }
+                    model = new Model(token.id,unit.id,formation.id);
                 }
             }
         });
