@@ -405,7 +405,7 @@ const LI = (()=> {
             var b_nudge = new Hex(b.q + 1e-06, b.r + 1e-06, b.s - 2e-06);
             var results = [];
             var step = 1.0 / Math.max(N, 1);
-            for (var i = 0; i < N; i++) {
+            for (var i = 0; i <= N; i++) {
                 results.push(a_nudge.lerp(b_nudge, step * i).round());
             }
             return results;
@@ -851,8 +851,11 @@ const LI = (()=> {
             }
         }
         closestDist -= 1; //as its distance between bases
+        let arc = Arc(model1,model2);
+
         let info = {
             distance: closestDist,
+            arc: arc,
             hex1: closestHex1,
             hex2: closestHex2,
         }
@@ -1182,6 +1185,7 @@ const LI = (()=> {
                     nonHillHeight: 0,//height of trees etc above hills
                     cover: 7,
                     los: true,
+                    obstructingTerrain: false,
                 };
                 hexMap[label] = hexInfo;
                 columnLabel += 2;
@@ -1229,6 +1233,9 @@ const LI = (()=> {
                             temp.cover = Math.min(temp.cover,polygon.cover);
                             if (polygon.los === false) {
                                 temp.los = false;
+                            }
+                            if (polygon.class === "Obstructing") {
+                                temp.obstructingTerrain = true;
                             }
                             if (polygon.name.includes("Hill")) {
                                 temp.elevation = Math.max(temp.elevation,polygon.height);
@@ -1382,94 +1389,53 @@ const LI = (()=> {
         let model1 = ModelArray[id1];
         let unit1 = UnitArray[model1.unitID];
         let model2 = ModelArray[id2];
-        let cover = false;
-        let losCover = false;
+        let los = true;
 
         if (!model1 || !model2) {
             let info = (!model1) ? "Model 1":"Model2";
             sendChat("",info + " is not in Model Array");
             let result = {
-                los: false,
-                cover: false,
-                losCover: false,
-                distance: -1,
-                phi: 0,
+                
             }
             return result
         }
 
         let md = ModelDistance(model1,model2);
-
+        let arc = md.arc;
         let distanceT1T2 = md.distance;
         
-        if (model2.type === "Aircraft") {
-            distanceT1T2 += 12;
+        let model1Hex = hexMap[model1.hexLabel];
+        let model2Hex = hexMap[model2.hexLabel];
+        let cover = model2Hex.cover;
+
+        if (model1.special.includes("Flyer") || model2.special.includes("Flyer")) {
+            if (model2.special.includes("Flyer")) {
+                cover = 7
+            }
             let result = {
-                los: true,
-                cover: false,
-                losCover: false,
                 distance: distanceT1T2,
-                phi: 0,
+                arc: arc,
+                los: los,
+                cover: cover,
             }
             return result;
         }
-        let los = true;
-
-        let model1Hex = hexMap[model1.hexLabel];
-        let model2Hex = hexMap[model2.hexLabel];
-        cover = model2Hex.cover;
 
         let model1Height = modelHeight(model1);
         let model2Height = modelHeight(model2);
-        if (model1.special.includes("Tall")) {
-            let index = model1.special.indexOf("Tall");
-            let X = parseInt(model1.special.charAt(index + 5));
-            model1Height += X;
-        }
-        if (model2.special.includes("Tall")) {
-            let index = model2.special.indexOf("Tall");
-            let X = parseInt(model2.special.charAt(index + 5));
-            model2Height += X;
-        }
-//log("Team1 H: " + model1Height)
-//log("Team2 H: " + model2Height)
+      
+log("Team1 H: " + model1Height)
+log("Team2 H: " + model2Height)
         let modelLevel = Math.min(model1Height,model2Height);
         model1Height -= modelLevel;
         model2Height -= modelLevel;
 
         let interHexes = md.hex1.linedraw(md.hex2); 
-        //interHexes will be hexes between shooter and target, not including their hexes or closest hexes for large tokens
-
-        let theta = model1.hex.angle(model2.hex);
-        let phi = Angle(theta - model1.token.get('rotation')); //angle from shooter to target taking into account shooters direction
-//log("Model: " + modelLevel)
-        let sameTerrain = findCommonElements(model1Hex.terrainIDs,model2Hex.terrainIDs);
+        //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
         let lastElevation = model1Height;
+        let openFlag = model1Hex.obstructingTerrain;
 
-        if (sameTerrain === true && (model1Hex.los === "Partial" || model1Hex.los === "Blocked")) {
-//log("In Same Terrain but Distance > 4")
-            if (distanceT1T2 > 3) {
-                let result = {
-                    los: false,
-                    cover: false,
-                    losCover: false,
-                    distance: -1,
-                    phi: 0,
-                }
-                return result;
-            }
-        }
-
-
-        let openFlag = (model1Hex.los === "Open") ? true:false;
-        let partialHexes = 0;
-        let partialFlag = false;
-        if (model1Hex.los === "Partial") {
-            partialFlag = true;
-            partialHexes++;
-        }
-//log("Initial Open Flag: " + openFlag);
-//log("Initial Partial Flag: " + partialFlag);
+log("Initial Open Flag: " + openFlag);
         for (let i=1;i<interHexes.length;i++) {
             //0 is tokens own hex
             let qrs = interHexes[i];
@@ -1483,7 +1449,7 @@ const LI = (()=> {
                         if (model1.type === "Vehicle" && ModelArray[id].type !== "Vehicle" && i < (distanceT1T2 - i)) {
                             continue;
                         }
-//log("Blocked by another model")
+log("Blocked by another model")
                         let result = {
                             los: false,
                             cover: false,
@@ -2132,16 +2098,15 @@ log(name)
                 hexMap[hex.label()].terrain.push(model.name);
                 hexMap[hex.label()].cover = cover;
                 hexMap[hex.label()].los = false;
+                hexMap[hex.label()].obstructingTerrain = true;
                 hexMap[hex.label()].nonHillHeight = Math.max(hexMap[hex.label()].nonHillHeight,height);
                 hexMap[hex.label()].height = Math.max(hexMap[hex.label()].height,(hexMap[hex.label()].elevation + hexMap[hex.label()].nonHillHeight));
             }
         })
     }
 
-    const Arc = (a,b) => { //which arc target b is in relative to shooter a
+    const Arc = (model1,model2) => { //which arc target b is in relative to shooter a
         let arc = "Front";
-        let model1 = ModelArray[a];
-        let model2 = ModelArray[b];
         let alpha = model1.hex.angle(model2.hex); //angle from shooter to target
         let beta = Angle(model1.token.get("rotation")); //rotational angle of shooter
         let theta = Angle(alpha - beta);
@@ -2199,7 +2164,15 @@ log(name)
     }
 
     const CheckLOS = (msg) => {
-        
+        let Tag = msg.content.split(";");
+        let shooter = Tag[1];
+        let target = Tag[2];
+        let checkLOS = LOS(shooter,target);
+
+
+
+
+
     }
 
     const DeploymentZones = () => {
