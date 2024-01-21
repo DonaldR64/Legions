@@ -1373,6 +1373,9 @@ const LI = (()=> {
     }
 
     const modelHeight = (model) => {
+        //modify based on model size
+
+
         let hex = hexMap[model.hexLabel];
         let height = parseInt(hex.elevation);
         if (hex.terrain.includes("Building") && model.type === "Infantry") {
@@ -1407,6 +1410,7 @@ const LI = (()=> {
         let model1Hex = hexMap[model1.hexLabel];
         let model2Hex = hexMap[model2.hexLabel];
         let cover = model2Hex.cover;
+        let losReason = "";
 
         if (model1.special.includes("Flyer") || model2.special.includes("Flyer")) {
             if (model2.special.includes("Flyer")) {
@@ -1417,6 +1421,7 @@ const LI = (()=> {
                 arc: arc,
                 los: los,
                 cover: cover,
+                losReason: losReason,
             }
             return result;
         }
@@ -1433,127 +1438,90 @@ log("Team2 H: " + model2Height)
         let interHexes = md.hex1.linedraw(md.hex2); 
         //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
         let lastElevation = model1Height;
-        let openFlag = model1Hex.obstructingTerrain;
+        let solidFlag = model1Hex.obstructingTerrain;
 
-log("Initial Open Flag: " + openFlag);
-        for (let i=1;i<interHexes.length;i++) {
-            //0 is tokens own hex
+log("Initial Flag: " + solidFlag);
+            
+        losloop1:
+        for (let i=0;i<interHexes.length;i++) {
             let qrs = interHexes[i];
-            let interHex = hexMap[qrs.label()];
-            if (interHex.tokenIDs.length > 0) {
-                let ids = interHex.tokenIDs;
-                for (let j=0;j<ids.length;j++) {
-                    let id = ids[j];
-                    if (unit1.modelIDs.includes(id) === false) {
-                        if (id === id2 || id === id1) {continue};
-                        if (model1.type === "Vehicle" && ModelArray[id].type !== "Vehicle" && i < (distanceT1T2 - i)) {
-                            continue;
-                        }
-log("Blocked by another model")
-                        let result = {
-                            los: false,
-                            cover: false,
-                            losCover: false,
-                            distance: -1,
-                            phi: 0,
-                        }
-                        return result;
-                    }
-                }
-            }
+            let qrsLabel = qrs.label();
+            let interHex = hexMap[qrsLabel];
+        log(i + ": " + qrsLabel)
+        log(interHex.terrain)
 
-            if (interHex.cover === true) {
-                losCover = true;
-            };
-//log(i + ": " + qrs.label());
-//log(interHex.terrain);
-//log("Cover: " + interHex.cover);
-//log("Blocks LOS? " + interHex.los)
-            let interHexElevation = parseInt(interHex.elevation) - modelLevel
-            let interHexHeight = parseInt(interHex.height);
-            let B; //max height of intervening hex terrain to be seen over
+            let interHexElevation = parseInt(interHex.elevation) - modelLevel;
+            let interHexHeight = parseInt(interHex.height) - modelLevel;
+            let B;
             if (model1Height > model2Height) {
                 B = (distanceT1T2 - i) * model1Height / distanceT1T2;
             } else if (model1Height <= model2Height) {
                 B = i * model2Height / distanceT1T2;
             }
-//log("InterHex Height: " + interHexHeight);
-//log("InterHex Elevation: " + interHexElevation);
-//log("Last Elevation: " + lastElevation);
-//log("B: " + B)
-            if (interHexElevation < lastElevation && lastElevation > model1Height && lastElevation > model2Height) {
-//log("Intervening Higher Terrain");
-                los = false;
-                break;
-            }            
-            lastElevation = interHexElevation;
+        log("InterHex Height: " + interHexHeight);
+        log("InterHex Elevation: " + interHexElevation);
+        log("Last Elevation: " + lastElevation);
+        log("B: " + B)
 
-            if (interHexHeight + interHexElevation >= B) {
-                if (interHex.los === "Blocked" && i>1 && i<(interHexes.length - 1)) {
-//log("Intervening LOS Blocking Terrain");
-                    los = false;
-                    break;
-                } else if (interHex.los === "Partial") {
-                    partialHexes++;
-                    partialFlag = true;
-//log("Partial Hexes: " + partialHexes)
-                    if (partialHexes > 3) {
-//log("Too Deep into Partial ")
-                        los = false;
-                        break;
-                    }
-                } else if (interHex.los === "Open") {
-                    if (openFlag === false) {
-                        openFlag = true;
-                        partialHexes = 0;
-                        partialFlag = false;
-                    } else if (openFlag === true) {
-                        if (partialFlag === true) {
-//log("Other side of Partial LOS Blocking Terrain")
+            if (interHexElevation < lastElevation && lastElevation > model1Height && lastElevation > model2Height) {
+                los = false;
+                losReason = "Terrain Drops Off";
+                break losloop1;
+            }         
+
+            //check for something in way
+            if (interHex.tokenIDs.length > 0) {
+                let id3s = interHex.tokenIDs;
+                for (let i=0;i<id3s.length;i++) {
+                    let id3 = id3s[i];
+                    if (id3 === id1 || id3 === id2) {continue};
+                    let model3 = ModelArray[id3];
+        log(team3.name)
+                    if (model3.unitID === model1.unitID || model3.unitID === model2.unitID) {continue};
+                    let model3Height = modelHeight(model3) - modelLevel;
+        log(model3Height)
+                    if (interHexElevation + interHexHeight + model3Height >= B) {
+                        if (model3.type.includes("Vehicle") || model3.type === "Titan") {
                             los = false;
-                            break;
+                            losReason = "LOS blocked by Vehicle or Friendly";
+                            break losloop1;
                         }
-                    }
-                } 
-            } else {
-//log("Terrain less than B")
-                //treated as open as looking into empty space above terrain
-                if (openFlag === false) {
-                    openFlag = true;
-                    partialHexes = 0;
-                    partialFlag = false;
-                } else if (openFlag === true) {
-                    if (partialFlag === true) {
-//log("Other side of Partial LOS Blocking Terrain")
-                        los = false;
-                        break;
                     }
                 }
             }
-//log("Open Flag: " + openFlag)
-//log("Partial Flag: " + partialFlag)
-//log("Cover at Hex: " + cover)
-        }
-        if (model2Height < lastElevation && lastElevation > model1Height && lastElevation > model2Height) {
-//log("Intervening Higher Terrain")
-            los = false;
-        }   
+            
+            if (interHexHeight + interHexElevation >= B && i > 0) {
+        log("LOS goes through Terrain")
+                if (interHex.los === false) {
+                    
+                }
+        log("Solid Flag: " + solidFlag)
+                if (interHex.los === true && solidFlag === true) {
+                    los = false;
+                    losReason = "LOS Blocked by Cover";
+                    break losloop1;
+                }
+                if (solidHexes > 6) {
+                    los = false;
+                    losReason = "Too Deep into Terrain";
+                    break losloop1;
+                }
+            } else if (i==0) {
+        //log("i === 0")
+            } else {
+        log("Overloooks")
+            }
 
-        if (model2Hex.los === "Partial" && partialHexes > 3) {
-//log("Too Deep into Partial ")
-            los = false;
+            lastElevation = interHexElevation;
+
         }
-        if (model2Hex.los === "Open" && partialFlag === true) {
-//log("Other side of Partial LOS Blocking Terrain")
-            los = false;
-        }
-    
+
         let result = {
+            distance: distanceT1T2,
+            arc: arc,
             los: los,
             cover: cover,
-            losCover: losCover,
-            distance: distanceT1T2,
-            angle: phi,
+            losReason: losReason,
         }
         return result;
     }
