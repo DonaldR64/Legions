@@ -1573,7 +1573,7 @@ const LI = (()=> {
                         let tok = findObjs({_type:"graphic", id: id})[0];
                         let char = getObj("character", tok.get("represents")); 
                         faction = Attribute(char,"faction");
-                        let side = (TraitorForces.includes(faction)) ? "Traitor":"Loyalist";
+                        side = (TraitorForces.includes(faction)) ? "Traitor":"Loyalist";
                         state.LI.players[playerID] = side;
                     }
                 } else {
