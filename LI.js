@@ -2083,6 +2083,16 @@ log(name)
         })
     }
 
+    const Arc = (a,b) => { 
+        let arc = "Front";
+        let model1 = ModelArray[a];
+        let model2 = ModelArray[b];
+        let alpha = model1.hex.angle(model2.hex); //angle from shooter to target
+        let beta = Angle(model1.token.get("rotation")); //rotational angle of shooter
+        let theta = Angle(alpha - beta);
+        if (theta > 90 && theta < 270) {arc = "Rear"};
+        return arc;
+    }
 
     const RemoveDead = (info) => {
         let tokens = findObjs({
