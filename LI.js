@@ -1411,7 +1411,6 @@ const LI = (()=> {
                 hexMap[hexLabel].terrain.push("Ridgeline");
                 hexMap[hexLabel].height += 5;
                 hexMap[hexLabel].elevation += 5;
-                log(hexMap[hexLabel])
             }
         }
     }
