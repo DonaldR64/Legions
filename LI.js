@@ -835,16 +835,16 @@ const LI = (()=> {
         if (model2.size === "Large") {
             hexes2 = model2.largeHexList;
         }
-        if (model1.type === "Infantry" && hexMap[model1.hex].buildingID.length > 0) {
+        if (model1.type === "Infantry" && hexMap[model1.hexLabel].buildingID.length > 0) {
             //Infantry in building, use building hexes for LOS
-            let buildingModel = ModelArray[hexMap[model1.hex].buildingID];
+            let buildingModel = ModelArray[hexMap[model1.hexLabel].buildingID];
             if (buildingModel) {
                 hexes1 = buildingModel.largeHexList;
             }
         } 
-        if (model2.type === "Infantry" && hexMap[model2.hex].buildingID.length > 0) {
+        if (model2.type === "Infantry" && hexMap[model2.hexLabel].buildingID.length > 0) {
             //Infantry in building, use building hexes for LOS
-            let buildingModel = ModelArray[hexMap[model2.hex].buildingID];
+            let buildingModel = ModelArray[hexMap[model2.hexLabel].buildingID];
             if (buildingModel) {
                 hexes2 = buildingModel.largeHexList;
             }
@@ -1513,7 +1513,8 @@ const LI = (()=> {
                             let id3 = id3s[i];
                             if (id3 === id1 || id3 === id2) {continue};
                             let model3 = ModelArray[id3];
-                log(model3.name)
+                            if (!model3) {continue};
+                            if (model3.type === "System Unit" || model3.type === "Building") {continue};
                             if (model3.unitID === model1.unitID || model3.unitID === model2.unitID) {continue};
                             let model3Height = modelHeight(model3) - modelLevel;
                 log(model3Height)
