@@ -2210,7 +2210,8 @@ log(name)
         let targetID = Tag[2];
         let target = ModelArray[targetID];
         let checkLOS = LOS(shooterID,targetID);
-        SetupCard(shooter.name,target.name,shooter.faction);
+        SetupCard(shooter.name,"LOS",shooter.faction);
+        outputCard.body.push("[B]" + target.name + "[/b]");
         if (checkLOS.los === false) {
             outputCard.body.push("No LOS to Target");
             outputCard.body.push(checkLOS.losReason);
