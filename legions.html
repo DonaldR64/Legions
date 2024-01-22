@@ -234,7 +234,7 @@
         <input type="hidden" name="attr_faction"/>
           <section class="header f-center">
             <h1><span name="attr_character_name"></span></h1>
-            <h3><span name="attr_side"></span><span name="attr_type"></span><span> [</span><span name="attr_size"></span><span>]</span></h3>
+            <h3><span name="attr_side"></span><span name="attr_type"></span><span> [</span><span name="attr_scale"></span><span>]</span></h3>
           </section>
 
           <section class="common f-center">
@@ -460,11 +460,11 @@
             let faction = values.faction;
             let factionImage,side;
             let type = values.type;
-            let size = 1;
-            if (type === "Vehicle") {size = 2};
-            if (type === "Super-Heavy Vehicle") {size=3};
-            if (type === "Knight") {size = 4};
-            if (type === "Titan") {size = 5};
+            let scale = 1;
+            if (type === "Vehicle") {scale = 2};
+            if (type === "Super-Heavy Vehicle") {scale=3};
+            if (type === "Knight") {scale = 4};
+            if (type === "Titan") {scale = 5};
 
             if (faction === "Ultramarines") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
@@ -491,7 +491,7 @@
             special = special.split(",");
 
             setAttrs({
-                "size": size,
+                "scale": scale,
                 "factionImage": factionImage,
                 "side": side,
                 "special0": special[0],
