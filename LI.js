@@ -110,17 +110,17 @@ const LI = (()=> {
     //Class: Difficult, Obstructing, Dangerous, Obstacle, Impassable, Open, Structure
 
     const TerrainInfo = {
-        "#000000": {name: "Hill 1", height: 1,los: true,cover: 7,class: "Open"},
-        "#434343": {name: "Hill 2", height: 2,los: true,cover: 7,class: "Open"},  
-        "#666666": {name: "Hill 3",height:3,los: true,cover: 7,class: "Open"},
-        "#c0c0c0": {name: "Hill 4",height:4,los: true,cover: 7,class: "Open"},
-        "#d9d9d9": {name: "Hill 5",height:5,los: true,cover: 7,class: "Open"},
-    
-        "#ffffff": {name: "Spire", height: 2,los: false,cover: 7,class: "Impassable"}, 
-        "#00ff00": {name: "Woods",height: 2,los: false,cover: 5,class: "Obstructing"},
+        "#000000": {name: "Hill 1", height: 10,los: true,cover: 7,class: "Open"},
+        "#434343": {name: "Hill 2", height: 20,los: true,cover: 7,class: "Open"},  
+        "#666666": {name: "Hill 3",height:30,los: true,cover: 7,class: "Open"},
+        "#c0c0c0": {name: "Hill 4",height:40,los: true,cover: 7,class: "Open"},
+        "#d9d9d9": {name: "Hill 5",height:50,los: true,cover: 7,class: "Open"},
+        "#ffffff": {name: "Ridgeline",height: 5,los: true,cover: 7,class: "Open"},
+
+        "#00ff00": {name: "Woods",height: 20,los: false,cover: 5,class: "Obstructing"},
         "#b6d7a8": {name: "Scrub",height: 0,los: true,cover: 6,class: "Difficult"},
         "#fce5cd": {name: "Craters",height: 0,los: true,cover: 6,class: "Difficult"},
-        "#980000": {name: "Ruins",height: 1,los: false,cover: 5,class: "Obstructing"},
+        "#980000": {name: "Ruins",height: 10,los: false,cover: 5,class: "Obstructing"},
 
 
 
@@ -129,7 +129,7 @@ const LI = (()=> {
     //generally obstacles and such, maybe look at being able to burn woods
     const MapTokenInfo = {
         "wall": {name: "Wall",height: 0,los: true,cover: 7,class: "Obstacle"},
-        "woods": {name: "Woods",height: 2,los: false,cover: 5,class: "Obstructing"},
+        "woods": {name: "Woods",height: 20,los: false,cover: 5,class: "Obstructing"},
     }
 
     const simpleObj = (o) => {
@@ -503,7 +503,7 @@ const LI = (()=> {
                     formationID = state.LI.models[tokenID].formationID;
                 }
             } else {
-                height = char.get("name").replace(/\D/g,'');
+                height = char.get("name").replace(/\D/g,'') * 10;
                 let as,gn,w,caf,save;
                 if (name.includes("Militas")) {
                     name = "Militas Imperialis";
@@ -1200,7 +1200,7 @@ const LI = (()=> {
                     buildingID: [],
                     tokenIDs: [], //ids of tokens in hex
                     elevation: 0, //based on hills, in metres
-                    height: 0, //height of top of terrain over elevation, in metres
+                    height: 0, //height of top of terrain over elevation
                     nonHillHeight: 0,//height of trees etc above hills
                     cover: 7,
                     los: true,
@@ -1214,66 +1214,68 @@ const LI = (()=> {
             rowLabelNum += 1;
             columnLabel = (columnLabel % 2 === 0) ? 1:2; //swaps odd and even
         }
-    
         BuildTerrainArray();
 
         let taKeys = Object.keys(TerrainArray);
 
         let keys = Object.keys(hexMap);
-        const burndown = () => {
-            let key = keys.shift();
-            if (key){
-                let c = hexMap[key].centre;
-                if (c.x >= edgeArray[1] || c.x <= edgeArray[0]) {
-                    //Offboard
-                    hexMap[key].terrain = ["Offboard"];
-                } else {
-                    let temp = DeepCopy(hexMap[key]);
-                    for (let t=0;t<taKeys.length;t++) {
-                        let polygon = TerrainArray[taKeys[t]];
-                        if (!polygon) {continue};
-                        if (temp.terrain.includes(polygon.name)) {continue};
-                        let check = false;
-                        let pts = [];
-                        pts.push(c);
-                        pts = XHEX(pts);
-                        let num = 0;
-                        for (let i=0;i<5;i++) {
-                            check = pointInPolygon(pts[i],polygon);
-                            if (i === 0 && check === true) {
-                                //centre pt is in hex, can skip rest
-                                num = 3;
-                                break;
-                            }
-                            if (check === true) {num ++};
+        _.each(keys,key => {
+            let c = hexMap[key].centre;
+            if (c.x >= edgeArray[1] || c.x <= edgeArray[0]) {
+                //Offboard
+                hexMap[key].terrain = ["Offboard"];
+            } else {
+                let temp = DeepCopy(hexMap[key]);
+                for (let t=0;t<taKeys.length;t++) {
+                    let polygon = TerrainArray[taKeys[t]];
+                    if (!polygon) {continue};
+                    if (polygon.linear === true) {continue};
+                    if (temp.terrain.includes(polygon.name)) {continue};
+                    let check = false;
+                    let pts = [];
+                    pts.push(c);
+                    pts = XHEX(pts);
+                    let num = 0;
+                    for (let i=0;i<5;i++) {
+                        check = pointInPolygon(pts[i],polygon);
+                        if (i === 0 && check === true) {
+                            //centre pt is in hex, can skip rest
+                            num = 3;
+                            break;
                         }
-                        if (num > 2) {
-                            temp.terrain.push(polygon.name);
-                            temp.cover = Math.min(temp.cover,polygon.cover);
-                            if (polygon.los === false) {
-                                temp.los = false;
-                            }
-                            if (polygon.class === "Obstructing") {
-                                temp.obstructingTerrain = true;
-                            }
-                            if (polygon.name.includes("Hill")) {
-                                temp.elevation = Math.max(temp.elevation,polygon.height);
-                                temp.height = Math.max(temp.height,(polygon.height + temp.nonHillHeight));
-                            } else {
-                                temp.nonHillHeight = Math.max(temp.nonHillHeight,polygon.height);
-                                temp.height = Math.max(temp.height,(temp.nonHillHeight + temp.elevation));
-                            };
+                        if (check === true) {num ++};
+                    }
+                    if (num > 2) {
+                        temp.terrain.push(polygon.name);
+                        temp.cover = Math.min(temp.cover,polygon.cover);
+                        if (polygon.los === false) {
+                            temp.los = false;
+                        }
+                        if (polygon.class === "Obstructing") {
+                            temp.obstructingTerrain = true;
+                        }
+                        if (polygon.name.includes("Hill")) {
+                            temp.elevation = Math.max(temp.elevation,polygon.height);
+                            temp.height = Math.max(temp.height,(polygon.height + temp.nonHillHeight));
+                        } else {
+                            temp.nonHillHeight = Math.max(temp.nonHillHeight,polygon.height);
+                            temp.height = Math.max(temp.height,(temp.nonHillHeight + temp.elevation));
                         };
                     };
-                    if (temp.terrain.length === 0) {
-                        temp.terrain.push("Open Ground");
-                    }
-                    hexMap[key] = temp;
+                };
+                if (temp.terrain.length === 0) {
+                    temp.terrain.push("Open Ground");
                 }
-                setTimeout(burndown,0);
+                hexMap[key] = temp;
             }
+        })
+
+        for (let i=0;i<taKeys.length;i++) {
+            let polygon = TerrainArray[taKeys[i]];
+            if (polygon.linear === true) {
+                Ridgeline(polygon);
+            };
         }
-        burndown();
 
         let elapsed = Date.now()-startTime;
         log("Hex Map Built in " + elapsed/1000 + " seconds");
@@ -1310,6 +1312,8 @@ const LI = (()=> {
                 id += stringGen();
             }
 
+            let linear = (t.name === "Ridgeline") ? true:false;
+
             let info = {
                 name: t.name,
                 pathID: pathObj.id,
@@ -1320,6 +1324,7 @@ const LI = (()=> {
                 cover: t.cover,
                 class: t.class,
                 los: t.los,
+                linear: linear,
             };
             TerrainArray[id] = info;
         });
@@ -1343,6 +1348,7 @@ const LI = (()=> {
                 cover: t.cover,
                 move: t.move,
                 los: t.los,
+                linear: false,
             };
             TerrainArray[id] = info;
         });
@@ -1387,6 +1393,32 @@ const LI = (()=> {
         log(tokenArray.length + " Teams added to array in " + elapsed/1000 + " seconds");
     }
 
+    const Ridgeline = (polygon) => {
+        //adds Ridgelines, to hex map
+        let vertices = polygon.vertices;
+        for (let i=0;i<(vertices.length - 1);i++) {
+            let hexes = [];
+            let pt1 = vertices[i];
+            let pt2 = vertices[i+1];
+            let hex1 = pointToHex(pt1);
+            let hex2 = pointToHex(pt2);
+            hexes = hex1.linedraw(hex2);
+            for (let j=0;j<hexes.length;j++) {
+                let hex = hexes[j];
+                let hexLabel = hex.label();
+                if (!hexMap[hexLabel]) {continue};
+                if (hexMap[hexLabel].terrain.includes("Ridgeline")) {continue};
+                hexMap[hexLabel].terrain.push("Ridgeline");
+                hexMap[hexLabel].height += 5;
+                hexMap[hexLabel].elevation += 5;
+                log(hexMap[hexLabel])
+            }
+        }
+    }
+
+
+
+
     const modelHeight = (model) => {
         let hex = hexMap[model.hexLabel];
         let height = parseInt(hex.elevation);
@@ -1394,11 +1426,11 @@ const LI = (()=> {
             height = parseInt(hex.height);
         }
         if (model.type === "Aircraft") {
-            height = 20;
+            height = 200;
         }
-        if (model.size === 3) {height += .5};
-        if (model.size === 4) {height += 1};
-        if (model.size === 5) {height += 2};
+        if (model.size === 3) {height += 5};
+        if (model.size === 4) {height += 10};
+        if (model.size === 5) {height += 20};
         return height;
     }
 
@@ -2129,7 +2161,7 @@ log(name)
         if (side > 0) {
             name = "Ruins";
             cover = 5;
-            height = 1;
+            height = 10;
         } 
     
         _.each(hexes,hex => {
