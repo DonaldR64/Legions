@@ -80,7 +80,7 @@ const LI = (()=> {
             "borderStyle": "5px groove",
         },
         "Salamanders": {
-            "image": "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748",
+            "image": "https://s3.amazonaws.com/files.d20.io/images/274614673/_-mcGObetfMZtFANsG7nKA/thumb.png?1646767013",
             "backgroundColour": "#556b2f",
             "titlefont": "Arial",
             "fontColour": "#000000",
@@ -1458,7 +1458,7 @@ const LI = (()=> {
                 arc: finalArc,
                 los: true,
                 cover: finalCover,
-                losReason: losReason,
+                losReason: "",
                 percent: 1,
             }
             return result;
@@ -1469,7 +1469,7 @@ const LI = (()=> {
         shooterLoop:
         for  (let g=0;g<shooterHexes.length;g++) {
             let shooterHex = shooterHexes[g];
-            let hexLOS = true;
+            let hexLOS = false;
             let targetHexesWithLOS = 0;
             let percent = 0;
             targetLoop:
@@ -1556,31 +1556,36 @@ const LI = (()=> {
                 log("Overlooks")
                     }
                     lastElevation = interHexElevation;
-                }
+                } //end interHex loop
                 if (model2.size > 3 && targetLOS === true) {
                     targetHexesWithLOS++;
                 } else if (targetLOS === true) {
+                    hexLOS = true;
                     break targetLoop;
                 }
-            }
+            } //end target loop
         
         
             if (model2.size > 3) {
                 if (targetHexesWithLOS === 0) {
-                    hexLOS = false;
+                    //shooter hex doesnt have LOS to any of target hex
                     percent = 0;
                 } else {
-                    hexLOS = true;
+                    finalLOS = true; //one of shooter hexes has LOS, just need to work out percentage
                     percent = targetHexesWithLOS/targetHexes.length;
                 }
+                bestPercent = Math.max(bestPercent,percent);
             } else if (model2.size < 4 && hexLOS === true) {
+                //one of shooter hexes has LOS to one of target hexes
                 finalLOS = true;
-                percent = 1;
+                bestPercent = 1;
                 break shooterLoop;
             }       
-            bestPercent = Math.max(bestPercent,percent);
-        }
+        } //end shooter Loop
         
+
+
+
         let result = {
             distance: distanceT1T2,
             arc: finalArc,
