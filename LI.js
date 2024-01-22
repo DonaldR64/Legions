@@ -480,7 +480,7 @@ const LI = (()=> {
             let faction = attributeArray.faction;
             let player = (TraitorForces.includes(faction)) ? 1:0;
             let type = attributeArray.type;
-            let buildingInfo;
+            let buildingInfo,height;
             let wounds = parseInt(attributeArray.wounds) || 1;
 
             if (!faction) {
@@ -500,7 +500,7 @@ const LI = (()=> {
                     formationID = state.LI.models[tokenID].formationID;
                 }
             } else {
-                let height = char.get("name").replace(/\D/g,'');
+                height = char.get("name").replace(/\D/g,'');
                 let as,gn,w,caf,save;
                 if (name.includes("Militas")) {
                     name = "Militas Imperialis";
@@ -690,6 +690,7 @@ const LI = (()=> {
 
             this.weaponArray = weaponArray;
             this.buildingInfo = buildingInfo;
+            this.height = height;
             this.size = size;
             this.radius = radius;
             this.vertices = vertices;
@@ -1234,11 +1235,6 @@ const LI = (()=> {
                         }
                         if (num > 2) {
                             temp.terrain.push(polygon.name);
-                            let bflag = polygon.name.split(" ");
-                            bflag = findCommonElements(BuildingNames,bflag);
-                            if (bflag === true) {
-                                temp.buildingID = polygon.id;
-                            }
                             temp.cover = Math.min(temp.cover,polygon.cover);
                             if (polygon.los === false) {
                                 temp.los = false;
@@ -1380,7 +1376,7 @@ const LI = (()=> {
     const modelHeight = (model) => {
         let hex = hexMap[model.hexLabel];
         let height = parseInt(hex.elevation);
-        if (hex.terrain.includes("Building") && model.type === "Infantry") {
+        if (hex.buildingID.length > 0 && model.type === "Infantry") {
             height = parseInt(hex.height);
         }
         if (model.type === "Aircraft") {
@@ -1401,23 +1397,22 @@ const LI = (()=> {
         if (!model1 || !model2) {
             let info = (!model1) ? "Model 1":"Model2";
             sendChat("",info + " is not in Model Array");
-            let result = {
-                
-            }
-            return result
+            return "Error"
         }
         let model1Hex = hexMap[model1.hexLabel];
-        let targetHexes = [];
+        let model2Hex = hexMap[model2.hexLabel];
+        let targetHexes = [model2.hex];
         if (model2.large === true) {
             targetHexes = model2.largeHexList;
-        } else if (model2.type === "Infantry" && model2Hex.buildingID !== "") {
-            //Infantry in building, use building for LOS
-            targetHexes = ModelArray[model2Hex.buildingID].largeHexList;
-        } else {
-            targetHexes.push(model2.hex);
-        }
-
-        let finalLOS,losReason,percent;
+        } else if (model2.type === "Infantry" && model2Hex.buildingID.length > 0) {
+            //Infantry in building, use building hexes for LOS
+            let buildingModel = ModelArray[model2Hex.buildingID];
+            if (buildingModel) {
+                targetHexes = ModelArray[model2Hex.buildingID].largeHexList;
+            }
+        } 
+        let finalLOS = false;
+        let losReason,percent;
         let finalCover = model2Hex.cover;
         let model1Height = modelHeight(model1);
         let model2Height = modelHeight(model2);
@@ -1425,11 +1420,11 @@ const LI = (()=> {
         let finalArc = md.arc;
         let distanceT1T2 = md.distance; 
       
-log("Team1 H: " + model1Height)
-log("Team2 H: " + model2Height)
         let modelLevel = Math.min(model1Height,model2Height);
         model1Height -= modelLevel;
         model2Height -= modelLevel;
+    log("Team1 H: " + model1Height)
+    log("Team2 H: " + model2Height)
 
         //Flyers see all and are seen by all
         if (model1.special.includes("Flyer") || model2.special.includes("Flyer")) {
@@ -1449,7 +1444,7 @@ log("Team2 H: " + model2Height)
         //Otherwise run through targetHexes and check LOS
         //for all but Titans/Knights, if have LOS to one hex is good
         targetHexesWithLOS = 0; //used to track obscuring for Titans, Knights
-        
+log("Target Hexes: " + targetHexes.length)
         for (let h=0;h<targetHexes.length;h++) {
             let targetHex = targetHexes[h];
             let targetLOS = true;
@@ -1481,6 +1476,7 @@ log("Team2 H: " + model2Height)
             log("B: " + B)
 
                 if (interHexElevation < lastElevation && lastElevation > model1Height && lastElevation > model2Height) {
+            log("Drops Off")
                     targetLOS = false;
                     losReason = "Terrain Drops Off";
                     break losloop1;
@@ -1528,11 +1524,11 @@ log("Team2 H: " + model2Height)
                     } 
             log("Flag: " + flag)
                 } else {
-            log("Overloooks")
+            log("Overlooks")
                 }
                 lastElevation = interHexElevation;
             }
-            if (model.size > 3 && targetLOS === true) {
+            if (model2.size > 3 && targetLOS === true) {
                 targetHexesWithLOS++;
             } else if (targetLOS === true) {
                 finalLOS = true;
@@ -1540,7 +1536,7 @@ log("Team2 H: " + model2Height)
             }
         }
 
-        if (model.size > 3) {
+        if (model2.size > 3) {
             if (targetHexesWithLOS === 0) {
                 finalLOS = false;
                 percent = 0;
@@ -2089,7 +2085,7 @@ log(name)
         let hexes = model.largeHexList;
         let side = parseInt(model.token.get("currentSide"));
         let cover = model.buildingInfo.coverSave;
-        let height = model.height;
+        let height = parseInt(model.height);
         let name = model.name;
         if (side > 0) {
             name = "Ruins";
@@ -2100,6 +2096,7 @@ log(name)
         _.each(hexes,hex => {
             if (hexMap[hex.label()].terrain.includes(name) === false) {
                 hexMap[hex.label()].terrain.push(model.name);
+                hexMap[hex.label()].buildingID = model.id;
                 hexMap[hex.label()].cover = cover;
                 hexMap[hex.label()].los = false;
                 hexMap[hex.label()].obstructingTerrain = true;
@@ -2178,6 +2175,8 @@ log(name)
         if (checkLOS.los === false) {
             outputCard.body.push("No LOS to Target");
             outputCard.body.push(checkLOS.losReason);
+        } else if (checkLOS === "Error") {
+            outputCard.body.push("Error")            
         } else {
             outputCard.body.push("Shooter has LOS");
             outputCard.body.push("Distance: " + checkLOS.distance);
