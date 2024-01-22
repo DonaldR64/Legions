@@ -37,21 +37,11 @@
                 <option value="Walker">Walker</option>
                 <option value="Vehicle">Vehicle</option>
                 <option value="Super-Heavy Vehicle">Super-Heavy Vehicle</option>
+                <option value="Knight">Knight</option>
                 <option value="Titan">Titan</option>
                 <option value="Building">Building</option>
                 <option value="System Unit">System Unit</option>
-            </select>       
-            
-            <label for="attr_size">Size:</label>
-            <select name="attr_size">
-                <option value="" selected disabled hidden>Choose here</option>
-                <option value=1>1</option>
-                <option value=2>2</option>
-                <option value=3>3</option>
-                <option value=4>4</option>
-                <option value=5>5</option>
-            </select>  
-            
+            </select>           
           </div>
     </div>    
     <label>Special Rules:</label><input type="text" name="attr_special">
@@ -153,7 +143,76 @@
                     <td><input type="text" name="attr_weapon5fx"></td>
                     <td><input type="text" name="attr_weapon5sound"></td>                
                 </tr>
-
+                <tr>
+                    <td><select name="attr_weapon6equipped">
+                        <option value = "Off">Off</option>
+                        <option value = "Equipped">Equipped</option>
+                    </select></td>
+                    <td><input type="text" name="attr_weapon6name"></td>    
+                    <td><input type="text" name="attr_weapon6range"></td>
+                    <td><input type="number" name="attr_weapon6dice"></td>
+                    <td><input type="text" name="attr_weapon6tohit"></td>
+                    <td><input type="text" name="attr_weapon6ap"></td>
+                    <td><input type="text" name="attr_weapon6traits"></td>
+                    <td><input type="text" name="attr_weapon6fx"></td>
+                    <td><input type="text" name="attr_weapon6sound"></td>                
+                </tr>
+                <tr>
+                    <td><select name="attr_weapon7equipped">
+                        <option value = "Off">Off</option>
+                        <option value = "Equipped">Equipped</option>
+                    </select></td>
+                    <td><input type="text" name="attr_weapon7name"></td>    
+                    <td><input type="text" name="attr_weapon7range"></td>
+                    <td><input type="number" name="attr_weapon7dice"></td>
+                    <td><input type="text" name="attr_weapon7tohit"></td>
+                    <td><input type="text" name="attr_weapon7ap"></td>
+                    <td><input type="text" name="attr_weapon7traits"></td>
+                    <td><input type="text" name="attr_weapon7fx"></td>
+                    <td><input type="text" name="attr_weapon7sound"></td>                
+                </tr>
+                <tr>
+                    <td><select name="attr_weapon8equipped">
+                        <option value = "Off">Off</option>
+                        <option value = "Equipped">Equipped</option>
+                    </select></td>
+                    <td><input type="text" name="attr_weapon8name"></td>    
+                    <td><input type="text" name="attr_weapon8range"></td>
+                    <td><input type="number" name="attr_weapon8dice"></td>
+                    <td><input type="text" name="attr_weapon8tohit"></td>
+                    <td><input type="text" name="attr_weapon8ap"></td>
+                    <td><input type="text" name="attr_weapon8traits"></td>
+                    <td><input type="text" name="attr_weapon8fx"></td>
+                    <td><input type="text" name="attr_weapon8sound"></td>                
+                </tr>
+                <tr>
+                    <td><select name="attr_weapon9equipped">
+                        <option value = "Off">Off</option>
+                        <option value = "Equipped">Equipped</option>
+                    </select></td>
+                    <td><input type="text" name="attr_weapon9name"></td>    
+                    <td><input type="text" name="attr_weapon9range"></td>
+                    <td><input type="number" name="attr_weapon9dice"></td>
+                    <td><input type="text" name="attr_weapon9tohit"></td>
+                    <td><input type="text" name="attr_weapon9ap"></td>
+                    <td><input type="text" name="attr_weapon9traits"></td>
+                    <td><input type="text" name="attr_weapon9fx"></td>
+                    <td><input type="text" name="attr_weapon9sound"></td>                
+                </tr>
+                <tr>
+                    <td><select name="attr_weapon10equipped">
+                        <option value = "Off">Off</option>
+                        <option value = "Equipped">Equipped</option>
+                    </select></td>
+                    <td><input type="text" name="attr_weapon10name"></td>    
+                    <td><input type="text" name="attr_weapon10range"></td>
+                    <td><input type="number" name="attr_weapon10dice"></td>
+                    <td><input type="text" name="attr_weapon10tohit"></td>
+                    <td><input type="text" name="attr_weapon10ap"></td>
+                    <td><input type="text" name="attr_weapon10traits"></td>
+                    <td><input type="text" name="attr_weapon10fx"></td>
+                    <td><input type="text" name="attr_weapon10sound"></td>                
+                </tr>
 
             </tbody>
             </table>    
@@ -274,7 +333,51 @@
                 <h4><span name="attr_weapon5ap"></span></h4>
                 <h4><span name="attr_weapon5traits"></span></h4>
             </div>
-
+            <input type="hidden" name="attr_weapon6equipped" class="weapon6-status" value="Off">
+            <div class="weapon6">
+                <h4><span name="attr_weapon6name"></span></h4>
+                <h4><span name="attr_weapon6range"></span></h4>
+                <h4><span name="attr_weapon6dice"></span></h4>
+                <h4><span name="attr_weapon6tohit"></span></h4>
+                <h4><span name="attr_weapon6ap"></span></h4>
+                <h4><span name="attr_weapon6traits"></span></h4>
+            </div>
+            <input type="hidden" name="attr_weapon7equipped" class="weapon7-status" value="Off">
+            <div class="weapon7">
+                <h4><span name="attr_weapon7name"></span></h4>
+                <h4><span name="attr_weapon7range"></span></h4>
+                <h4><span name="attr_weapon7dice"></span></h4>
+                <h4><span name="attr_weapon7tohit"></span></h4>
+                <h4><span name="attr_weapon7ap"></span></h4>
+                <h4><span name="attr_weapon7traits"></span></h4>
+            </div>
+            <input type="hidden" name="attr_weapon8equipped" class="weapon8-status" value="Off">
+            <div class="weapon8">
+                <h4><span name="attr_weapon8name"></span></h4>
+                <h4><span name="attr_weapon8range"></span></h4>
+                <h4><span name="attr_weapon8dice"></span></h4>
+                <h4><span name="attr_weapon8tohit"></span></h4>
+                <h4><span name="attr_weapon8ap"></span></h4>
+                <h4><span name="attr_weapon8traits"></span></h4>
+            </div>
+            <input type="hidden" name="attr_weapon9equipped" class="weapon9-status" value="Off">
+            <div class="weapon9">
+                <h4><span name="attr_weapon9name"></span></h4>
+                <h4><span name="attr_weapon9range"></span></h4>
+                <h4><span name="attr_weapon9dice"></span></h4>
+                <h4><span name="attr_weapon9tohit"></span></h4>
+                <h4><span name="attr_weapon9ap"></span></h4>
+                <h4><span name="attr_weapon9traits"></span></h4>
+            </div>
+            <input type="hidden" name="attr_weapon10equipped" class="weapon10-status" value="Off">
+            <div class="weapon10">
+                <h4><span name="attr_weapon10name"></span></h4>
+                <h4><span name="attr_weapon10range"></span></h4>
+                <h4><span name="attr_weapon10dice"></span></h4>
+                <h4><span name="attr_weapon10tohit"></span></h4>
+                <h4><span name="attr_weapon10ap"></span></h4>
+                <h4><span name="attr_weapon10traits"></span></h4>
+            </div>
           </section>
         </main>
       </div>
@@ -353,9 +456,15 @@
     });
 
     on("change:attrs sheet:opened", function() { 
-        getAttrs(["faction","special"], function(values) {
+        getAttrs(["faction","special","type"], function(values) {
             let faction = values.faction;
             let factionImage,side;
+            let type = values.type;
+            let size = 1;
+            if (type === "Vehicle") {size = 2};
+            if (type === "Super-Heavy Vehicle") {size=3};
+            if (type === "Knight") {size = 4};
+            if (type === "Titan") {size = 5};
 
             if (faction === "Ultramarines") {
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
@@ -373,12 +482,16 @@
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748";
                 side = "Loyalist ";
             }    
-        
+            if (faction === "Salamanders") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/274614673/_-mcGObetfMZtFANsG7nKA/thumb.png?1646767013";
+                side = "Loyalist ";
+            }   
 
             let special = values.special;
             special = special.split(",");
 
             setAttrs({
+                "size": size,
                 "factionImage": factionImage,
                 "side": side,
                 "special0": special[0],
