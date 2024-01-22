@@ -115,7 +115,7 @@ const LI = (()=> {
         "#666666": {name: "Hill 3",height:30,los: true,cover: 7,class: "Open"},
         "#c0c0c0": {name: "Hill 4",height:40,los: true,cover: 7,class: "Open"},
         "#d9d9d9": {name: "Hill 5",height:50,los: true,cover: 7,class: "Open"},
-        "#ffffff": {name: "Ridgeline",height: 5,los: true,cover: 7,class: "Open"},
+        "#ffffff": {name: "Ridgeline",height: 5,los: true,cover: 7,class: "Open/Obstacle"},
 
         "#00ff00": {name: "Woods",height: 20,los: false,cover: 5,class: "Obstructing"},
         "#b6d7a8": {name: "Scrub",height: 0,los: true,cover: 6,class: "Difficult"},
@@ -548,7 +548,7 @@ const LI = (()=> {
             let hex = pointToHex(location);
             let hexLabel = hex.label();
 
-            let size = parseInt(attributeArray.size);
+            let scale = parseInt(attributeArray.scale);
             let radius = 1;
             let large = false;
             let vertices = TokenVertices(token);
@@ -694,7 +694,7 @@ const LI = (()=> {
             this.weaponArray = weaponArray;
             this.buildingInfo = buildingInfo;
             this.height = height;
-            this.size = size;
+            this.scale = scale;
             this.radius = radius;
             this.vertices = vertices;
             this.large = large;
@@ -832,10 +832,10 @@ const LI = (()=> {
     const ModelDistance = (model1,model2) => {
         let hexes1 = [model1.hex];
         let hexes2 = [model2.hex];
-        if (model1.size === "Large") {
+        if (model1.large === true) {
             hexes1 = model1.largeHexList;
         }
-        if (model2.size === "Large") {
+        if (model2.large === true) {
             hexes2 = model2.largeHexList;
         }
         if (model1.type === "Infantry" && hexMap[model1.hexLabel].buildingID.length > 0) {
@@ -1203,6 +1203,7 @@ const LI = (()=> {
                     height: 0, //height of top of terrain over elevation
                     nonHillHeight: 0,//height of trees etc above hills
                     cover: 7,
+                    obstacleTerrain: false,
                     los: true,
                     obstructingTerrain: false,
                 };
@@ -1253,6 +1254,9 @@ const LI = (()=> {
                         }
                         if (polygon.class === "Obstructing") {
                             temp.obstructingTerrain = true;
+                        }
+                        if (polygon.class === "Obstacle") {
+                            temp.obstacleTerrain = true;
                         }
                         if (polygon.name.includes("Hill")) {
                             temp.elevation = Math.max(temp.elevation,polygon.height);
@@ -1411,6 +1415,8 @@ const LI = (()=> {
                 hexMap[hexLabel].terrain.push("Ridgeline");
                 hexMap[hexLabel].height += 5;
                 hexMap[hexLabel].elevation += 5;
+                hexMap[hexLabel].obstacleTerrain = true;
+
             }
         }
     }
@@ -1427,9 +1433,9 @@ const LI = (()=> {
         if (model.type === "Aircraft") {
             height = 200;
         }
-        if (model.size === 3) {height += 5};
-        if (model.size === 4) {height += 10};
-        if (model.size === 5) {height += 20};
+        if (model.scale === 3) {height += 5};
+        if (model.scale === 4) {height += 10};
+        if (model.scale === 5) {height += 20};
         return height;
     }
 
@@ -1553,7 +1559,7 @@ const LI = (()=> {
                             let model3Height = modelHeight(model3) - modelLevel;
                 log(model3Height)
                             if (interHexElevation + interHexHeight + model3Height >= B) {
-                                if (model3.size > 1) {
+                                if (model3.scale > 1) {
                                     targetLOS = false;
                                     losReason = "LOS blocked by another Model";
                                     break interHexLoop;
@@ -1588,7 +1594,7 @@ const LI = (()=> {
                     }
                     lastElevation = interHexElevation;
                 } //end interHex loop
-                if (model2.size > 3 && targetLOS === true) {
+                if (model2.scale > 3 && targetLOS === true) {
                     targetHexesWithLOS++;
                 } else if (targetLOS === true) {
                     hexLOS = true;
@@ -1597,7 +1603,7 @@ const LI = (()=> {
             } //end target loop
         
         
-            if (model2.size > 3) {
+            if (model2.scale > 3) {
                 if (targetHexesWithLOS === 0) {
                     //shooter hex doesnt have LOS to any of target hex
                     percent = 0;
@@ -1606,7 +1612,7 @@ const LI = (()=> {
                     percent = targetHexesWithLOS/targetHexes.length;
                 }
                 bestPercent = Math.max(bestPercent,percent);
-            } else if (model2.size < 4 && hexLOS === true) {
+            } else if (model2.scale < 4 && hexLOS === true) {
                 //one of shooter hexes has LOS to one of target hexes
                 finalLOS = true;
                 bestPercent = 1;
@@ -1801,7 +1807,7 @@ const LI = (()=> {
             if (parseInt(model.wounds) > 1) {
                 model.token.set("bar1_max",model.wounds);
             }
-            if (parseInt(model.size) > 3) {
+            if (parseInt(model.scale) > 3) {
                 formation.breakPoint += model.wounds;
                 state.LI.formations[formationID].breakPoint += model.wounds;
             } else {
@@ -1874,6 +1880,9 @@ const LI = (()=> {
                     outputCard.body.push("No Benefit from Cover Save");
                 }
             } 
+            if (h.obstacleTerrain === true && model.scale < 3) {
+                outputCard.body.push("Gets -1 to hit due to Obstacle");
+            }
             outputCard.body.push("Height: " + elevation);
             if (unit) {
                 outputCard.body.push("[hr]");
@@ -2424,7 +2433,7 @@ log(name)
                     hexMap[oldHexLabel].tokenIDs.splice(index,1);
                 }
                 hexMap[newHexLabel].tokenIDs.push(tok.id);
-                if (model.size === "Large") {
+                if (model.large === "Large") {
                     model.vertices = TokenVertices(tok);
                     LargeTokens(model);
                 }
