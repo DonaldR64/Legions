@@ -1438,12 +1438,14 @@ log("Team2 H: " + model2Height)
         let interHexes = md.hex1.linedraw(md.hex2); 
         //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
         let lastElevation = model1Height;
-        let solidFlag = model1Hex.obstructingTerrain;
+        let flag = model1Hex.obstructingTerrain;
+        let obstructingHexes = 0;
 
-log("Initial Flag: " + solidFlag);
+log("Model 1 in Obstructing Terrain: " + flag);
+log("Obstructing Hexes: " + obstructingHexes);
             
         losloop1:
-        for (let i=0;i<interHexes.length;i++) {
+        for (let i=1;i<interHexes.length;i++) {
             let qrs = interHexes[i];
             let qrsLabel = qrs.label();
             let interHex = hexMap[qrsLabel];
@@ -1476,7 +1478,7 @@ log("Initial Flag: " + solidFlag);
                     let id3 = id3s[i];
                     if (id3 === id1 || id3 === id2) {continue};
                     let model3 = ModelArray[id3];
-        log(team3.name)
+        log(model3.name)
                     if (model3.unitID === model1.unitID || model3.unitID === model2.unitID) {continue};
                     let model3Height = modelHeight(model3) - modelLevel;
         log(model3Height)
@@ -1493,21 +1495,25 @@ log("Initial Flag: " + solidFlag);
             if (interHexHeight + interHexElevation >= B && i > 0) {
         log("LOS goes through Terrain")
                 if (interHex.los === false) {
-                    
-                }
-        log("Solid Flag: " + solidFlag)
-                if (interHex.los === true && solidFlag === true) {
-                    los = false;
-                    losReason = "LOS Blocked by Cover";
-                    break losloop1;
-                }
-                if (solidHexes > 6) {
-                    los = false;
-                    losReason = "Too Deep into Terrain";
-                    break losloop1;
-                }
-            } else if (i==0) {
-        //log("i === 0")
+                    //hex blocks los
+                    obstructingHexes += 1;
+        log("Obstructing Hexes: " + obstructingHexes);
+                    if ((flag === true && obstructingHexes > 6) || (flag === false && obstructingHexes > 1)) {
+                        los = false;
+                        losReason = "Too Deep into Terrain";
+                        break losloop1;
+                    }
+                } else if (interHex.los === true && flag === true) {
+                    if (obstructingHexes > 0) {
+                        //breaking out into open, so if > 0 then is deep in terrain
+                        los = false;
+                        losReason = "Too Deep into Terrain";
+                        break losloop1;
+                    } else {
+                        flag = false;
+                    }
+                } 
+        log("Flag: " + flag)
             } else {
         log("Overloooks")
             }
@@ -2133,14 +2139,24 @@ log(name)
 
     const CheckLOS = (msg) => {
         let Tag = msg.content.split(";");
-        let shooter = Tag[1];
-        let target = Tag[2];
-        let checkLOS = LOS(shooter,target);
-
-
-
-
-
+        let shooterID = Tag[1];
+        let shooter = ModelArray[shooterID];
+        let targetID = Tag[2];
+        let target = ModelArray[targetID];
+        let checkLOS = LOS(shooterID,targetID);
+        SetupCard(shooter.name,target.name,shooter.faction);
+        if (checkLOS.los === false) {
+            outputCard.body.push("No LOS to Target");
+            outputCard.body.push(checkLOS.losReason);
+        } else {
+            outputCard.body.push("Shooter has LOS");
+            outputCard.body.push("Distance: " + checkLOS.distance);
+            outputCard.body.push("Target is in " + checkLOS.arc + " Arc");
+            if (parseInt(checkLOS.cover) < 7) {
+                outputCard.body.push("Cover Save of " + checkLOS.cover + "+");
+            }
+        }
+        PrintCard();
     }
 
     const DeploymentZones = () => {
@@ -2290,19 +2306,15 @@ log(name)
                 if (!model) {return};
                 let oldHex = model.hex;
                 let oldHexLabel = model.hexLabel;
-                if (hexMap[oldHexLabel].terrain.includes("Offboard") && model.special.includes("Ambush")) {
-                    UnitArray[model.unitID].deployed = state.LI.turn;
-                }
+                
                 let newLocation = new Point(tok.get("left"),tok.get("top"));
                 let newHex = pointToHex(newLocation);
                 let newHexLabel = newHex.label();
                 newLocation = hexToPoint(newHex); //centres it in hex
-                let newRotation = oldHex.angle(newHex);
                 
                 tok.set({
                     left: newLocation.x,
                     top: newLocation.y,
-                    rotation: newRotation,
                 });
                 model.hex = newHex;
                 model.hexLabel = newHexLabel;
@@ -2374,7 +2386,7 @@ log(name)
     };
     const registerEventHandlers = () => {
         on('chat:message', handleInput);
-        //on('change:graphic',changeGraphic);
+        on('change:graphic',changeGraphic);
         on('destroy:graphic',destroyGraphic);
     };
     on('ready', () => {
