@@ -49,7 +49,6 @@ const LI = (()=> {
     const Factions = {
         "Ultramarines": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195",
-            "dice": "Ultramarines",
             "backgroundColour": "#0437F2",
             "titlefont": "Arial",
             "fontColour": "#000000",
@@ -58,7 +57,6 @@ const LI = (()=> {
         },
         "Deathguard": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406",
-            "dice": "Deathguard",
             "backgroundColour": "#B3CF99",
             "titlefont": "Anton",
             "fontColour": "#000000",
@@ -67,7 +65,6 @@ const LI = (()=> {
         },
         "Blood Angels": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541",
-            "dice": "BloodAngels",
             "backgroundColour": "#be0b07",
             "titlefont": "Arial",
             "fontColour": "#000000",
@@ -76,14 +73,20 @@ const LI = (()=> {
         },
         "Space Wolves": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748",
-            "dice": "SpaceWolves",
             "backgroundColour": "#dae6ef",
             "titlefont": "Arial",
             "fontColour": "#000000",
             "borderColour": "#000000",
             "borderStyle": "5px groove",
         },
-
+        "Salamanders": {
+            "image": "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748",
+            "backgroundColour": "#556b2f",
+            "titlefont": "Arial",
+            "fontColour": "#000000",
+            "borderColour": "#000000",
+            "borderStyle": "5px groove",
+        },
 
 
         "Neutral": {
