@@ -37,6 +37,9 @@ input[type="hidden"][name="attr_faction"][value="Blood Angels"] ~ .mysheet {
 input[type="hidden"][name="attr_faction"][value="Space Wolves"] ~ .mysheet {
     background-color: #dae6ef;
 }
+input[type="hidden"][name="attr_faction"][value="Salamanders"] ~ .mysheet {
+  background-color: #556b2f;
+}
 
 main {
   display: grid;
