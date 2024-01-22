@@ -1,5 +1,5 @@
 const LI = (()=> {
-    const version = '2024.1.20';
+    const version = '2024.1.21';
     const rules = '1.0'
     if (!state.LI) {state.LI = {}};
     const pageInfo = {name: "",page: "",gridType: "",scale: 0,width: 0,height: 0};
