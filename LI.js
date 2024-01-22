@@ -1567,7 +1567,7 @@ const LI = (()=> {
                             }
                         }
                     }
-                    if (interHexHeight + interHexElevation >= B && i > 0) {
+                    if (interHexHeight + interHexElevation >= B) {
                 log("LOS goes through Terrain")
                         if (interHex.los === false) {
                             //hex blocks los
