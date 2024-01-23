@@ -135,9 +135,9 @@ const LI = (()=> {
         "Compact": 'Can Embark on Transports as if Infantry with Bulky special rule',
         "Dread Aura (X)": '-1 Morale to enemy and friendly units within X inches. Immune to Dread (X) of other units',
         "Drop Pods": 'Must Deep Strike. Can Deep Strike on Round 1. Drop pods do not count for Formation Break Point. After deployment, Drop Pods do need to stay within coherency of models from Detachment.',
-        "Flyer": 'In Reserve can only be given Advance or March orders. Line of sight to everything and vice versa. All Point Defense weapons count as Skyfire when firing at Flyer models. Deploys on player board edge or within 8” of deployment zone. If targeted with weapons without Skyfire, needs a 6 to hit',
+        "Flyer": 'In Reserve can only be given Advance or March orders. Line of sight to everything and vice versa. All Point Defence weapons count as Skyfire when firing at Flyer models. Deploys on player board edge or within 8” of deployment zone. If targeted with weapons without Skyfire, needs a 6 to hit',
         "Hover": 'Flyer can stay on battlefield at End phase. Flyer can disembark troops. Can be deployed in Hover mode.',
-        "Interceptor": 'After movement, can shoot at Flyer with single weapon with -2 penalty to hit. No Point Defense weapons.',
+        "Interceptor": 'After movement, can shoot at Flyer with single weapon with -2 penalty to hit. No Point Defence weapons.',
         "Ion Shield (X)": 'Alternative Save, only when firing is from Front Arc. Save reduced by 1 for weapons with AP -2/-3, reduced by 2 for weapons with AP -4 or more.',
         "Ionic Flare Shield": 'Improve Ion Shield or Invulnerable Save by 1 against Barrage or Blast.',
         "Jink (X)": 'Alternative Save not affected by AP. Cannot be used if First Fire order.',
@@ -172,7 +172,7 @@ const LI = (()=> {
         "Shock Pulse": 'vs Vehicle, Super Heavy Vehicle, Knight, Titan: halve movement and can only fire one weapon this round. Each hit allocated to Void Shield reduces Void Shield by 2 instead of 1.',
         "Shred": 'Re-roll successful Armour Save if Infantry, Cavalry, Walker.',
         "Warp": 'Dice = number of visible models within range in target Detachment. Titans cannot split Dice vs multiple target Detachments. vs Titans and Knights, attack Dice = 1. Bypass Armour Saves, Cover Saves, Invulnerable Saves, Ion Shields, Void Shields.',
-        "Accurate": 'Re-roll Failed hits',
+        "Accurate": 'Re-roll Misses',
         "Arc (Front or Rear)": 'Only shoot targets in noted arc.',
         "Armourbane": 'Vehicle, Super Heavy vehicle, Knights, Titans: re roll successful Armour Save',
         "Anti-Tank": 'AP 0 vs Infantry and Cavalry',
@@ -189,7 +189,7 @@ const LI = (()=> {
         "Light": 'Cannot damage Vehicle, Super Heavy Vehicle, Knight, Titan. Automatically discarded vs active Void Shields (irrespective of AP).',
         "Light AT": 'AP=0 vs Vehicle, Super Heavy Vehicle, Knight, Titan.',
         "Limited (X)": 'Can only be fired X times in a game',
-        "Point Defense": 'Can fire at Detachment designated target or secondary target. Can fire during movement phase if Advance or March order, immediately before or after move. Can only fire Point Defense weapons once per round. In overwatch ignore -2 to hit penalty.',
+        "Point Defence": 'Can fire at Detachment designated target or secondary target. Can fire during movement phase if Advance or March order, immediately before or after move. Can only fire Point Defence weapons once per round. In overwatch ignore -2 to hit penalty.',
         "Precise": 'Hits are allocated by the firing player.',
         "Rapid Fire": 'Additional Hit on natural 6s',
         "Rend": '+1d6 on Fights to a maximum of 6d6.',
@@ -1914,10 +1914,19 @@ const LI = (()=> {
             model.token.set("status_"+unit.symbol,true);
         }
 
-        ModelArray[unit.modelIDs[0]].token.set({
-            aura1_color: colours.green,
-            aura1_radius: 0.2,
-        })
+        let leader = ModelArray[unit.modelIDs[0]];
+        if (leader) {
+            leader.token.set({
+                aura1_color: colours.green,
+                aura1_radius: 0.2,
+            })
+        } else {
+            log("No Leader")
+            log(unit)
+        }
+
+
+ 
         sendChat("",unitName + " Created");
 
 
