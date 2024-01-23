@@ -1711,6 +1711,7 @@ const LI = (()=> {
             players: {}, //keyed by playerID, shows which side
             markers: [[],[]],
             turn: 0,
+            phase: "",
             lineArray: [],
             models: {}, //unitIDs, formationIDs
             units: {}, //unitIDs -> names, formationIDs
@@ -2067,21 +2068,16 @@ const LI = (()=> {
             let token = tokens[i];
             let char = getObj("character", token.get("represents"));
             let name = char.get("name").split(" ");
-log(name)
-            if (name.includes("Objective")) {
-                sides = [];
-                for (let i=0;i<2;i++) {
-                    let faction = state.LI.factions[i][0];
-                    let tablename = Factions[faction].dice;
-                    let table = findObjs({type:'rollabletable', name: tablename})[0];
-                    let obj = findObjs({type:'tableitem', _rollabletableid: table.id, name: '6' })[0];        
-                    let image = tokenImage(obj.get('avatar'));                    
-                    sides.push(image);
-                }
-                let objNum = name.replace(/\D/g,'') - 1;
+            if (name[0] === "Objective") {
+                let sides = [];     
+                let image = tokenImage("https://s3.amazonaws.com/files.d20.io/images/353910541/qTDBir-RF9CMfb_Bj4aMRw/thumb.png?1691543455");   
+                sides.push(image);     
+                image = tokenImage("https://s3.amazonaws.com/files.d20.io/images/353910386/0pN3w44koPbLgfGvNmqpwA/thumb.png?1691543381");   
+                sides.push(image);
+                let objNum = parseInt(name[1]) - 1;
                 let images = ["https://s3.amazonaws.com/files.d20.io/images/306331520/L67AAVS8GOrbFdWQMcg6JA/thumb.png?1664136875","https://s3.amazonaws.com/files.d20.io/images/306333377/ujCJ26GwCQblS4YxGtTJGA/thumb.png?1664137412","https://s3.amazonaws.com/files.d20.io/images/306334101/tByHNVqk10c0Rw2WX9pJpw/thumb.png?1664137597","https://s3.amazonaws.com/files.d20.io/images/306334428/y1rD_5GiD6apA9VOppxDcA/thumb.png?1664137681","https://s3.amazonaws.com/files.d20.io/images/306335099/fru3LTmrDslxAbHI-ALPUg/thumb.png?1664137844"];
-                let neutral = tokenImage(images[objNum]);
-                sides.push(neutral);
+                image = tokenImage(images[objNum]);
+                sides.push(image);
                 sides = sides.toString();
                 sides = sides.replace(/,/g,"|");
                 token.set({
@@ -2121,11 +2117,9 @@ log(name)
                 toBack(token);
                 AddBuilding(buildingModel); //adds to map
             }
-
-
-
         }
         state.LI.turn = 1;
+        state.LI.phase = "Start";
         let tmIDs = state.LI.turnMarkerIDs;
         for (let i=0;i<tmIDs.length;i++) {
             let tmID = tmIDs[i];
@@ -2141,6 +2135,22 @@ log(name)
         outputCard.body.push("Start Game Placeholder");
         PrintCard();
     }
+
+    const UserImage = (msg) => {
+        output = _.chain(msg.selected)
+        .map( s => getObj('graphic',s._id))
+        .reject(_.isUndefined)
+        .map( o => o.get('imgsrc') )
+        .map( getCleanImgSrc )
+        .reject(_.isUndefined)
+        .map(u => `<div><img src="${u}" style="max-width: 3em;max-height: 3em;border:1px solid #333; background-color: #999; border-radius: .2em;"><code>${u}</code></div>`)
+        .value()
+        .join('') || `<span style="color: #aa3333; font-weight:bold;">No selected tokens have images in a user library.</span>`
+        ;
+        output = '<div>' + output + '</div>'
+        sendChat("",output);
+    }
+
     const PlaceTurnMarker = (num) => {
         let turnMarker = getCleanImgSrc(TurnMarkers[state.LI.turn]);        
         let alt = (num === 0) ? 1:0
@@ -2489,7 +2499,9 @@ log(name)
             case '!StartGame':
                 StartGame();
                 break;
-            
+            case '!UserImage':
+                UserImage(msg);
+                break;
     
         }
     };
