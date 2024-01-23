@@ -15,6 +15,8 @@ const LI = (()=> {
     let UnitArray = {}; //Units of Models - Detachments
     let FormationArray = {}; //Formations of Detachments
     let nameArray = {}; //used to track #s of each type of unit
+    let CheckArray = [];
+
 
     let unitCreationInfo = {};
     let hexMap = {}; 
@@ -23,7 +25,7 @@ const LI = (()=> {
 
     const DIRECTIONS = ["Northeast","East","Southeast","Southwest","West","Northwest"];
 
-    const colours = {
+    const Colours = {
         red: "#ff0000",
         blue: "#00ffff",
         yellow: "#ffff00",
@@ -32,7 +34,10 @@ const LI = (()=> {
         black: "#000000",
     }
 
-    const TurnMarkers = ["","https://s3.amazonaws.com/files.d20.io/images/361055772/zDURNn_0bbTWmOVrwJc6YQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055766/UZPeb6ZiiUImrZoAS58gvQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055764/yXwGQcriDAP8FpzxvjqzTg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055768/7GFjIsnNuIBLrW_p65bjNQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055770/2WlTnUslDk0hpwr8zpZIOg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055771/P9DmGozXmdPuv4SWq6uDvw/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055765/V5oPsriRTHJQ7w3hHRBA3A/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055767/EOXU3ujXJz-NleWX33rcgA/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055769/925-C7XAEcQCOUVN1m1uvQ/thumb.png?1695998303"];
+    const TurnMarkers = ["","https://s3.amazonaws.com/files.d20.io/images/361055772/zDURNn_0bbTWmOVrwJc6YQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055766/UZPeb6ZiiUImrZoAS58gvQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055764/yXwGQcriDAP8FpzxvjqzTg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055768/7GFjIsnNuIBLrW_p65bjNQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055770/2WlTnUslDk0hpwr8zpZIOg/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055771/P9DmGozXmdPuv4SWq6uDvw/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055765/V5oPsriRTHJQ7w3hHRBA3A/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055767/EOXU3ujXJz-NleWX33rcgA/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/361055769/925-C7XAEcQCOUVN1m1uvQ/thumb.png?1695998303","https://s3.amazonaws.com/files.d20.io/images/367683734/l-zY78IZqDwwBmvKudj7Fg/thumb.png?1699992368","https://s3.amazonaws.com/files.d20.io/images/367683736/KTSyH0bTNRtF06h8F3t0kQ/thumb.png?1699992368","https://s3.amazonaws.com/files.d20.io/images/367683726/MCFihVq52aTlUkv-ijdg6w/thumb.png?1699992367","https://s3.amazonaws.com/files.d20.io/images/367683728/YUy1bSEu44Hu_HlVSzv6ZQ/thumb.png?1699992367","https://s3.amazonaws.com/files.d20.io/images/367683730/pw5PgLNFCkExUtJA4JwM1Q/thumb.png?1699992367","https://s3.amazonaws.com/files.d20.io/images/367683729/wF4gNH1WKg9xB_OSrAkxsg/thumb.png?1699992367","https://s3.amazonaws.com/files.d20.io/images/367683727/PVrwoByB_5PETsd9ObPQlA/thumb.png?1699992367","https://s3.amazonaws.com/files.d20.io/images/367683732/g8kknD1sqvInESGM1X6itg/thumb.png?1699992367","https://s3.amazonaws.com/files.d20.io/images/367683731/N3KKC6lLhlZ59KOqtdQzFw/thumb.png?1699992367"];
+
+    const TurnColours = ["","#ff0000","#9900ff","#674ea7","#0000ff","#00ffff","#4a86e8","#76a5af","#45818e","#6aa84f","#f1c232"];
+
 
     const SM = {
         fired: "status_Shell::5553215",
@@ -94,7 +99,7 @@ const LI = (()=> {
             "dice": "Neutral",
             "backgroundColour": "#FFFFFF",
             "titlefont": "Arial",
-            "fontColour": "#000000",
+            "fontColour": "#FFFFFF",
             "borderColour": "#00FF00",
             "borderStyle": "5px ridge",
         },
@@ -842,7 +847,7 @@ const LI = (()=> {
         add(model) {
             if (this.modelIDs.includes(model.id) === false) {
 //add COmmanders?
-                if (model.token.get("aura1_color") === colours.green) {
+                if (model.token.get("aura1_color") === Colours.green) {
                     this.modelIDs.unshift(model.id);
                 } else {
                     this.modelIDs.push(model.id);
@@ -1138,15 +1143,23 @@ const LI = (()=> {
             outputCard.faction = "Neutral";
         }
 
+        if (outputCard.faction === "Neutral") {
+            let turn = state.LI.turn;
+            Factions["Neutral"]["borderColour"] = TurnColours[turn];
+            Factions["Neutral"]["backgroundColour"] = TurnColours[turn];
+            Factions["Neutral"]["fontColour"] = (turn === 1 || turn === 3 || turn === 5 || turn === 7 || turn === 10) ? "#000000":"#FFFFFF";
+        }
+
+
         //start of card
         output += `<div style="display: table; border: ` + Factions[outputCard.faction].borderStyle + " " + Factions[outputCard.faction].borderColour + `; `;
-        output += `background-color: #EEEEEE; width: 100%; text-align: centre; `;
+        output += `background-color: #EEEEEE; width: 100%; text-align: center; `;
         output += `border-radius: 1px; border-collapse: separate; box-shadow: 5px 3px 3px 0px #aaa;;`;
         output += `"><div style="display: table-header-group; `;
         output += `background-color: ` + Factions[outputCard.faction].backgroundColour + `; `;
         output += `background-image: url(` + Factions[outputCard.faction].image + `), url(` + Factions[outputCard.faction].image + `); `;
-        output += `background-position: left,right; background-repeat: no-repeat, no-repeat; background-size: contain, contain; align: centre,centre; `;
-        output += `border-bottom: 2px solid #444444; "><div style="display: table-row;"><div style="display: table-cell; padding: 2px 2px; text-align: centre;"><span style="`;
+        output += `background-position: left,right; background-repeat: no-repeat, no-repeat; background-size: contain, contain; align: center,center; `;
+        output += `border-bottom: 2px solid #444444; "><div style="display: table-row;"><div style="display: table-cell; padding: 2px 2px; text-align: center;"><span style="`;
         output += `font-family: ` + Factions[outputCard.faction].titlefont + `; `;
         output += `font-style: normal; `;
 
@@ -1182,20 +1195,20 @@ const LI = (()=> {
                 out += `<div style="display: table-row; background: #FFFFFF;; `;
                 out += `"><div style="display: table-cell; padding: 0px 0px; font-family: Arial; font-style: normal; font-weight: normal; font-size: 14px; `;
                 out += `"><span style="line-height: normal; color: #000000; `;
-                out += `"> <div style='text-align: centre; display:block;'>`;
+                out += `"> <div style='text-align: center; display:block;'>`;
                 out += line + " ";
 
                 for (let q=0;q<num;q++) {
                     let info = outputCard.inline[inline];
                     out += `<a style ="background-color: ` + Factions[outputCard.faction].backgroundColour + `; padding: 5px;`
-                    out += `color: ` + Factions[outputCard.faction].fontColour + `; text-align: centre; vertical-align: middle; border-radius: 5px;`;
+                    out += `color: ` + Factions[outputCard.faction].fontColour + `; text-align: center; vertical-align: middle; border-radius: 5px;`;
                     out += `border-color: ` + Factions[outputCard.faction].borderColour + `; font-family: Tahoma; font-size: x-small; `;
                     out += `"href = "` + info.action + `">` + info.phrase + `</a>`;
                     inline++;                    
                 }
                 out += `</div></span></div></div>`;
             } else {
-                line = line.replace(/\[hr(.*?)\]/gi, '<hr style="width:95%; align:centre; margin:0px 0px 5px 5px; border-top:2px solid $1;">');
+                line = line.replace(/\[hr(.*?)\]/gi, '<hr style="width:95%; align:center; margin:0px 0px 5px 5px; border-top:2px solid $1;">');
                 line = line.replace(/\[\#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})\](.*?)\[\/[\#]\]/g, "<span style='color: #$1;'>$2</span>"); // [#xxx] or [#xxxx]...[/#] for color codes. xxx is a 3-digit hex code
                 line = line.replace(/\[[Uu]\](.*?)\[\/[Uu]\]/g, "<u>$1</u>"); // [U]...[/u] for underline
                 line = line.replace(/\[[Bb]\](.*?)\[\/[Bb]\]/g, "<b>$1</b>"); // [B]...[/B] for bolding
@@ -1204,7 +1217,7 @@ const LI = (()=> {
                 out += `<div style="display: table-row; background: ` + lineBack + `;; `;
                 out += `"><div style="display: table-cell; padding: 0px 0px; font-family: Arial; font-style: normal; font-weight: normal; font-size: 14px; `;
                 out += `"><span style="line-height: normal; color: #000000; `;
-                out += `"> <div style='text-align: centre; display:block;'>`;
+                out += `"> <div style='text-align: center; display:block;'>`;
                 out += line + `</div></span></div></div>`;                
             }
             output += out;
@@ -1218,9 +1231,9 @@ const LI = (()=> {
                 out += `<div style="display: table-row; background: #FFFFFF;; `;
                 out += `"><div style="display: table-cell; padding: 0px 0px; font-family: Arial; font-style: normal; font-weight: normal; font-size: 14px; `;
                 out += `"><span style="line-height: normal; color: #000000; `;
-                out += `"> <div style='text-align: centre; display:block;'>`;
+                out += `"> <div style='text-align: center; display:block;'>`;
                 out += `<a style ="background-color: ` + Factions[outputCard.faction].backgroundColour + `; padding: 5px;`
-                out += `color: ` + Factions[outputCard.faction].fontColour + `; text-align: centre; vertical-align: middle; border-radius: 5px;`;
+                out += `color: ` + Factions[outputCard.faction].fontColour + `; text-align: center; vertical-align: middle; border-radius: 5px;`;
                 out += `border-color: ` + Factions[outputCard.faction].borderColour + `; font-family: Tahoma; font-size: x-small; `;
                 out += `"href = "` + info.action + `">` + info.phrase + `</a></div></span></div></div>`;
                 output += out;
@@ -1229,6 +1242,7 @@ const LI = (()=> {
 
         output += `</div></div><br />`;
         sendChat("",output);
+log(output)
         outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
     }
 
@@ -1748,6 +1762,7 @@ const LI = (()=> {
                         faction = Attribute(char,"faction");
                         side = (TraitorForces.includes(faction)) ? "Traitor":"Loyalist";
                         state.LI.players[playerID] = side;
+                        state.LI.factions[playerID] = faction;
                     }
                 } else {
                     sendChat("","Click on one of your tokens then select Roll again");
@@ -1804,6 +1819,7 @@ const LI = (()=> {
 
         state.LI = {
             players: {}, //keyed by playerID, shows which side
+            factions: {}, //factions, keyed by playerID
             markers: [[],[]],
             turn: 0,
             phase: "",
@@ -1917,7 +1933,7 @@ const LI = (()=> {
         let leader = ModelArray[unit.modelIDs[0]];
         if (leader) {
             leader.token.set({
-                aura1_color: colours.green,
+                aura1_color: Colours.green,
                 aura1_radius: 0.2,
             })
         } else {
@@ -1949,6 +1965,8 @@ const LI = (()=> {
         };
         let faction = model.faction;
         if (!faction) {faction = "Neutral"};
+        let requestingPlayerID = msg.playerid;
+        let ownUnit = (state.LI.factions[requestingPlayerID] === faction) ? true:false;
 
         if (model.type === "Building") {
             SetupCard(model.name,"",faction);
@@ -1992,11 +2010,12 @@ const LI = (()=> {
             if (unit) {
                 outputCard.body.push("[hr]");
                 outputCard.body.push("Unit: " + unit.name);
-                if (unit.order !== "") {
+                if (state.LI.phase === "Orders" && ownUnit === true) {
                     outputCard.body.push("Order: " + unit.order);
                 } else {
-                    outputCard.body.push("No Order");
+                    outputCard.body.push("Order: " + unit.order);
                 }
+
                 for (let i=0;i<unit.modelIDs.length;i++) {
                     let m = ModelArray[unit.modelIDs[i]];
                     let name = m.name;
@@ -2009,7 +2028,11 @@ const LI = (()=> {
 
 
         }
-        PrintCard();
+        if (state.LI.phase === "Orders" && ownUnit === true) {
+            PrintCard(requestingPlayerID);
+        } else {
+            PrintCard();
+        }
     }
 
     const DrawLine = (id1,id2,w,layer) => {
@@ -2223,22 +2246,27 @@ const LI = (()=> {
             }
         }
         state.LI.turn = 1;
-        state.LI.phase = "Start";
+        state.LI.phase = "";
+        PlaceTurnMarkers()
+        NextPhase2("End");
+    }
+
+    const PlaceTurnMarkers = () => {
         let tmIDs = state.LI.turnMarkerIDs;
+        let turn = state.LI.turn;
         for (let i=0;i<tmIDs.length;i++) {
             let tmID = tmIDs[i];
             let turnMarker = findObjs({_type:"graphic", id: tmID})[0];
             if (!turnMarker) {
                 PlaceTurnMarker(i);
             } else {
-                let newImg = getCleanImgSrc(TurnMarkers[state.LI.turn]);
+                let newImg = getCleanImgSrc(TurnMarkers[turn]);
                 turnMarker.set("imgsrc",newImg);
             }
-        }        
-        SetupCard("Turn 1","","Neutral");
-        outputCard.body.push("Start Game Placeholder");
-        PrintCard();
+        }       
     }
+
+
 
     const UserImage = (msg) => {
         output = _.chain(msg.selected)
@@ -2519,6 +2547,163 @@ const LI = (()=> {
         }
     }
 
+    const NextPhase = () => {
+        if (state.LI.turn === 0) {
+            StartGame();
+            return;
+        }
+        let currentPhase = state.LI.phase;
+        if (currentPhase === "Orders") {
+            //checks to see if unordered units
+            _.each(UnitArray,unit => {  
+                if (unit.order === "") {
+                    CheckArray.push(unit);
+                }
+            });
+            if (CheckArray.length > 0) {
+                SetupCard("Orders Incomplete","","Neutral");
+                ButtonInfo("Review Units","!Missing;Orders");
+                PrintCard();
+                return;
+            }
+        } else if (currentPhase === "Movement") {
+
+
+    
+        } else if (currentPhase === "Combat") {
+    
+    
+        } else if (currentPhase === "End") {
+    
+    
+            //ResetFlags() - and in this routine, use the unit class
+            state.LI.turn += 1;
+            PlaceTurnMarkers();
+        } 
+        NextPhase2(currentPhase);
+    }
+    
+    const NextPhase2 = (phase) => {
+        //all req to advance cleared
+        let turn = state.LI.turn;
+        let phases = ["Orders","Initiative","Movement","Combat","End"];
+        let phaseNum = ((phases.indexOf(phase) + 1) > 4) ? 0:(phases.indexOf(phase) + 1);
+        phase = phases[phaseNum];
+        state.LI.phase = phase;
+        SetupCard("Turn: " + turn,phase + " Phase","Neutral");
+    
+        if (phase === "Orders") {
+            outputCard.body.push("Issue Orders to each Detachment");
+            outputCard.body.push("Including Reserves and Transported Troops");
+            outputCard.body.push("Excluding Detachments with Fall Back");
+        } else if (phase === "Initiative") {
+            //RevealOrders()
+            outputCard.body.push("Players roll for Initiative");
+            if (turn === 1) {
+                outputCard.body.push("In case of a Tie Reroll");
+            } else {
+                outputCard.body.push("In case of Tie player who didn't have Initiative last turn has it this Turn");
+            }
+            outputCard.body.push("Player who wins Roll determines who has Initiative and goes First");
+        } else if (phase === "Movement") {
+            outputCard.body.push("Starting with Player with Initiative, take turns moving Detachments");
+            outputCard.body.push("Detachments on First Fire can only be activated to Overwatch Fire");
+            outputCard.body.push("Reserves arriving on Battlefield (e.g. Flyers, Deep Strikes etc.) can be activated normally");
+            outputCard.body.push("Reserves remaining offtable cannot be activated until end");
+        } else if (phase === "Combat") {
+            outputCard.body.push("Combat is 3 stages:");
+            outputCard.body.push("First Fire Stage");
+            outputCard.body.push("Close Combat Stage");
+            outputCard.body.push("Advancing Fire Stage");
+        } else if (phase === "End") {
+            //see if any detachments have Fall Back
+            //if so
+            //ButtonInfo("Start Morale Checks","!FallBackMorale");
+            //else
+            //End phase things?
+            outputCard.body.push("Remove Flyers");
+            //Objectives and VPs
+            //check if Game is Over
+        }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        PrintCard();
+    } 
+
+    const PlaceOrder = (msg) => {
+        if (state.LI.phase !== "Orders") {
+            sendChat("","Not Orders Phase");
+            return;
+        }
+        if (!msg.selected) {
+            sendChat("","Select a Model");
+            return;
+        }
+        let Tag = msg.content.split(";");
+
+        let id = msg.selected[0]._id;
+        let playerID = msg.playerid;
+        let playerObj = findObjs({type: 'player',id: playerID})[0];
+        let who = playerObj.get("displayname");
+        let order = Tag[1];
+        let model = ModelArray[id];
+        let unit = UnitArray[model.unitID];
+        let unitLeader = ModelArray[unit.modelIDs[0]];
+//check if legal order
+//temp turn aura black
+        unitLeader.token.set("aura1_color",Colours.black);
+        unit.order = order;
+        sendChat("System",`/w "${who}"` + order + " Given");
+    }
+
+    const Missing = (msg) => {
+        let Tag = msg.content.split(";");
+        let phase = Tag[1];
+        if (phase === "Orders") {
+            let unit = CheckArray.shift();
+            if (unit) {
+                let unitLeader = ModelArray[unit.modelIDs[0]];
+                if (unitLeader) {
+                    let location = unitLeader.location;
+                    sendPing(location.x,location.y, Campaign().get('playerpageid'), null, true); 
+                    SetupCard(unit.name,"Needs an Order",unit.faction);
+                    unit.order = "Advance";
+                    unitLeader.token.set("aura1_color",Colours.black);
+                    outputCard.body.push("Give order then click Button in this window to advance when done");
+                    outputCard.body.push("Otherwise Default will be Advance");
+                    ButtonInfo("Order Given","!Missing;Orders");
+                    PrintCard();
+                } else {
+                    Missing("Orders");
+                }
+            } else {
+                NextPhase2(phase);
+            }
+        }
+
+
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
 
     const changeGraphic = (tok,prev) => {
         if (tok.get('subtype') === "token") {
@@ -2576,7 +2761,7 @@ const LI = (()=> {
                 log("Formation Array");
                 log(FormationArray);
                 break;
-            case '!StartNew':
+            case '!ClearState':
                 ClearState();
                 break;
             case '!Roll':
@@ -2603,8 +2788,17 @@ const LI = (()=> {
             case '!StartGame':
                 StartGame();
                 break;
+            case '!NextPhase':
+                NextPhase();
+                break;
             case '!UserImage':
                 UserImage(msg);
+                break;
+            case '!PlaceOrder':
+                PlaceOrder(msg);
+                break;
+            case '!Missing':
+                Missing(msg);
                 break;
     
         }
