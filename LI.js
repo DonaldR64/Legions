@@ -2575,6 +2575,7 @@ const LI = (()=> {
             return;
         }
         let currentPhase = state.LI.phase;
+        CheckArray = [];
         if (currentPhase === "Orders") {
             //checks to see if unordered units
             _.each(UnitArray,unit => {  
@@ -2588,9 +2589,17 @@ const LI = (()=> {
                 PrintCard();
                 return;
             }
-        } else if (currentPhase === "Movement") {
-
-    
+        } else if (currentPhase === "Movement") {   
+             //checks to see if unmoved units
+             _.each(UnitArray,unit => {  
+                //did unit move?
+            });
+            if (CheckArray.length > 0) {
+                SetupCard("Movement Phase","","Neutral");
+                ButtonInfo("Review Units","!Checks;Movement");
+                PrintCard();
+                return;
+            }
         } else if (currentPhase === "Combat") {
             //checks to see if any units with fall back and need morale check
             _.each(UnitArray,unit => {  
@@ -2604,10 +2613,6 @@ const LI = (()=> {
                 PrintCard();
                 return;
             }
-
-
-
-    
         } else if (currentPhase === "End") {
             _.each(UnitArray,unit => {
                 unit.resetFlags();
@@ -2651,10 +2656,6 @@ const LI = (()=> {
             outputCard.body.push("Close Combat Stage");
             outputCard.body.push("Advancing Fire Stage");
         } else if (phase === "End") {
-            //see if any detachments have Fall Back
-            //if so
-            //ButtonInfo("Start Morale Checks","!FallBackMorale");
-            //else
             //End phase things?
             outputCard.body.push("Remove Flyers");
             //Objectives and VPs
@@ -2722,7 +2723,7 @@ const LI = (()=> {
                     Checks("Orders");
                 }
             } else {
-                NextPhase2(reason);
+                NextPhase2("Orders");
             }
         }
         if (reason === "Morale") {
@@ -2732,11 +2733,10 @@ const LI = (()=> {
                 if (unitLeader) {
                     let location = unitLeader.location;
                     sendPing(location.x,location.y, Campaign().get('playerpageid'), null, true); 
-                    SetupCard(unit.name,"Needs an Order",unit.faction);
-                    unit.order = "Advance";
-                    unitLeader.token.set("aura1_color",Colours.black);
-                    outputCard.body.push("Give order then click Button in this window to advance when done");
-                    outputCard.body.push("Otherwise Default will be Advance");
+                    
+
+
+                    
                     ButtonInfo("Next","!Checks;Morale");
                     PrintCard();
                 } else {
@@ -2746,7 +2746,31 @@ const LI = (()=> {
                 NextPhase2("Combat");
             }
         }
+        if (reason === "Movement") {
+            let unit = CheckArray.shift();
+            if (unit) {
+                let unitLeader = ModelArray[unit.modelIDs[0]];
+                if (unitLeader) {
+                    let location = unitLeader.location;
+                    sendPing(location.x,location.y, Campaign().get('playerpageid'), null, true); 
+                    
 
+
+
+                    ButtonInfo("Next","!Checks;Morale");
+                    PrintCard();
+                } else {
+                    Checks("Movement");
+                }
+            } else {
+                NextPhase2("Movement");
+            }
+
+
+
+
+
+        }
 
 
 
