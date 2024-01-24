@@ -44,7 +44,7 @@ const LI = (()=> {
         moved: "status_Advantage-or-Up::2006462", //if unit moved
         fallback: "status_Fall-Back::6534650",
         charge: "status_Charge::6534651",
-        "first fire": "status_First-Fire::6534652",
+        firstfire: "status_First-Fire::6534652",
         advance: "status_Advance::6534653",
         march: "status_March::6534654",
     };
@@ -895,13 +895,15 @@ const LI = (()=> {
 
         resetFlags() {
             if (this.order !== "Fall Back") {
-                let mark = SM[this.order];
                 _.each(this.modelIDs,id => {
                     let model = ModelArray[id];
                     if (model) {
-                        model.token.set(mark,false);
+                        model.token.set(SM.charge,false);
+                        model.token.set(SM.firstfire,false);
+                        model.token.set(SM.advance,false);
+                        model.token.set(SM.march,false);
                         model.token.set(SM.fired,false);
-                        modeltoken.set(SM.moved,false);
+                        model.token.set(SM.moved,false);
                         if (id === this.modelIDs[0]) {
                             model.token.set("aura1_color",Colours.green);
                         }
@@ -947,7 +949,7 @@ const LI = (()=> {
                 } else {
                     outputCard.body.push("[#ff0000]Detachment goes on Fallback[/#]");
                 }
-                let mark = SM[this.order];
+                let mark = SM[this.order.toLowerCase()];
                 _.each(this.modelIDs,id => {
                     let model = ModelArray[id];
                     if (model) {
@@ -976,6 +978,7 @@ const LI = (()=> {
     class Formation {
         constructor(faction,id,name) {
             let breakPoint = 0;
+            let broken = false;
             if (!state.LI.formations[id]) {
                 state.LI.formations[id] = {
                     name: name,
@@ -1766,7 +1769,6 @@ const LI = (()=> {
                         let id3s = interHex.tokenIDs;
                         for (let i=0;i<id3s.length;i++) {
                             let id3 = id3s[i];
-                            if (id3 === id1 || id3 === id2) {continue};
                             let model3 = ModelArray[id3];
                             if (!model3) {continue};
                             if (model3.type === "System Unit" || model3.type === "Building") {continue};
