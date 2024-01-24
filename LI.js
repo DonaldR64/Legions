@@ -16,7 +16,7 @@ const LI = (()=> {
     let FormationArray = {}; //Formations of Detachments
     let nameArray = {}; //used to track #s of each type of unit
     let CheckArray = [];
-
+    let fallbackFlag = false;
 
     let unitCreationInfo = {};
     let hexMap = {}; 
@@ -790,6 +790,7 @@ const LI = (()=> {
             this.save = parseInt(attributeArray.save) || 7;
             this.caf = parseInt(attributeArray.caf) || 0;
             this.morale = parseInt(attributeArray.morale) || 0;
+            this.movement = parseInt(attributeArray.movement) || 0;
 
             this.weaponArray = weaponArray;
             this.buildingInfo = buildingInfo;
@@ -837,6 +838,10 @@ const LI = (()=> {
             this.player = player;
             this.faction = faction;
             this.order = "";
+            this.moraleCheck = false;
+
+            this.type = "";
+            this.scale = 1;
             this.hitArray = []; //used to track hits
             UnitArray[unitID] = this;
 
@@ -855,6 +860,8 @@ const LI = (()=> {
                         return parseInt(ModelArray[b].rank) - parseInt(ModelArray[a].rank);
                     })
                 }
+                this.type = model.type;
+                this.scale = model.scale;
             }
         }
 
@@ -901,12 +908,65 @@ const LI = (()=> {
                     }
                 });
                 this.order = "";
-            }
+                this.moraleCheck = false;
 
+            } else {
+                this.moraleCheck = true; //Units with Fall Back take no further morale checks
+            }
 
 
         }
 
+        moraleCheck() {
+            if (this.moraleCheck = true) {
+                return; //only one per turn
+            }
+            let needed = 7;
+            _.each(this.modelIDs,modelID => {
+                let model = ModelArray[modelID];
+                needed = Math.min(needed,model.morale);
+            });
+            let tip = "<br>Base: " + needed + "+";
+            let formation = FormationArray[this.formationID];
+            if (needed === 0) {
+                tip += "<br>Automatic";
+            }
+            if (formation.broken === true && needed > 0) {
+                tip += "<br>Formation Broken +1";
+                needed += 1;
+            }
+            //other mods
+
+            let roll = randomInteger(6);
+            tip = "Roll: " + roll + " vs. " + needed + "+" + tip;
+            tip = '[🎲](#" class="showtip" title="' + tip + ')';
+            if (roll < needed) {
+                outputCard.body.push(tip + " [#ff0000]Morale Check Failed[/#]");
+                if (order === "Fall Back") {
+                    outputCard.body.push("[#ff0000]Detachment remains on Fallback[/#]");
+                } else {
+                    outputCard.body.push("[#ff0000]Detachment goes on Fallback[/#]");
+                }
+                let mark = SM[this.order];
+                _.each(this.modelIDs,id => {
+                    let model = ModelArray[id];
+                    if (model) {
+                        model.token.set(mark,false);
+                        model.token.set(SM.fallback,true);
+                        if (id === this.modelIDs[0]) {
+                            model.token.set("aura1_color",Colours.black);
+                        }
+                    }
+                });
+                this.order = "Fallback";
+                this.moraleCheck = true;
+                return "Failed";
+            } else {
+                outputCard.body.push(tip + " Morale Check Passed");
+                this.moraleCheck = true;
+                return "Passed";            
+            }
+        }
 
 
 
@@ -920,13 +980,16 @@ const LI = (()=> {
                 state.LI.formations[id] = {
                     name: name,
                     breakPoint: 0,
+                    broken: false,
                 }
             } else {
                 name = state.LI.formations[id].name;
                 breakPoint = state.LI.formations[id].breakPoint;
+                broken = state.LI.formations[id].broken
             }
             this.name = name;
-            this.breakPoint = breakPoint
+            this.breakPoint = breakPoint;
+            this.broken = broken;
             this.id = id;
             this.faction = faction;
             this.unitIDs = [];
@@ -941,7 +1004,28 @@ const LI = (()=> {
             }
         }
 
-
+        checkBroken() {
+            let hp = 0;
+            _.each(this.unitIDs,unitID => {
+                let unit = UnitArray[unitID];
+                _.each(unit.modelIDs,modelID => {
+                    let model = ModelArray[modelID];
+                    if (parseInt(model.scale) > 3) {
+                        hp += parseInt(model.token.get("bar1_value"));
+                    } else {
+                        hp += 1;
+                    }
+                });
+            });
+            if (hp <= Math.round(this.breakPoint/2)) {
+                this.broken = true;
+                state.LI.formations[id].broken = true;
+                outputCard.body.push("[B]The Formation - " + this.name + " is Broken[/b]");
+                return true;
+            } else {
+                return false;
+            }
+        }
 
 
     }
@@ -1796,9 +1880,23 @@ const LI = (()=> {
             let res = "/direct " + DisplayDice(roll,side,40);
             sendChat("player|" + playerID,res);
         } else {
-            
-
-
+            if (Tag[1] === "Morale") {
+                let unitID = Tag[2];
+                let unit = UnitArray[unitID];
+                let result = unit.moraleCheck();
+                let flip;
+                if (result === "Passed") {
+                    unit.order = "";
+                    flip = false;
+                } else {
+                    unit.order = "Fallback";
+                    flip = true;
+                }
+                _.each(unit.modelIDs,id => {
+                    let model = ModelArray[id];
+                    model.token.set(SM.fallback,flip);
+                });
+            }
         }
     }
 
@@ -2601,18 +2699,7 @@ const LI = (()=> {
                 return;
             }
         } else if (currentPhase === "Combat") {
-            //checks to see if any units with fall back and need morale check
-            _.each(UnitArray,unit => {  
-                if (unit.order === "Fall Back") {
-                    CheckArray.push(unit);
-                }
-            });
-            if (CheckArray.length > 0) {
-                SetupCard("Morale Checks","","Neutral");
-                ButtonInfo("Start","!Checks;Morale");
-                PrintCard();
-                return;
-            }
+          
         } else if (currentPhase === "End") {
             _.each(UnitArray,unit => {
                 unit.resetFlags();
@@ -2656,8 +2743,22 @@ const LI = (()=> {
             outputCard.body.push("Close Combat Stage");
             outputCard.body.push("Advancing Fire Stage");
         } else if (phase === "End") {
-            //End phase things?
+            //checks to see if any units with fall back and need morale check
+            //need a flag for first pass being morale checks then once all done into flyers, end phase
+            _.each(UnitArray,unit => {  
+                if (unit.order === "Fall Back") {
+                    CheckArray.push(unit);
+                }
+            });
+            if (CheckArray.length > 0 && fallbackFlag === false) {
+                //go to each unit, tell player to move, then roll morale check
+                Checks("Morale");
+                return;
+            }
             outputCard.body.push("Remove Flyers");
+
+
+
             //Objectives and VPs
             //check if Game is Over
         }
@@ -2733,22 +2834,26 @@ const LI = (()=> {
                 if (unitLeader) {
                     let location = unitLeader.location;
                     sendPing(location.x,location.y, Campaign().get('playerpageid'), null, true); 
-                    
-
-
-                    
-                    ButtonInfo("Next","!Checks;Morale");
+                    SetupCard(unit.name,"Morale Check",unit.faction);
+                    outputCard.body.push("The Detachment must flee directly towards their side's table edge");
+                    outputCard.body.push("If it moves off the table edge or ends up in an Enemy Detachment it is destroyed.");
+                    outputCard.body.push("It moves " + (unitLeader.movement * 2) + '" and must maintain cohesion');
+                    outputCard.body.push("When done, the Unit may take a Morale Check to rally");
+                    ButtonInfo("Morale Check","!RollD6;Morale");                    
                     PrintCard();
                 } else {
-                    Checks("Orders");
+                    Checks("Morale");
                 }
             } else {
-                NextPhase2("Combat");
+                fallbackFlag = true;
+                NextPhase2("End");
             }
         }
         if (reason === "Movement") {
             let unit = CheckArray.shift();
             if (unit) {
+//check if unit has advance/march and didnt move
+
                 let unitLeader = ModelArray[unit.modelIDs[0]];
                 if (unitLeader) {
                     let location = unitLeader.location;
