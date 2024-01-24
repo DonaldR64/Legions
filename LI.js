@@ -42,11 +42,11 @@ const LI = (()=> {
     const SM = {
         fired: "status_Shell::5553215",
         moved: "status_Advantage-or-Up::2006462", //if unit moved
-        fallback: "6534650::Fall-Back",
-        charge: "6534651::Charge",
-        firstfire: "6534652::First-Fire",
-        advance: "6534653::Advance",
-        march: "6534654::March",
+        fallback: "status_Fall-Back::6534650",
+        charge: "status_Charge::6534651",
+        "first fire": "status_First-Fire::6534652",
+        advance: "status_Advance::6534653",
+        march: "status_March::6534654",
     };
 
     let outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
@@ -1242,7 +1242,6 @@ const LI = (()=> {
 
         output += `</div></div><br />`;
         sendChat("",output);
-log(output)
         outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
     }
 
@@ -2568,7 +2567,6 @@ log(output)
             }
         } else if (currentPhase === "Movement") {
 
-
     
         } else if (currentPhase === "Combat") {
     
@@ -2597,7 +2595,7 @@ log(output)
             outputCard.body.push("Including Reserves and Transported Troops");
             outputCard.body.push("Excluding Detachments with Fall Back");
         } else if (phase === "Initiative") {
-            //RevealOrders()
+            RevealOrders()
             outputCard.body.push("Players roll for Initiative");
             if (turn === 1) {
                 outputCard.body.push("In case of a Tie Reroll");
@@ -2698,8 +2696,22 @@ log(output)
 
     }
 
-
-
+    const RevealOrders = () => {
+        _.each(UnitArray,unit => {
+            let ord = unit.order.toLowerCase();
+            if (!ord) {ord = "advance"}
+            let mark = SM[ord];
+            for (let i=0;i<unit.modelIDs.length;i++) {
+                let model = ModelArray[unit.modelIDs[i]];
+                if (model) {
+                    model.token.set(mark,true);
+                    if (i === 0) {
+                        model.token.set("aura1_color",Colours.green);
+                    }
+                }
+            }
+        });
+    }
 
 
 
