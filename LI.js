@@ -886,7 +886,30 @@ const LI = (()=> {
             return result;
         }
 
-       
+        resetFlags() {
+            if (this.order !== "Fall Back") {
+                let mark = SM[this.order];
+                _.each(this.modelIDs,id => {
+                    let model = ModelArray[id];
+                    if (model) {
+                        model.token.set(mark,false);
+                        model.token.set(SM.fired,false);
+                        modeltoken.set(SM.moved,false);
+                        if (id === this.modelIDs[0]) {
+                            model.token.set("aura1_color",Colours.green);
+                        }
+                    }
+                });
+                this.order = "";
+            }
+
+
+
+        }
+
+
+
+
 
     }
 
@@ -2561,7 +2584,7 @@ const LI = (()=> {
             });
             if (CheckArray.length > 0) {
                 SetupCard("Orders Incomplete","","Neutral");
-                ButtonInfo("Review Units","!Missing;Orders");
+                ButtonInfo("Review Units","!Checks;Orders");
                 PrintCard();
                 return;
             }
@@ -2569,12 +2592,26 @@ const LI = (()=> {
 
     
         } else if (currentPhase === "Combat") {
-    
+            //checks to see if any units with fall back and need morale check
+            _.each(UnitArray,unit => {  
+                if (unit.order === "Fall Back") {
+                    CheckArray.push(unit);
+                }
+            });
+            if (CheckArray.length > 0) {
+                SetupCard("Morale Checks","","Neutral");
+                ButtonInfo("Start","!Checks;Morale");
+                PrintCard();
+                return;
+            }
+
+
+
     
         } else if (currentPhase === "End") {
-    
-    
-            //ResetFlags() - and in this routine, use the unit class
+            _.each(UnitArray,unit => {
+                unit.resetFlags();
+            });
             state.LI.turn += 1;
             PlaceTurnMarkers();
         } 
@@ -2645,7 +2682,6 @@ const LI = (()=> {
             return;
         }
         let Tag = msg.content.split(";");
-
         let id = msg.selected[0]._id;
         let playerID = msg.playerid;
         let playerObj = findObjs({type: 'player',id: playerID})[0];
@@ -2654,17 +2690,21 @@ const LI = (()=> {
         let model = ModelArray[id];
         let unit = UnitArray[model.unitID];
         let unitLeader = ModelArray[unit.modelIDs[0]];
-//check if legal order
-//temp turn aura black
+        if (unit.order === "Fall Back") {
+            sendChat("System",`/w "${who}"` + "Unit is on Fall Back this turn");
+            return;
+        }
+
+
         unitLeader.token.set("aura1_color",Colours.black);
         unit.order = order;
         sendChat("System",`/w "${who}"` + order + " Given");
     }
 
-    const Missing = (msg) => {
+    const Checks = (msg) => {
         let Tag = msg.content.split(";");
-        let phase = Tag[1];
-        if (phase === "Orders") {
+        let reason = Tag[1];
+        if (reason === "Orders") {
             let unit = CheckArray.shift();
             if (unit) {
                 let unitLeader = ModelArray[unit.modelIDs[0]];
@@ -2676,16 +2716,36 @@ const LI = (()=> {
                     unitLeader.token.set("aura1_color",Colours.black);
                     outputCard.body.push("Give order then click Button in this window to advance when done");
                     outputCard.body.push("Otherwise Default will be Advance");
-                    ButtonInfo("Order Given","!Missing;Orders");
+                    ButtonInfo("Order Given","!Checks;Orders");
                     PrintCard();
                 } else {
-                    Missing("Orders");
+                    Checks("Orders");
                 }
             } else {
-                NextPhase2(phase);
+                NextPhase2(reason);
             }
         }
-
+        if (reason === "Morale") {
+            let unit = CheckArray.shift();
+            if (unit) {
+                let unitLeader = ModelArray[unit.modelIDs[0]];
+                if (unitLeader) {
+                    let location = unitLeader.location;
+                    sendPing(location.x,location.y, Campaign().get('playerpageid'), null, true); 
+                    SetupCard(unit.name,"Needs an Order",unit.faction);
+                    unit.order = "Advance";
+                    unitLeader.token.set("aura1_color",Colours.black);
+                    outputCard.body.push("Give order then click Button in this window to advance when done");
+                    outputCard.body.push("Otherwise Default will be Advance");
+                    ButtonInfo("Next","!Checks;Morale");
+                    PrintCard();
+                } else {
+                    Checks("Orders");
+                }
+            } else {
+                NextPhase2("Combat");
+            }
+        }
 
 
 
@@ -2809,8 +2869,8 @@ const LI = (()=> {
             case '!PlaceOrder':
                 PlaceOrder(msg);
                 break;
-            case '!Missing':
-                Missing(msg);
+            case '!Checks':
+                Checks(msg);
                 break;
     
         }
