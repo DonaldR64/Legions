@@ -2690,9 +2690,14 @@ const LI = (()=> {
                 return;
             }
         } else if (currentPhase === "Movement") {   
-             //checks to see if unmoved units
+             //checks to see if any unactivated units
              _.each(UnitArray,unit => {  
-                //did unit move?
+                let unitLeader = ModelArray[unit.modelIDs[0]];
+                if (unitLeader) {
+                    if (unitLeader.token.get("aura1_color") === Colours.green) {
+                        CheckArray.push(unit);
+                    }
+                }
             });
             if (CheckArray.length > 0) {
                 SetupCard("Movement Phase","","Neutral");
@@ -2700,8 +2705,9 @@ const LI = (()=> {
                 PrintCard();
                 return;
             }
-        } else if (currentPhase === "Combat") {
-          
+        //? else for first fire etc?
+
+
         } else if (currentPhase === "End") {
             _.each(UnitArray,unit => {
                 unit.resetFlags();
@@ -2715,7 +2721,7 @@ const LI = (()=> {
     const NextPhase2 = (phase) => {
         //all req to advance cleared
         let turn = state.LI.turn;
-        let phases = ["Orders","Initiative","Movement","Combat","End"];
+        let phases = ["Orders","Movement","First Fire","Close Combat","Advancing Fire","End"];
         let phaseNum = ((phases.indexOf(phase) + 1) > 4) ? 0:(phases.indexOf(phase) + 1);
         phase = phases[phaseNum];
         state.LI.phase = phase;
@@ -2725,25 +2731,22 @@ const LI = (()=> {
             outputCard.body.push("Issue Orders to each Detachment");
             outputCard.body.push("Including Reserves and Transported Troops");
             outputCard.body.push("Excluding Detachments with Fall Back");
-        } else if (phase === "Initiative") {
-            RevealOrders()
+        } else if (phase === "Movement") {            
+            RevealOrders();
+            ResetActivations(phase);
             outputCard.body.push("Players roll for Initiative");
-            if (turn === 1) {
-                outputCard.body.push("In case of a Tie Reroll");
-            } else {
-                outputCard.body.push("In case of Tie player who didn't have Initiative last turn has it this Turn");
-            }
-            outputCard.body.push("Player who wins Roll determines who has Initiative and goes First");
-        } else if (phase === "Movement") {
             outputCard.body.push("Starting with Player with Initiative, take turns moving Detachments");
             outputCard.body.push("Detachments on First Fire can only be activated to Overwatch Fire");
             outputCard.body.push("Reserves arriving on Battlefield (e.g. Flyers, Deep Strikes etc.) can be activated normally");
             outputCard.body.push("Reserves remaining offtable cannot be activated until end");
-        } else if (phase === "Combat") {
-            outputCard.body.push("Combat is 3 stages:");
-            outputCard.body.push("First Fire Stage");
-            outputCard.body.push("Close Combat Stage");
-            outputCard.body.push("Advancing Fire Stage");
+        } else if (phase === "First Fire") {
+            ResetActivations(phase);
+
+        } else if (phase === "Close Combat") {
+            
+        } else if (phase === "Advancing Fire") {
+            ResetActivations(phase);
+            
         } else if (phase === "End") {
             //checks to see if any units with fall back and need morale check
             //need a flag for first pass being morale checks then once all done into flyers, end phase
@@ -2775,6 +2778,26 @@ const LI = (()=> {
     
         PrintCard();
     } 
+
+    const ResetActivations = (phase) => {
+        _.each(UnitArray,unit => {
+            let unitLeader = ModelArray[unit.modelIDs[0]];
+            if (unitLeader) {
+                if (phase === "Movement" && (unit.order === "Advance" || unit.order === "March" || unit.order === "Charge")) {
+                    unitLeader.token.set("aura1_color",Colours.green);
+                } else if (phase === "First Fire" && unit.order === "First Fire") {
+                    unitLeader.token.set("aura1_color",Colours.green);
+                } else if (phase === "Close Combat" && unit.order === "Charge") {
+                    unitLeader.token.set("aura1_color",Colours.green);
+                } else if (phase === "Advancing Fire" && unit.order === "Advance") {
+                    unitLeader.token.set("aura1_color",Colours.green);
+                } else {
+                    unitLeader.token.set("aura1_color",Colours.black);
+                }
+            }
+        });
+    }
+
 
     const PlaceOrder = (msg) => {
         if (state.LI.phase !== "Orders") {
