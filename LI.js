@@ -2927,6 +2927,41 @@ const LI = (()=> {
         });
     }
 
+    const Test = (msg) => {
+        let Tag = msg.content.split(";");
+        let shooterID = Tag[1];
+        let targetID = Tag[2];
+        let shooter = ModelArray[shooterID];
+        let target = ModelArray[targetID];
+
+        let targetHexLabels = [];
+        if (target.large === false) {
+            targetHexLabels = [target.hexLabel];
+        } else {
+            let tested = [];
+            tloop1:
+            for (let i=0;i<target.largeHexList.length;i++) {
+                let t = target.largeHexList[t];
+                let line = shooter.hex.linedraw(t);                
+                for (let j=0;j<line.length;j++) {
+                    let h = line[j].label();
+                    if (tested.includes(h)) {
+                        continue tloop1;
+                    }
+                }
+                tested.push(t.label());
+            }
+            targetHexLabels = tested;
+        }
+
+        SetupCard("Facing Hexes","","Neutral");
+        for (let i=0;i<targetHexLabels.length;i++) {
+            outputCard.body.push(targetHexLabels[i]);
+        }
+        PrintCard();
+    }
+
+
 
 
 
@@ -3025,6 +3060,9 @@ const LI = (()=> {
                 break;
             case '!Checks':
                 Checks(msg);
+                break;
+            case '!Test':
+                Test(msg);
                 break;
     
         }
