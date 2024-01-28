@@ -1719,7 +1719,6 @@ const LI = (()=> {
         let modelLevel = Math.min(model1Elevation,model2Elevation);
         model1Elevation -= modelLevel;
         model2Elevation -= modelLevel;
-        model2BaseElevation = parseInt(model2Hex.elevation) - modelLevel; //used for Titans/Knights
     log("Team1 H: " + model1Elevation)
     log("Team2 H: " + model2Elevation)
 
@@ -1768,6 +1767,9 @@ const LI = (()=> {
                     let interHexElevation = parseInt(interHex.elevation) - modelLevel;
                     let interHexHeight = parseInt(interHex.height) - modelLevel;
                     let B;
+//add in bit to reduce for height of model if knight and titan
+
+
                     if (model1Elevation > model2Elevation) {
                         B = (distanceT1T2 - i) * model2Elevation / distanceT1T2;
                     } else if (model1Elevation <= model2Elevation) {
