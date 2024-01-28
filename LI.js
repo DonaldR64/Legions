@@ -1718,7 +1718,7 @@ const LI = (()=> {
       
         let modelLevel = Math.min(model1Elevation,model2Elevation);
         model1Elevation -= modelLevel;
-        model2Height -= modelLevel;
+        model2Elevation -= modelLevel;
     log("Team1 H: " + model1Elevation)
     log("Team2 H: " + model2Elevation)
 
