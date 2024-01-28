@@ -1719,6 +1719,7 @@ const LI = (()=> {
         let modelLevel = Math.min(model1Elevation,model2Elevation);
         model1Elevation -= modelLevel;
         model2Elevation -= modelLevel;
+        model2BaseElevation = parseInt(model2Hex.elevation) - modelLevel; //used for Titans/Knights
     log("Team1 H: " + model1Elevation)
     log("Team2 H: " + model2Elevation)
 
