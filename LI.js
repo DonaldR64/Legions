@@ -2961,48 +2961,7 @@ const LI = (()=> {
     }
 
     const Test = (msg) => {
-        let Tag = msg.content.split(";");
-        let shooterID = Tag[1];
-        let targetID = Tag[2];
-        let shooter = ModelArray[shooterID];
-        let target = ModelArray[targetID];
-
-        let targetHexLabels = [];
-        let sorted = [];
-        if (target.large === false) {
-            targetHexLabels = [target.hexLabel];
-        } else {
-            sorted = target.largeHexList.sort(function (a,b) {
-                let aDist = a.distance(shooter.hex);
-                let bDist = b.distance(shooter.hex);
-                return aDist - bDist; //closest first
-            })
-
-            tloop1:
-            for (let i=0;i<sorted.length;i++) {
-                let tar = sorted[i];
-                let line = shooter.hex.linedraw(tar);                
-                for (let j=0;j<line.length;j++) {
-                    let h = line[j].label();
-                    if (targetHexLabels.includes(h)) {
-                        continue tloop1;
-                    }
-                }
-                targetHexLabels.push(tar.label());
-            }
-        }
-
-        SetupCard("Facing Hexes","","Neutral");
-        outputCard.body.push("Sorted by Distance:");
-        for (let i=0;i<sorted.length;i++) {
-            outputCard.body.push(sorted[i].label());
-        }
-        outputCard.body.push("[hr]");
-        outputCard.body.push("Final:");
-        for (let i=0;i<targetHexLabels.length;i++) {
-            outputCard.body.push(targetHexLabels[i]);
-        }
-        PrintCard();
+       return;
     }
 
 
