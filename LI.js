@@ -604,12 +604,12 @@ const LI = (()=> {
                     unitID = state.LI.models[tokenID].unitID;
                     formationID = state.LI.models[tokenID].formationID;
                 }
-                if (scale === 3) {height = 1};
-                if (scale === 4) {height = 2};
+                if (scale === 3) {height = 5};
+                if (scale === 4) {height = 10};
                 if (scale === 5) {
-                    if (char.get("name").includes("Warhound")) {height = 3};
-                    if (char.get("name").includes("Reaver")) {height = 4};
-                    if (char.get("name").includes("Warlord")) {height = 5};
+                    if (char.get("name").includes("Warhound")) {height = 15};
+                    if (char.get("name").includes("Reaver")) {height = 20};
+                    if (char.get("name").includes("Warlord")) {height = 25};
                 };
             } else {
                 height = char.get("name").replace(/\D/g,'') * 10;
@@ -1657,7 +1657,7 @@ const LI = (()=> {
         if (model.type === "Aircraft") {
             elevation = 200;
         }
-        elevation += (model.height * 5);
+        elevation += model.height;
         return elevation;
     }
 
@@ -1712,6 +1712,7 @@ const LI = (()=> {
         let finalCover = model2Hex.cover;
         let model1Elevation = modelElevation(model1);
         let model2Elevation = modelElevation(model2);
+
         let md = ModelDistance(model1,model2);
         let finalArc = md.arc;
         let distanceT1T2 = md.distance; 
@@ -1719,6 +1720,8 @@ const LI = (()=> {
         let modelLevel = Math.min(model1Elevation,model2Elevation);
         model1Elevation -= modelLevel;
         model2Elevation -= modelLevel;
+        let model2BaseElevation = model2Elevation - model2.height; //used for Knights/Titans
+
     log("Team1 H: " + model1Elevation)
     log("Team2 H: " + model2Elevation)
 
@@ -1752,6 +1755,9 @@ const LI = (()=> {
                 let targetLOS = true;
                 let interHexes = shooterHex.linedraw(targetHex); 
                 //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
+//Loop through model2elevation for its height if Knight/Titan - use 
+
+
                 let lastElevation = model1Elevation;
                 let flag = model1Hex.obstructingTerrain;
                 let obstructingHexes = 0;
@@ -1767,8 +1773,6 @@ const LI = (()=> {
                     let interHexElevation = parseInt(interHex.elevation) - modelLevel;
                     let interHexHeight = parseInt(interHex.height) - modelLevel;
                     let B;
-//add in bit to reduce for height of model if knight and titan
-
 
                     if (model1Elevation > model2Elevation) {
                         B = (distanceT1T2 - i) * model2Elevation / distanceT1T2;
@@ -1779,7 +1783,7 @@ const LI = (()=> {
                 log("InterHex Elevation: " + interHexElevation);
                 log("Last Elevation: " + lastElevation);
                 log("B: " + B)
-        
+
                     if (interHexElevation < lastElevation && lastElevation > model1Elevation && lastElevation > model2Elevation) {
                 log("Drops Off")
                         targetLOS = false;
@@ -1830,9 +1834,16 @@ const LI = (()=> {
                 log("Flag: " + flag)
                     } else {
                 log("Overlooks")
+
+
+
+
+
+
                     }
                     lastElevation = interHexElevation;
                 } //end interHex loop
+
                 if (model2.scale > 3 && targetLOS === true) {
                     targetHexesWithLOS++;
                 } else if (targetLOS === true) {
