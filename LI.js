@@ -1657,7 +1657,7 @@ const LI = (()=> {
         if (model.type === "Aircraft") {
             elevation = 200;
         }
-        elevation += model.height;
+        //elevation += model.height;
         return elevation;
     }
 
@@ -1710,20 +1710,18 @@ const LI = (()=> {
         let finalLOS = false;
         let losReason,percent;
         let finalCover = model2Hex.cover;
-        let model1Elevation = modelElevation(model1);
-        let model2Elevation = modelElevation(model2);
+        let model1Elevation = modelElevation(model1) + model1.height;
+        let model2Base = modelElevation(model2);
+        let model2Elevation = model2Base + model2.height;
+        if (model2.size < 4) {model2Base = model2Elevation};
+
+        log("Team1 Elev: " + model1Elevation)
+        log("Team2 Base Elev: " + model2Base)
+        log("Team2 Total Elev: " + model2Elevation)
 
         let md = ModelDistance(model1,model2);
         let finalArc = md.arc;
         let distanceT1T2 = md.distance; 
-      
-        let modelLevel = Math.min(model1Elevation,model2Elevation);
-        model1Elevation -= modelLevel;
-        model2Elevation -= modelLevel;
-        let model2BaseElevation = model2Elevation - model2.height; //used for Knights/Titans
-
-    log("Team1 H: " + model1Elevation)
-    log("Team2 H: " + model2Elevation)
 
         //Flyers see all and are seen by all
         if (model1.special.includes("Flyer") || model2.special.includes("Flyer")) {
@@ -1755,101 +1753,118 @@ const LI = (()=> {
                 let targetLOS = true;
                 let interHexes = shooterHex.linedraw(targetHex); 
                 //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
-//Loop through model2elevation for its height if Knight/Titan - use 
+                //start at base of model2 and go up to height if Knight or Titan, otherwise just check height
+                let elevationNumber = 0;
+                elevationLoop:
+                for (let th = model2Base;th<=model2Elevation;th+=5) {
+                    let modelLevel = Math.min(model1Elevation,th);
+                    let m1E = model1Elevation - modelLevel;
+                    let m2E = th - modelLevel;
 
-
-                let lastElevation = model1Elevation;
-                let flag = model1Hex.obstructingTerrain;
-                let obstructingHexes = 0;
-        log("Model 1 in Obstructing Terrain: " + flag);
-        log("Obstructing Hexes: " + obstructingHexes);
-                interHexLoop:
-                for (let i=1;i<interHexes.length;i++) {
-                    let qrs = interHexes[i];
-                    let qrsLabel = qrs.label();
-                    let interHex = hexMap[qrsLabel];
-                log(i + ": " + qrsLabel)
-                log(interHex.terrain)
-                    let interHexElevation = parseInt(interHex.elevation) - modelLevel;
-                    let interHexHeight = parseInt(interHex.height) - modelLevel;
-                    let B;
-
-                    if (model1Elevation > model2Elevation) {
-                        B = (distanceT1T2 - i) * model2Elevation / distanceT1T2;
-                    } else if (model1Elevation <= model2Elevation) {
-                        B = i * model2Elevation / distanceT1T2;
-                    }
-                log("InterHex Height: " + interHexHeight);
-                log("InterHex Elevation: " + interHexElevation);
-                log("Last Elevation: " + lastElevation);
-                log("B: " + B)
-
-                    if (interHexElevation < lastElevation && lastElevation > model1Elevation && lastElevation > model2Elevation) {
-                log("Drops Off")
-                        targetLOS = false;
-                        losReason = "Terrain Drops Off";
-                        break interHexLoop;
-                    }         
-                    //check for something in way
-                    if (interHex.tokenIDs.length > 0) {
-                        let id3s = interHex.tokenIDs;
-                        for (let i=0;i<id3s.length;i++) {
-                            let id3 = id3s[i];
-                            let model3 = ModelArray[id3];
-                            if (!model3) {continue};
-                            if (model3.type === "System Unit" || model3.type === "Building") {continue};
-                            if (model3.unitID === model1.unitID || model3.unitID === model2.unitID) {continue};
-                            let model3Height = modelElevation(model3) - modelLevel;
-                log(model3Height)
-                            if (interHexElevation + interHexHeight + model3Height >= B) {
-                                if (model3.scale > 1) {
+                    let lastElevation = m1E;
+                    let flag = model1Hex.obstructingTerrain;
+                    let obstructingHexes = 0;
+            log("Model 1 in Obstructing Terrain: " + flag);
+            log("Obstructing Hexes: " + obstructingHexes);
+                    interHexLoop:
+                    for (let i=1;i<interHexes.length;i++) {
+                        let qrs = interHexes[i];
+                        let qrsLabel = qrs.label();
+                        let interHex = hexMap[qrsLabel];
+                    log(i + ": " + qrsLabel)
+                    log(interHex.terrain)
+                        let interHexElevation = parseInt(interHex.elevation) - modelLevel;
+                        let interHexHeight = parseInt(interHex.height) - modelLevel;
+                        let B;
+    
+                        if (m1E > m2E) {
+                            B = (distanceT1T2 - i) * m2E / distanceT1T2;
+                        } else if (m1E <= m2E) {
+                            B = i * m2E / distanceT1T2;
+                        }
+                    log("InterHex Height: " + interHexHeight);
+                    log("InterHex Elevation: " + interHexElevation);
+                    log("Last Elevation: " + lastElevation);
+                    log("B: " + B)
+    
+                        if (interHexElevation < lastElevation && lastElevation > model1Elevation && lastElevation > model2Elevation) {
+                    log("Drops Off")
+                            targetLOS = false;
+                            losReason = "Terrain Drops Off";
+                            break interHexLoop;
+                        }         
+                        //check for something in way
+                        if (interHex.tokenIDs.length > 0) {
+                            let id3s = interHex.tokenIDs;
+                            for (let i=0;i<id3s.length;i++) {
+                                let id3 = id3s[i];
+                                let model3 = ModelArray[id3];
+                                if (!model3) {continue};
+                                if (model3.type === "System Unit" || model3.type === "Building" || model3.scale < 2 || model3.unitID === model1.unitID || model3.unitID === model2.unitID) {
+                                    continue;
+                                };
+                                let model3Height = modelElevation(model3) + model3.height - modelLevel;
+                    log(model3Height)
+                                if (interHexElevation + interHexHeight + model3Height >= B) {
                                     targetLOS = false;
                                     losReason = "LOS blocked by another Model";
                                     break interHexLoop;
                                 }
                             }
                         }
-                    }
-                    if (interHexHeight + interHexElevation >= B) {
-                log("LOS goes through Terrain")
-                        if (interHex.los === false) {
-                            //hex blocks los
-                            obstructingHexes += 1;
-                log("Obstructing Hexes: " + obstructingHexes);
-                            if ((flag === true && obstructingHexes > 6) || (flag === false && obstructingHexes > 1)) {
-                                targetLOS = false;
-                                losReason = "Too Deep into Terrain";
-                                break interHexLoop;
-                            }
-                        } else if (interHex.los === true && flag === true) {
-                            if (obstructingHexes > 0) {
-                                //breaking out into open, so if > 0 then is deep in terrain
-                                targetLOS = false;
-                                losReason = "Too Deep into Terrain";
-                                break interHexLoop;
+                        if (interHexHeight + interHexElevation >= B) {
+                    log("LOS goes through Terrain")
+                            if (interHex.los === false) {
+                                //hex blocks los
+                                obstructingHexes += 1;
+                    log("Obstructing Hexes: " + obstructingHexes);
+                                if ((flag === true && obstructingHexes > 6) || (flag === false && obstructingHexes > 1)) {
+                                    targetLOS = false;
+                                    losReason = "Too Deep into Terrain";
+                                    break interHexLoop;
+                                }
+                            } else if (interHex.los === true && flag === true) {
+                                if (obstructingHexes > 0) {
+                                    //breaking out into open, so if > 0 then is deep in terrain
+                                    targetLOS = false;
+                                    losReason = "Too Deep into Terrain";
+                                    break interHexLoop;
+                                } else {
+                                    flag = false;
+                                }
+                            } 
+                    log("Flag: " + flag)
+                        } else {
+                    log("Overlooks")
+    
+    
+    
+    
+    
+    
+                        }
+                        lastElevation = interHexElevation;
+                    } //end interHex loop
+    
+                    if (targetLOS === true) {
+                        if (model2.scale < 4) {
+                            hexLOS = true;
+                            break targetLoop;
+                        } else {
+                            if (th === model2Base) {
+                                elevationNumber = 100;
+                                break elevationLoop;
                             } else {
-                                flag = false;
+                                elevationNumber+=5;
                             }
-                        } 
-                log("Flag: " + flag)
-                    } else {
-                log("Overlooks")
-
-
-
-
-
-
+                        }
                     }
-                    lastElevation = interHexElevation;
-                } //end interHex loop
-
-                if (model2.scale > 3 && targetLOS === true) {
-                    targetHexesWithLOS++;
-                } else if (targetLOS === true) {
-                    hexLOS = true;
-                    break targetLoop;
-                }
+                } //end elevation Loop
+                //only end up here if Knight/Titan
+                let hexPer = Math.max(elevationNumber/model2.height,1);
+                //vertical percentage of the target's hex, max of 100%
+    log(hexPer)
+                targetHexesWithLOS += hexPer;
             } //end target loop
         
         
