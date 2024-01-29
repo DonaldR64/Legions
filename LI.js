@@ -178,7 +178,7 @@ const LI = (()=> {
         "Shred": 'Re-roll successful Armour Save if Infantry, Cavalry, Walker.',
         "Warp": 'Dice = number of visible models within range in target Detachment. Titans cannot split Dice vs multiple target Detachments. vs Titans and Knights, attack Dice = 1. Bypass Armour Saves, Cover Saves, Invulnerable Saves, Ion Shields, Void Shields.',
         "Accurate": 'Re-roll Misses',
-        "Arc (Front or Rear)": 'Only shoot targets in noted arc.',
+        "Arc (X)": 'Only shoot targets in noted arc - Front or Rear.',
         "Armourbane": 'Vehicle, Super Heavy vehicle, Knights, Titans: re roll successful Armour Save',
         "Anti-Tank": 'AP 0 vs Infantry and Cavalry',
         "Assault": 'Double Dice at half-range or less',
@@ -749,7 +749,7 @@ const LI = (()=> {
                 if (specName.includes("(")) {
                     let index = specName.indexOf("(");
                     specName = specName.substring(0,index);
-                    specName += "(X)";
+                    specName += " (X)";
                 }
                 if (specName.includes("+")) {
                     let index = specName.indexOf("+");
@@ -1750,6 +1750,7 @@ const LI = (()=> {
             targetLoop:
             for (let h=0;h<targetHexes.length;h++) {
                 let targetHex = targetHexes[h];
+            log("Target Hex: " + targetHex.label());
                 let targetLOS = true;
                 let interHexes = shooterHex.linedraw(targetHex); 
                 //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
@@ -1757,9 +1758,14 @@ const LI = (()=> {
                 let elevationNumber = 0;
                 elevationLoop:
                 for (let th = model2Base;th<=model2Elevation;th+=5) {
+            log("Elevation Loop TH: " + th)
                     let modelLevel = Math.min(model1Elevation,th);
                     let m1E = model1Elevation - modelLevel;
                     let m2E = th - modelLevel;
+            log("modelLevel: " + modelLevel)
+            log("M1E: " + m1E)
+            log("M2E: " + m2E)
+
 
                     let lastElevation = m1E;
                     let flag = model1Hex.obstructingTerrain;
@@ -1778,7 +1784,7 @@ const LI = (()=> {
                         let B;
     
                         if (m1E > m2E) {
-                            B = (distanceT1T2 - i) * m2E / distanceT1T2;
+                            B = (distanceT1T2 - i) * m1E / distanceT1T2;
                         } else if (m1E <= m2E) {
                             B = i * m2E / distanceT1T2;
                         }
@@ -1787,7 +1793,7 @@ const LI = (()=> {
                     log("Last Elevation: " + lastElevation);
                     log("B: " + B)
     
-                        if (interHexElevation < lastElevation && lastElevation > model1Elevation && lastElevation > model2Elevation) {
+                        if (interHexElevation < lastElevation && lastElevation > B) {
                     log("Drops Off")
                             targetLOS = false;
                             losReason = "Terrain Drops Off";
@@ -1804,7 +1810,7 @@ const LI = (()=> {
                                     continue;
                                 };
                                 let model3Height = modelElevation(model3) + model3.height - modelLevel;
-                    log(model3Height)
+                    log("model3 height: " + model3Height)
                                 if (interHexElevation + interHexHeight + model3Height >= B) {
                                     targetLOS = false;
                                     losReason = "LOS blocked by another Model";
@@ -1846,24 +1852,26 @@ const LI = (()=> {
                         lastElevation = interHexElevation;
                     } //end interHex loop
     
-                    if (targetLOS === true) {
-                        if (model2.scale < 4) {
+                    if (model2.scale < 4) {
+                        if (targetLOS === true) {
                             hexLOS = true;
                             break targetLoop;
                         } else {
-                            if (th === model2Base) {
-                                elevationNumber = 100;
-                                break elevationLoop;
-                            } else {
-                                elevationNumber+=5;
-                            }
+                            hexLOS = false;
+                        }
+                    } else {
+                        if (th === model2Base && targetLOS === true) {
+                            elevationNumber = 100;
+                            break elevationLoop;
+                        } else if (targetLOS === true) {
+                            elevationNumber+=5;
                         }
                     }
                 } //end elevation Loop
                 //only end up here if Knight/Titan
-                let hexPer = Math.max(elevationNumber/model2.height,1);
+                let hexPer = Math.min(elevationNumber/model2.height,1);
                 //vertical percentage of the target's hex, max of 100%
-    log(hexPer)
+    log("Hex Per: " + hexPer)
                 targetHexesWithLOS += hexPer;
             } //end target loop
         
