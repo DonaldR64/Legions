@@ -2576,6 +2576,13 @@ const LI = (()=> {
             if (parseInt(checkLOS.cover) < 7) {
                 outputCard.body.push("Cover Save of " + checkLOS.cover + "+");
             }
+            if (target.size > 3 && checkLOS.percent < 1) {
+                if (checkLOS.percent <= .75 && checkLOS.percent > .5) {
+                    outputCard.body.push("Target is Partially Obscured, -1 to hit");
+                } else if (checkLOS.percent <= .5) {
+                    outputCard.body.push("Target is Fairly Obscured, -2 to hit");
+                }
+            }
         }
         PrintCard();
     }
