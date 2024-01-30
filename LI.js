@@ -166,7 +166,7 @@ const LI = (()=> {
         "Graviton Pulse": 'To hit number is equal to Save of majority of target Detachment (use worse if equal different Saves; Save of “-“ requires natural 6). Ignore AP to determine Hit roll. Cannot Structures: if weapon can damage structures, Hit value is 3+. Each Save roll passed inflicts d3+1 damage. Each Save roll that is failed inflicts 0 damage. Flyers: if weapon has skyfire then follow rules above. If weapon does not have Skyfire rule then hit on 6 only.',
         "Heavy Barrage": 'Same as Barrage. Can damage structures. Target is structure: full dice vs structure, half dice vs all Detachments garrisoning. Hit structure first, if collapsed, then resolve hits against surviving models.',
         "Heavy Beam": 'Same as Beam but not stopped by Structures (still stopped by impassable).',
-        "Impale": 'vs size 3+. Firing player nominates target model. Bypass Void Shields. Instead of Save roll, both player roll d6+size. Add 1 (3+ wounds remaining), add 2 (5+ wounds remaining). If firing player roll is higher, target suffers additional wounds equal to difference. No Save rolls.',
+        "Impale": 'vs Scale 3+. Firing player nominates target model. Bypass Void Shields. Instead of Save roll, both player roll d6+Scale. Add 1 (3+ wounds remaining), add 2 (5+ wounds remaining). If firing player roll is higher, target suffers additional wounds equal to difference. No Save rolls.',
         "Neutron-Flux": 'vs Cybernetica Cortex counts as Armourbane and Shred.',
         "Power Capacitor": 'Double attack Dice if First Fire order.',
         "Psi": 'Bypass Invulnerable Saves, Cover Saves, Ion Shields and Void Shields. Cannot overwatch.',
@@ -1425,6 +1425,7 @@ const LI = (()=> {
                     centre: point,
                     terrain: [], //array of names of terrain in hex
                     buildingID: [],
+                    terrainIDs: [],
                     tokenIDs: [], //ids of tokens in hex
                     elevation: 0, //based on hills, in metres
                     height: 0, //height of top of terrain over elevation
@@ -1475,6 +1476,7 @@ const LI = (()=> {
                     }
                     if (num > 2) {
                         temp.terrain.push(polygon.name);
+                        temp.terrainIDs.push(polygon.id);
                         temp.cover = Math.min(temp.cover,polygon.cover);
                         if (polygon.los === false) {
                             temp.los = false;
@@ -1658,7 +1660,6 @@ const LI = (()=> {
         if (model.type === "Aircraft") {
             elevation = 200;
         }
-        //elevation += model.height;
         return elevation;
     }
 
@@ -1675,6 +1676,9 @@ const LI = (()=> {
         }
         let model1Hex = hexMap[model1.hexLabel];
         let model2Hex = hexMap[model2.hexLabel];
+
+        let sameTerrain = findCommonElements(model1Hex.terrainIDs,model2Hex.terrainIDs);
+log("Same Terrain:" + sameTerrain)
         let shooterHexes = [model1.hex];
         let targetHexes = [];
         if (model1.type === "Infantry" && model1Hex.buildingID.length > 0) {
@@ -1716,7 +1720,7 @@ const LI = (()=> {
         let model1Height = modelElevation(model1) + model1.height;
         let model2Base = modelElevation(model2);
         let model2Height = model2Base + model2.height;
-        if (model2.size < 4) {model2Base = model2Height};
+        if (model2.scale < 4) {model2Base = model2Height};
     
         let losCase,level;
     
@@ -1739,7 +1743,9 @@ const LI = (()=> {
     log("Team1 Height: " + model1Height)
     log("Team2 Base Elev: " + model2Base)
     log("Team2 Total Height: " + model2Height)
-    
+    log("Level: " + level)
+    log("Case: " + losCase)
+
         let md = ModelDistance(model1,model2);
         let finalArc = md.arc;
         let distanceT1T2 = md.distance; 
@@ -1771,22 +1777,23 @@ const LI = (()=> {
                 let targetHex = targetHexes[t];
     log("Target Hex: " + targetHex.label())
                 let targetLOS = 1;
-                let interHexes = shooterHex.linedraw(targetHex); //hexes between shotoer and target
+                let interHexes = shooterHex.linedraw(targetHex); //hexes between shooter and target
     
-                let lastElevation = model1Height; //track hill height as go
-    
+                let lastElevation = model1Height - level; //track hill height as go
+
+
                 interHexLoop:
-                for (let i=1;i<interHexes.length - 1;i++) {
+                for (let i=1;i<interHexes.length;i++) {
                     let interHex = interHexes[i];
                     let ihLabel = interHex.label();
     log(i + ": " + ihLabel)
     
-                    let hex = hexMap(ihLabel);
-                    let hexLOS = hex.los;
-    //if in same terrain peice as shooter and obstrucing than can see still, so modify this here
+                    let hex = hexMap[ihLabel];
+    log(hex)
+                    let hexLOS = (sameTerrain === false) ? hex.los:true;
     
                     let interHexElevation = parseInt(hex.elevation) - level;
-                    let interHexHeight = interHexElevation + parseInt(hex.height);
+                    let interHexHeight = parseInt(hex.height) - level;
                     let B1,B2;
     
                     if (losCase === 1) {
@@ -1794,7 +1801,7 @@ const LI = (()=> {
                         B2 = model2Height/distanceT1T2 * i;
                     } else if (losCase === 2) {
                         B1 = model1Height/distanceT1T2 * (distanceT1T2 - i);
-                        B2 = (((model1Height - model2Height)/distanceT1T2) * (distanceT1T2 - i)) + B1;
+                        B2 = (((model1Height - model2Height)/distanceT1T2) * (distanceT1T2 - i)) + model2Height;
                     } else if (losCase === 3) {
                         B1 = model1Height/distanceT1T2 * (distanceT1T2 - i);
                         B2 = (((model2Height - model1Height)/distanceT1T2) * i) + model1Height;
@@ -1810,17 +1817,18 @@ const LI = (()=> {
     
                     //Hills
                     if (interHexElevation < lastElevation) {
-                        if (lastElevation > B2) {
+                        if (lastElevation > model1Height && lastElevation > model2Height) {
                             //fully blocks LOS
                             targetLOS = 0;
                             losReason = "Terrain Drops Off";
                             break interHexLoop;
-                        } else if (lastElevation > B1 && lastElevation <= B2) {
+                        } else if (lastElevation > model1Height && lastElevation < model2Height && lastElevation > model2Base) {
                             //partially blocks LOS
                             log("Partial block by Hill")
-                            targetLOS = Math.min((lastElevation - B1) / (B2 - B1),targetLOS);
-                        } 
+                            targetLOS = Math.min((B2 - lastElevation) / (B2 - B1),targetLOS);
+                        }
                     }
+
                     //Units in way
                     if (hex.tokenIDs.length > 0) {
                         let id3s = hex.tokenIDs;
@@ -1842,34 +1850,37 @@ const LI = (()=> {
                             } else if (model3Height > B1 && model3Height <= B2) {
                                 //partially blocks LOS
                                 log("Partial block by Unit")
-                                targetLOS = Math.min((model3Height - B1) / (B2 - B1),targetLOS);
+                                targetLOS = Math.min((B2 - model3Height) / (B2 - B1),targetLOS);
                             } 
                         }
                     }
-                    //Terrain in hex
-                    if (interHexHeight > B2 && hexLOS === false) {
-                        //fully blocks LOS
-                        targetLOS = 0;
-                        losReason = "LOS blocked by Terrain";
-                        break interHexLoop;
-                    } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
-                        //partially blocks LOS
-                        log("Partial block by Terrain")
-                        targetLOS = Math.min((interHexHeight - B1) / (B2 - B1),targetLOS);
-                    } else {
-                        log("Overlooks Terrain in Hex")
-                    }
-    
+                    //Terrain in hex if not targetHex (as targetHex cover is captured above)
+                    if (ihLabel !== targetHex.label()) {
+                        if (interHexHeight > B2 && hexLOS === false) {
+                            //fully blocks LOS
+                            targetLOS = 0;
+                            losReason = "LOS blocked by Terrain";
+                            break interHexLoop;
+                        } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
+                            //partially blocks LOS
+                            log("Partial block by Terrain")
+                            targetLOS = Math.min((B2 - interHexHeight) / (B2 - B1),targetLOS);
+                        } else {
+                            log("Overlooks Terrain in Hex")
+                        }
+                    } 
+                    lastElevation = hex.elevation - level;
                 } //end interHex Loop
-    
-                if (model2.size < 4 && targetLOS > 0) {
+    log("Model 2 scale: " + model2.scale)
+    log("Target LOS: " + targetLOS)
+                if (model2.scale < 4 && targetLOS > 0) {
                     //not a knight, can see a portion of it, so has LOS
                     finalLOS = true;
                     break shooterHexLoop;
                 }  
     
                 if (targetLOS > 0) {
-                    if (model2.size < 4) {
+                    if (model2.scale < 4) {
                         //not a knight, can see a portion of it, so has LOS
                         finalLOS = true;
                         break shooterHexLoop;
@@ -1878,14 +1889,16 @@ const LI = (()=> {
                         fractions += targetLOS;
                     }
                 }
+
             }//end targetHex Loop
+
         } //end shooterHex Loop
     
-        if (model2.size > 3) {
+        if (model2.scale > 3) {
             fractions = fractions / (shooterHexes.length * targetHexes.length);
     log(fractions)
             if (fractions > 0) {
-                targetLOS = true;
+                finalLOS = true;
             }
         }
     
@@ -2578,7 +2591,7 @@ const LI = (()=> {
             if (parseInt(checkLOS.cover) < 7) {
                 outputCard.body.push("Cover Save of " + checkLOS.cover + "+");
             }
-            if (target.size > 3 && checkLOS.percent < 1) {
+            if (target.scale > 3 && checkLOS.percent < 1) {
                 if (checkLOS.percent <= .75 && checkLOS.percent > .5) {
                     outputCard.body.push("Target is Partially Obscured, -1 to hit");
                 } else if (checkLOS.percent <= .5) {
@@ -3020,7 +3033,7 @@ const LI = (()=> {
                     hexMap[oldHexLabel].tokenIDs.splice(index,1);
                 }
                 hexMap[newHexLabel].tokenIDs.push(tok.id);
-                if (model.large === "Large") {
+                if (model.large === true) {
                     model.vertices = TokenVertices(tok);
                     LargeTokens(model);
                 }
