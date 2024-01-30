@@ -822,6 +822,131 @@ const LI = (()=> {
         }
 
 
+        addCondition(condition) {
+            let imgSrc,charID;
+            let size = 70;
+            let rotation = 0;
+
+            switch (condition) {
+                case 'Dash':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/367732138/K6sIzwifj9tIXcgYPIaw6g/thumb.png?1700012748";
+                    charID = "-NhnnimsL_fUE_I44tij";
+                    break;
+                case 'Tactical':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/367732123/yi-DF0tNtuUCiFf5qQJGsw/thumb.png?1700012741";
+                    charID = "-Nhno-si_pOx9WcyqX8Q";
+                    break;
+                case 'Hold':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/367733007/GPUaJjq4Y3VkbNAjypBGkg/thumb.png?1700013183";
+                    charID = "-Nhno4KrMYcgi0c6_keC";
+                    break;
+                case 'Assault':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364740790/-PpYtjvGninT5CBZ9cgvcw/thumb.png?1698193663";
+                    charID = "-Nhno9pRPTXGOICorXWV";
+                    break;
+                case 'AAFire':
+                    imgSrc =  "https://s3.amazonaws.com/files.d20.io/images/364738389/jQaMAvsc3yfx7tsgMpkZ-Q/thumb.png?1698192640";
+                    charID = "-NhnoEpVGQnaSECosUQs";
+                    break;
+                case 'Fired':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364738390/jRn7kK1dz3EnFwy8lFzyJw/thumb.png?1698192640";
+                    charID = "-NhnoJcnvMESfrIA4ipF";
+                    break;
+                case 'GTG':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364740777/TkNdbvE_My02jE0bkz1KzA/thumb.png?1698193655";
+                    charID = "-NhnoOo2ydvrjTOFGMXW";
+                    break;
+                case 'Spot':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364839305/-UanVemZgRrwTu3fVijGwA/thumb.png?1698268901";
+                    charID = "-NhnoS6WDdovvJrkTeHC";
+                    break;
+                case 'Passengers':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/365230932/HxeMNYtOiyWDnoyvoa8FCQ/thumb.png?1698516760";
+                    charID = "-NhrUN0XxRco5XKwLdSM";
+                    size = 40;
+                    break;
+                case 'Land/Take Off':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/366077088/FP0gaU13t5SB11Cq4Fq4zQ/thumb.png?1699037802";
+                    charID = "-NiLY-VogcGd_EbrZegV";
+                    break;
+                case 'Flare':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/366077896/UYxOO1P7P1wBDD75gtpsFA/thumb.png?1699038152";
+                    charID = "-NiLYVaQvQOHD16lukjv";
+                    rotation = this.token.get("rotation");
+                    size = 130;
+                    break;
+
+
+
+
+            }
+
+            let leftConditions = ["Tactical","Dash","Hold","Assault"];
+            let rightConditions = ["Fired","AAFire","GTG","Land/Take Off"];
+            let topConditions = ["Flare"];
+            let array = [];
+            if (leftConditions.includes(condition)) {
+                array = leftConditions;
+            } else if (rightConditions.includes(condition)) {
+                array = rightConditions;
+            } else if (topConditions.includes(condition)) {
+                array = topConditions;
+            }
+            //clear other conditions in that array
+            if (state.TY.conditions[this.id]) {
+                for (let a=0;a<array.length;a++) {
+                    if (state.TY.conditions[this.id][array[a]]) {
+                        this.removeCondition(array[a]);
+                    }
+                }
+            } else {
+                state.TY.conditions[this.id] = {};
+            }
+
+            imgSrc = getCleanImgSrc(imgSrc);
+
+            let conditionToken = createObj("graphic", {   
+                left: this.location.x,
+                top: this.location.y,
+                width: size, 
+                height: size,
+                rotation: rotation,
+                isdrawing: true,
+                pageid: this.token.get("pageid"),
+                imgsrc: imgSrc,
+                layer: "gmlayer",
+                represents: charID,
+            });
+            toFront(conditionToken);
+            TokenCondition.AttachConditionToToken(conditionToken.id,this.id);
+            state.TY.conditions[this.id][condition] = conditionToken.id;
+        }
+
+        removeCondition(condition) {
+            if (state.TY.conditions[this.id]) {
+                let conditions = state.TY.conditions[this.id];
+                if (conditions[condition]) {
+                    let conditionID = conditions[condition];
+                    let token = findObjs({_type:"graphic", id: conditionID})[0];
+                    if (token) {
+                        token.remove();
+                    }
+                    delete state.TY.conditions[this.id][condition];
+                }
+            }
+        }
+
+        queryCondition(condition) {
+            let result = false;
+            if (state.TY.conditions[this.id]) {
+                let conditions = state.TY.conditions[this.id];
+                if (conditions[condition]) {
+                    result = true;
+                }
+            }
+            return result;  
+        }
+
 
 
     }
@@ -1789,7 +1914,6 @@ log("Same Terrain:" + sameTerrain)
     log(i + ": " + ihLabel)
     
                     let hex = hexMap[ihLabel];
-    log(hex)
                     let hexLOS = (sameTerrain === false) ? hex.los:true;
     
                     let interHexElevation = parseInt(hex.elevation) - level;
@@ -1819,12 +1943,12 @@ log("Same Terrain:" + sameTerrain)
     
                     //Hills
                     if (interHexElevation < lastElevation) {
-                        if (highestElevation > model1Height && highestElevation > model2Height) {
+                        if (highestElevation >= model1Height && highestElevation >= model2Height) {
                             //fully blocks LOS
                             targetLOS = 0;
                             losReason = "Terrain Drops Off";
                             break interHexLoop;
-                        } else if (highestElevation > model1Height && highestElevation < model2Height && highestElevation > model2Base) {
+                        } else if (highestElevation >= model1Height && highestElevation < model2Height && highestElevation > model2Base) {
                             //partially blocks LOS
                             log("Partial block by Hill")
                             targetLOS = Math.min((B2 - highestElevation) / (B2 - B1),targetLOS);
@@ -1929,6 +2053,10 @@ log("Same Terrain:" + sameTerrain)
             if (!state.LI.players[playerID] || state.LI.players[playerID] === undefined) {
                 if (msg.selected) {
                     let id = msg.selected[0]._id;
+                    let data = TokenCondition.LookUpMaster(id);
+                    if (data) {
+                        id = data.target;
+                    }
                     if (id) {
                         let tok = findObjs({_type:"graphic", id: id})[0];
                         let char = getObj("character", tok.get("represents")); 
@@ -2145,6 +2273,10 @@ log("Same Terrain:" + sameTerrain)
             return;
         };
         let id = msg.selected[0]._id;
+        let data = TokenCondition.LookUpMaster(id);
+        if (data) {
+            id = data.target;
+        }
         let model = ModelArray[id];
         if (!model) {
             sendChat("","Not in Model Array Yet");
@@ -2314,6 +2446,10 @@ log("Same Terrain:" + sameTerrain)
     const AddAbilities = (msg) => {
         if (!msg) {return}
         let id = msg.selected[0]._id;
+        let data = TokenCondition.LookUpMaster(id);
+        if (data) {
+            id = data.target;
+        }
         if (!id) {return};
         let token = findObjs({_type:"graphic", id: id})[0];
         let char = getObj("character", token.get("represents"));
@@ -2575,8 +2711,16 @@ log("Same Terrain:" + sameTerrain)
     const CheckLOS = (msg) => {
         let Tag = msg.content.split(";");
         let shooterID = Tag[1];
+        let sdata = TokenCondition.LookUpMaster(shooterID);
+        if (sdata) {
+            shooterID = sdata.target;
+        }
         let shooter = ModelArray[shooterID];
         let targetID = Tag[2];
+        let tdata = TokenCondition.LookUpMaster(targetID);
+        if (tdata) {
+            targetID = tdata.target;
+        }
         let target = ModelArray[targetID];
         SetupCard(shooter.name,"LOS",shooter.faction);
         let checkLOS = LOS(shooterID,targetID);
@@ -2882,6 +3026,10 @@ log("Same Terrain:" + sameTerrain)
         }
         let Tag = msg.content.split(";");
         let id = msg.selected[0]._id;
+        let data = TokenCondition.LookUpMaster(id);
+        if (data) {
+            id = data.target;
+        }
         let playerID = msg.playerid;
         let playerObj = findObjs({type: 'player',id: playerID})[0];
         let who = playerObj.get("displayname");
