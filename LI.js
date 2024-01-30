@@ -205,7 +205,7 @@ const LI = (()=> {
         "Wrecker (X)": 'Can attempt to destroy building when activated in First Fire or Advance Fire stage. Choose structure in base contact, opponent rolls Save, if failed Structure receives X Wounds. If model has multiple Wrecker (X) weapons, it can target multiple Structures or a single Structure. Use combined total of weapons AP for the Structure Save roll and Structure suffers combined X Wounds if Save failed.',
     }
 
-    //LOS: true = doesnt block, false = blocks unless within same terrain then 6"
+    //LOS: true = doesnt block, false = blocks unless within same terrain
     //Cover: cover save
     //Class: Difficult, Obstructing, Dangerous, Obstacle, Impassable, Open, Structure
 
@@ -1662,19 +1662,8 @@ const LI = (()=> {
         return elevation;
     }
 
+
     const LOS = (id1,id2,special) => {
-
-        let res = {
-            distance: 0,
-            arc: "Front",
-            los: true,
-            cover: false,
-            losReason: "",
-            percent: 1,
-        }
-
-return res
-
 
         if (!special) {special = " "};
         let model1 = ModelArray[id1];
@@ -1720,32 +1709,41 @@ return res
         } else {
             targetHexes = [model2.hex];
         }
-
+    
         let finalLOS = false;
-        let losReason,percent;
+        let losReason;
         let finalCover = model2Hex.cover;
-        let model1Elevation = modelElevation(model1) + model1.height;
+        let model1Height = modelElevation(model1) + model1.height;
         let model2Base = modelElevation(model2);
-        let model2Elevation = model2Base + model2.height;
-        if (model2.size < 4) {model2Base = model2Elevation};
-
-
-        let modelLevel = Math.min(model1Elevation,model2Elevation);
-        let modelLevelMin = Math.min(model1Elevation,model2Base);
-        
-
-        let m1E = model1Elevation - modelLevel;
-        let m2E = model2Elevation - modelLevel;
-
-
-    log("Team1 Elev: " + model1Elevation)
+        let model2Height = model2Base + model2.height;
+        if (model2.size < 4) {model2Base = model2Height};
+    
+        let losCase,level;
+    
+        if (model2Height >= model1Height && model2Base >= model1Height) {
+            losCase = 1; //Target points higher than Shooter, bring all down to level of shooter
+            level = model1Height;
+        } else if (model2Height < model1Height && model2Base < model1Height) {
+            losCase = 2; //Target points lower than Shooter, bring all down to lowest level of target
+            level = model2Base;
+        } else {
+            losCase = 3; //Target points bracket the shooter, bring down to lowest level of target
+            level = model2Base;
+        }
+    
+        model1Height -= level;
+        model2Height -= level;
+        model2Base -= level;
+    
+    
+    log("Team1 Height: " + model1Height)
     log("Team2 Base Elev: " + model2Base)
-    log("Team2 Total Elev: " + model2Elevation)
-
+    log("Team2 Total Height: " + model2Height)
+    
         let md = ModelDistance(model1,model2);
         let finalArc = md.arc;
         let distanceT1T2 = md.distance; 
-
+    
         //Flyers see all and are seen by all
         if (model1.special.includes("Flyer") || model2.special.includes("Flyer")) {
             if (model2.special.includes("Flyer")) {
@@ -1761,144 +1759,147 @@ return res
             }
             return result;
         }
-        //Otherwise run through shooterHexes, targetHexes and check LOS
-        //for all but Titans/Knights, if have LOS to one hex is good
-        bestPercent = 0; //used to track obscuring for Titans, Knights
-        shooterLoop:
-        for  (let g=0;g<shooterHexes.length;g++) {
-            let shooterHex = shooterHexes[g];
-            let hexLOS = false;
-           
-            targetLoop:
-            for (let h=0;h<targetHexes.length;h++) {
-                let targetHex = targetHexes[h];
-    log("Target Hex: " + targetHex.label());
-                let targetLOS = true;
-                let interHexes = shooterHex.linedraw(targetHex); 
-                //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
-                //start at base of model2 and go up to height if Knight or Titan, otherwise just check height   
-
-                let lastElevation = m1E;
-                let flag = model1Hex.obstructingTerrain;
-                let obstructingHexes = 0;
-    log("Model 1 in Obstructing Terrain: " + flag);
-    log("Obstructing Hexes: " + obstructingHexes);
+      
+        let fractions = 0;
+        shooterHexLoop:
+        for (let s=0;s<shooterHexes.length;s++) {
+            let shooterHex = shooterHexes[s];
+    log("Shooter Hex: " + shooterHex.label())
+    
+            targetHexLoop:
+            for (let t=0;t<targetHexes.length;t++) {
+                let targetHex = targetHexes[t];
+    log("Target Hex: " + targetHex.label())
+                let targetLOS = 1;
+                let interHexes = shooterHex.linedraw(targetHex); //hexes between shotoer and target
+    
+                let lastElevation = model1Height; //track hill height as go
+    
                 interHexLoop:
-                for (let i=1;i<interHexes.length;i++) {
-                    let qrs = interHexes[i];
-                    let qrsLabel = qrs.label();
-                    let interHex = hexMap[qrsLabel];
-                log(i + ": " + qrsLabel)
-                log(interHex.terrain)
-                    let interHexElevation = parseInt(interHex.elevation) - modelLevel;
-                    let interHexHeight = parseInt(interHex.height) - modelLevel;
-                    let B;
-
-                    if (m1E > m2E) {
-                        B = (distanceT1T2 - i) * m1E / distanceT1T2;
-                    } else if (m1E <= m2E) {
-                        B = i * m2E / distanceT1T2;
+                for (let i=1;i<interHexes.length - 1;i++) {
+                    let interHex = interHexes[i];
+                    let ihLabel = interHex.label();
+    log(i + ": " + ihLabel)
+    
+                    let hex = hexMap(ihLabel);
+                    let hexLOS = hex.los;
+    //if in same terrain peice as shooter and obstrucing than can see still, so modify this here
+    
+                    let interHexElevation = parseInt(hex.elevation) - level;
+                    let interHexHeight = interHexElevation + parseInt(hex.height);
+                    let B1,B2;
+    
+                    if (losCase === 1) {
+                        B1 = model2Base/distanceT1T2 * i;
+                        B2 = model2Height/distanceT1T2 * i;
+                    } else if (losCase === 2) {
+                        B1 = model1Height/distanceT1T2 * (distanceT1T2 - i);
+                        B2 = (((model1Height - model2Height)/distanceT1T2) * (distanceT1T2 - i)) + B1;
+                    } else if (losCase === 3) {
+                        B1 = model1Height/distanceT1T2 * (distanceT1T2 - i);
+                        B2 = (((model2Height - model1Height)/distanceT1T2) * i) + model1Height;
                     }
-                log("InterHex Height: " + interHexHeight);
-                log("InterHex Elevation: " + interHexElevation);
-                log("Last Elevation: " + lastElevation);
-                log("B: " + B)
-
-                    if (interHexElevation < lastElevation && lastElevation > B) {
-                log("Drops Off")
-                        targetLOS = false;
-                        losReason = "Terrain Drops Off";
-                        break interHexLoop;
-                    }         
-                    //check for something in way
-                    if (interHex.tokenIDs.length > 0) {
-                        let id3s = interHex.tokenIDs;
-                        for (let i=0;i<id3s.length;i++) {
-                            let id3 = id3s[i];
+    
+    log("InterHex Elevation: " + interHexElevation);
+    log("Last Elevation: " + lastElevation);
+    log("InterHex Height: " + interHexHeight);
+    
+    
+    log("B1: " + B1)
+    log("B2: " + B2)
+    
+                    //Hills
+                    if (interHexElevation < lastElevation) {
+                        if (lastElevation > B2) {
+                            //fully blocks LOS
+                            targetLOS = 0;
+                            losReason = "Terrain Drops Off";
+                            break interHexLoop;
+                        } else if (lastElevation > B1 && lastElevation <= B2) {
+                            //partially blocks LOS
+                            log("Partial block by Hill")
+                            targetLOS = Math.min((lastElevation - B1) / (B2 - B1),targetLOS);
+                        } 
+                    }
+                    //Units in way
+                    if (hex.tokenIDs.length > 0) {
+                        let id3s = hex.tokenIDs;
+                        for (let j=0;j<id3s.length;j++) {
+                            let id3 = id3s[j];
                             let model3 = ModelArray[id3];
                             if (!model3) {continue};
                             if (model3.type === "System Unit" || model3.type === "Building" || model3.scale < 2 || model3.unitID === model1.unitID || model3.unitID === model2.unitID) {
                                 continue;
                             };
-                            let model3Height = modelElevation(model3) + model3.height - modelLevel;
-                log("model3 height: " + model3Height)
-                            if (interHexElevation + interHexHeight + model3Height >= B) {
-                                targetLOS = false;
-                                losReason = "LOS blocked by another Model";
+                            let model3Height = modelElevation(model3) + model3.height - level;
+    log(model3.name)
+    log("Height: " + model3Height)
+                            if (model3Height > B2) {
+                                //fully blocks LOS
+                                targetLOS = 0;
+                                losReason = "LOS blocked by " + model3.name;
                                 break interHexLoop;
-                            }
+                            } else if (model3Height > B1 && model3Height <= B2) {
+                                //partially blocks LOS
+                                log("Partial block by Unit")
+                                targetLOS = Math.min((model3Height - B1) / (B2 - B1),targetLOS);
+                            } 
                         }
                     }
-                    if (interHexHeight + interHexElevation >= B) {
-                log("LOS goes through Terrain")
-                        if (interHex.los === false) {
-                            //hex blocks los
-                            obstructingHexes += 1;
-                log("Obstructing Hexes: " + obstructingHexes);
-                            if ((flag === true && obstructingHexes > 6) || (flag === false && obstructingHexes > 1)) {
-                                targetLOS = false;
-                                losReason = "Too Deep into Terrain";
-                                break interHexLoop;
-                            }
-                        } else if (interHex.los === true && flag === true) {
-                            if (obstructingHexes > 0) {
-                                //breaking out into open, so if > 0 then is deep in terrain
-                                targetLOS = false;
-                                losReason = "Too Deep into Terrain";
-                                break interHexLoop;
-                            } else {
-                                flag = false;
-                            }
-                        } 
-                log("Flag: " + flag)
+                    //Terrain in hex
+                    if (interHexHeight > B2 && hexLOS === false) {
+                        //fully blocks LOS
+                        targetLOS = 0;
+                        losReason = "LOS blocked by Terrain";
+                        break interHexLoop;
+                    } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
+                        //partially blocks LOS
+                        log("Partial block by Terrain")
+                        targetLOS = Math.min((interHexHeight - B1) / (B2 - B1),targetLOS);
                     } else {
-                log("Overlooks")
-
-
-
-
-
-
+                        log("Overlooks Terrain in Hex")
                     }
-                    lastElevation = interHexElevation;
-                } //end interHex loop
-
-                if (model2.scale < 4) {
-                    if (targetLOS === true) {
-                        hexLOS = true;
-                        break targetLoop;
+    
+                } //end interHex Loop
+    
+                if (model2.size < 4 && targetLOS > 0) {
+                    //not a knight, can see a portion of it, so has LOS
+                    finalLOS = true;
+                    break shooterHexLoop;
+                }  
+    
+                if (targetLOS > 0) {
+                    if (model2.size < 4) {
+                        //not a knight, can see a portion of it, so has LOS
+                        finalLOS = true;
+                        break shooterHexLoop;
                     } else {
-                        hexLOS = false;
+                        //need to add up fractions
+                        fractions += targetLOS;
                     }
-                } else {
-                    //Titans/Knights
                 }
-
-            } //end target loop
-        
-        
-            if (model2.scale > 3) {
-                
-            } else if (model2.scale < 4 && hexLOS === true) {
-                //one of shooter hexes has LOS to one of target hexes, dont need to check further
-                finalLOS = true;
-                break shooterLoop;
-            }       
-        } //end shooter Loop
-        
-
-
-
+            }//end targetHex Loop
+        } //end shooterHex Loop
+    
+        if (model2.size > 3) {
+            fractions = fractions / (shooterHexes.length * targetHexes.length);
+    log(fractions)
+            if (fractions > 0) {
+                targetLOS = true;
+            }
+        }
+    
         let result = {
             distance: distanceT1T2,
             arc: finalArc,
             los: finalLOS,
             cover: finalCover,
             losReason: losReason,
-            percent: bestPercent,
+            percent: fractions,
         }
         return result;
     }
+    
 
 
 
