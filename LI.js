@@ -1662,6 +1662,19 @@ const LI = (()=> {
     }
 
     const LOS = (id1,id2,special) => {
+
+        let result = {
+            distance: 0,
+            arc: "Front",
+            los: true,
+            cover: false,
+            losReason: "",
+            percent: 1,
+        }
+
+return result
+
+
         if (!special) {special = " "};
         let model1 = ModelArray[id1];
         let model2 = ModelArray[id2];
@@ -1715,9 +1728,18 @@ const LI = (()=> {
         let model2Elevation = model2Base + model2.height;
         if (model2.size < 4) {model2Base = model2Elevation};
 
-        log("Team1 Elev: " + model1Elevation)
-        log("Team2 Base Elev: " + model2Base)
-        log("Team2 Total Elev: " + model2Elevation)
+
+        let modelLevel = Math.min(model1Elevation,model2Elevation);
+        let modelLevelMin = Math.min(model1Elevation,model2Base);
+        
+
+        let m1E = model1Elevation - modelLevel;
+        let m2E = model2Elevation - modelLevel;
+
+
+    log("Team1 Elev: " + model1Elevation)
+    log("Team2 Base Elev: " + model2Base)
+    log("Team2 Total Elev: " + model2Elevation)
 
         let md = ModelDistance(model1,model2);
         let finalArc = md.arc;
@@ -1745,30 +1767,21 @@ const LI = (()=> {
         for  (let g=0;g<shooterHexes.length;g++) {
             let shooterHex = shooterHexes[g];
             let hexLOS = false;
-            let targetHexesWithLOS = 0;
-            let percent = 0;
+           
             targetLoop:
             for (let h=0;h<targetHexes.length;h++) {
                 let targetHex = targetHexes[h];
-            log("Target Hex: " + targetHex.label());
+    log("Target Hex: " + targetHex.label());
                 let targetLOS = true;
                 let interHexes = shooterHex.linedraw(targetHex); 
                 //interHexes will be hexes between shooter and target,  including their hexes or closest hexes for large tokens
-                //start at base of model2 and go up to height if Knight or Titan, otherwise just check height
-
-                let modelLevel = Math.min(model1Elevation,th);
-                let m1E = model1Elevation - modelLevel;
-                let m2E = th - modelLevel;
-        log("modelLevel: " + modelLevel)
-        log("M1E: " + m1E)
-        log("M2E: " + m2E)
-
+                //start at base of model2 and go up to height if Knight or Titan, otherwise just check height   
 
                 let lastElevation = m1E;
                 let flag = model1Hex.obstructingTerrain;
                 let obstructingHexes = 0;
-        log("Model 1 in Obstructing Terrain: " + flag);
-        log("Obstructing Hexes: " + obstructingHexes);
+    log("Model 1 in Obstructing Terrain: " + flag);
+    log("Obstructing Hexes: " + obstructingHexes);
                 interHexLoop:
                 for (let i=1;i<interHexes.length;i++) {
                     let qrs = interHexes[i];
