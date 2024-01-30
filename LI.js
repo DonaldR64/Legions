@@ -1778,9 +1778,9 @@ log("Same Terrain:" + sameTerrain)
     log("Target Hex: " + targetHex.label())
                 let targetLOS = 1;
                 let interHexes = shooterHex.linedraw(targetHex); //hexes between shooter and target
-    
+                let denom = interHexes.length - 1;
                 let lastElevation = model1Height - level; //track hill height as go
-
+                let highestElevation = lastElevation;
 
                 interHexLoop:
                 for (let i=1;i<interHexes.length;i++) {
@@ -1794,38 +1794,40 @@ log("Same Terrain:" + sameTerrain)
     
                     let interHexElevation = parseInt(hex.elevation) - level;
                     let interHexHeight = parseInt(hex.height) - level;
+                    highestElevation = Math.max(interHexElevation,highestElevation);
+
                     let B1,B2;
     
                     if (losCase === 1) {
-                        B1 = model2Base/(interHexes.length-1) * i;
-                        B2 = model2Height/(interHexes.length-1) * i;
+                        B1 = model2Base/denom * i;
+                        B2 = model2Height/denom * i;
                     } else if (losCase === 2) {
-                        B1 = model1Height/(interHexes.length-1)* (interHexes.length - i);
-                        B2 = (((model1Height - model2Height)/interHexes.length) * ((interHexes.length-1) - i)) + model2Height;
+                        B1 = model1Height/denom * (denom - i);
+                        B2 = (((model1Height - model2Height)/denom) * (denom - i)) + model2Height;
                     } else if (losCase === 3) {
-                        B1 = model1Height/distanceT1T2 * ((interHexes.length-1) - i);
-                        B2 = (((model2Height - model1Height)/(interHexes.length-1)) * i) + model1Height;
+                        B1 = model1Height/distanceT1T2 * (denom - i);
+                        B2 = (((model2Height - model1Height)/denom) * i) + model1Height;
                     }
     
     log("InterHex Elevation: " + interHexElevation);
     log("Last Elevation: " + lastElevation);
     log("InterHex Height: " + interHexHeight);
-    
+    log("Highest Elevation: " + highestElevation);
     
     log("B1: " + B1)
     log("B2: " + B2)
     
                     //Hills
                     if (interHexElevation < lastElevation) {
-                        if (lastElevation > model1Height && lastElevation > model2Height) {
+                        if (highestElevation > model1Height && highestElevation > model2Height) {
                             //fully blocks LOS
                             targetLOS = 0;
                             losReason = "Terrain Drops Off";
                             break interHexLoop;
-                        } else if (lastElevation > model1Height && lastElevation < model2Height && lastElevation > model2Base) {
+                        } else if (highestElevation > model1Height && highestElevation < model2Height && highestElevation > model2Base) {
                             //partially blocks LOS
                             log("Partial block by Hill")
-                            targetLOS = Math.min((B2 - lastElevation) / (B2 - B1),targetLOS);
+                            targetLOS = Math.min((B2 - highestElevation) / (B2 - B1),targetLOS);
                         }
                     }
 
