@@ -742,18 +742,19 @@ const LI = (()=> {
                 if (a1>b1) {return 1};
                 return 0;
             });
-   
             for (let i=0;i<10;i++) {
                 let specName = infoArray[i];
                 if (!specName || specName === "") {continue}
                 if (specName.includes("(")) {
                     let index = specName.indexOf("(");
                     specName = specName.substring(0,index);
+                    specName = specName.trim();
                     specName += " (X)";
                 }
                 if (specName.includes("+")) {
                     let index = specName.indexOf("+");
                     specName = specName.substring(0,index);
+                    specName = specName.trim();
                     specName += "+X";
                 }
                 let specInfo = specialInfo[specName];
@@ -1663,7 +1664,7 @@ const LI = (()=> {
 
     const LOS = (id1,id2,special) => {
 
-        let result = {
+        let res = {
             distance: 0,
             arc: "Front",
             los: true,
@@ -1672,7 +1673,7 @@ const LI = (()=> {
             percent: 1,
         }
 
-return result
+return res
 
 
         if (!special) {special = " "};
