@@ -1749,7 +1749,7 @@ log("Same Terrain:" + sameTerrain)
         let md = ModelDistance(model1,model2);
         let finalArc = md.arc;
         let distanceT1T2 = md.distance; 
-    
+
         //Flyers see all and are seen by all
         if (model1.special.includes("Flyer") || model2.special.includes("Flyer")) {
             if (model2.special.includes("Flyer")) {
@@ -1797,14 +1797,14 @@ log("Same Terrain:" + sameTerrain)
                     let B1,B2;
     
                     if (losCase === 1) {
-                        B1 = model2Base/distanceT1T2 * i;
-                        B2 = model2Height/distanceT1T2 * i;
+                        B1 = model2Base/(interHexes.length-1) * i;
+                        B2 = model2Height/(interHexes.length-1) * i;
                     } else if (losCase === 2) {
-                        B1 = model1Height/distanceT1T2 * (distanceT1T2 - i);
-                        B2 = (((model1Height - model2Height)/distanceT1T2) * (distanceT1T2 - i)) + model2Height;
+                        B1 = model1Height/(interHexes.length-1)* (interHexes.length - i);
+                        B2 = (((model1Height - model2Height)/interHexes.length) * ((interHexes.length-1) - i)) + model2Height;
                     } else if (losCase === 3) {
-                        B1 = model1Height/distanceT1T2 * (distanceT1T2 - i);
-                        B2 = (((model2Height - model1Height)/distanceT1T2) * i) + model1Height;
+                        B1 = model1Height/distanceT1T2 * ((interHexes.length-1) - i);
+                        B2 = (((model2Height - model1Height)/(interHexes.length-1)) * i) + model1Height;
                     }
     
     log("InterHex Elevation: " + interHexElevation);
