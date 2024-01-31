@@ -815,86 +815,11 @@ const LI = (()=> {
             }
             ModelArray[tokenID] = this;
 
-            let unit = UnitArray[this.unitID];d
+            let unit = UnitArray[this.unitID];
             if (unit) {
                 unit.add(this);
             }
         }
-
-
-        addCondition(condition) {
-            let imgSrc;
-            let size = 70;
-            let rotation = 0;
-            let charID = "-Nhno4KrMYcgi0c6_keC";
-
-            switch (condition) {
-                case 'Advance':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053492/4byaI600GExE8ZlV5Oucfg/thumb.png?1706663494";
-                    break;
-                case 'First Fire':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053219/F7X1ptGQvkey-pG-grYmWg/thumb.png?1706663368";
-                    break;
-                case 'March':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053135/82GwckjrcutgMM9N3OWc8A/thumb.png?1706663332";
-                    break;
-                case 'Charge':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053417/KqJ2uns13UjOz_7q5Q60Zg/thumb.png?1706663455";
-                    break;
-                case 'Fall Back':
-                    imgSrc =  "https://s3.amazonaws.com/files.d20.io/images/378053284/PuXLBkN0aQZJ0B-4LSZVAg/thumb.png?1706663402";
-                    break;
-            }
-
-            let conditions = ["Advance","First Fire","March","Charge","Fall Back"];
-            //clear other conditions
-            _.each(conditions,condition => {
-                this.removeCondition(condition);
-            })
-            state.LI.conditions[this.id] = [];
-        
-            imgSrc = getCleanImgSrc(imgSrc);
-
-            let conditionToken = createObj("graphic", {   
-                left: this.location.x,
-                top: this.location.y,
-                width: size, 
-                height: size,
-                rotation: rotation,
-                isdrawing: true,
-                pageid: this.token.get("pageid"),
-                imgsrc: imgSrc,
-                layer: "gmlayer",
-                represents: charID,
-            });
-            toFront(conditionToken);
-            TokenCondition.AttachConditionToToken(conditionToken.id,this.id);
-            state.LI.conditions[this.id][condition] = conditionToken.id;
-        }
-
-        removeCondition(condition) {
-            let conditionID = state.LI.conditions[this.id][condition]
-            if (conditionID) {
-                let token = findObjs({_type:"graphic", id: conditionID})[0];
-                if (token) {
-                    token.remove();
-                }
-                state.LI.conditions[this.id][condition] = "";
-            }
-        }
-
-        queryCondition(condition) {
-            let result = false;
-            if (state.LI.conditions[this.id]) {
-                let conditions = state.TY.conditions[this.id];
-                if (conditions[condition]) {
-                    result = true;
-                }
-            }
-            return result;  
-        }
-
-
 
     }
 
@@ -3080,18 +3005,12 @@ log("Same Terrain:" + sameTerrain)
 
     const RevealOrders = () => {
         _.each(UnitArray,unit => {
-            let order = unit.order || "Advance";
-            _.each(unit.modelIDs,id => {
-                let model = ModelArray[id];
-                if (model) {
-                    model.addCondition(order);
-                }
-            });
-
-        /*
+log(unit.name)
             let ord = unit.order.toLowerCase();
+log(ord)
             if (!ord) {ord = "advance"};
             let mark = SM[ord];
+log(mark)
             for (let i=0;i<unit.modelIDs.length;i++) {
                 let model = ModelArray[unit.modelIDs[i]];
                 if (model) {
@@ -3101,9 +3020,6 @@ log("Same Terrain:" + sameTerrain)
                     }
                 }
             }
-        */
-
-
         });
     }
 
