@@ -94,9 +94,9 @@ const LI = (()=> {
         },
         "Cthonian": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/378070096/oShLaPkIOEq0P5y7YHHAmg/thumb.png?1706671346",
-            "backgroundColour": "#696969",
+            "backgroundColour": "#000000",
             "titlefont": "Anton",
-            "fontColour": "#000000",
+            "fontColour": "#ffffff",
             "borderColour": "#be0b07",
             "borderStyle": "5px groove",
         },
