@@ -18,6 +18,9 @@
                 <option value="Blood Angels">Blood Angels</option>
                 <option value="Deathguard">Deathguard</option>
                 <option value="Salamanders">Salamanders</option>
+                <option value="Cthonian">Cthonian</option>
+
+
 
             </select>
         </div>
@@ -486,6 +489,12 @@
                 factionImage = "https://s3.amazonaws.com/files.d20.io/images/274614673/_-mcGObetfMZtFANsG7nKA/thumb.png?1646767013";
                 side = "Loyalist ";
             }   
+            if (faction === "Cthonian") {
+                factionImage = "https://s3.amazonaws.com/files.d20.io/images/274614673/_-mcGObetfMZtFANsG7nKA/thumb.png?1646767013";
+                side = "Traitor ";
+            }   
+
+
 
             let special = values.special;
             special = special.split(",");
