@@ -1843,7 +1843,7 @@ log("Same Terrain:" + sameTerrain)
                         } else if (highestElevation >= model1Height && highestElevation < model2Height && highestElevation > model2Base) {
                             //partially blocks LOS
                             log("Partial block by Hill")
-                            targetLOS = Math.min((B2 - highestElevation) / (B2 - B1),targetLOS);
+                            targetLOS = Math.min(((B2 - highestElevation) / (B2 - B1)),targetLOS);
                         }
                     }
 
@@ -1868,7 +1868,7 @@ log("Same Terrain:" + sameTerrain)
                             } else if (model3Height > B1 && model3Height <= B2) {
                                 //partially blocks LOS
                                 log("Partial block by Unit")
-                                targetLOS = Math.min((B2 - model3Height) / (B2 - B1),targetLOS);
+                                targetLOS = Math.min(((B2 - model3Height) / (B2 - B1)),targetLOS);
                             } 
                         }
                     }
@@ -1882,7 +1882,7 @@ log("Same Terrain:" + sameTerrain)
                         } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
                             //partially blocks LOS
                             log("Partial block by Terrain")
-                            targetLOS = Math.min((B2 - interHexHeight) / (B2 - B1),targetLOS);
+                            targetLOS = Math.min(((B2 - interHexHeight) / (B2 - B1)),targetLOS);
                         } else {
                             log("Overlooks Terrain in Hex")
                         }
