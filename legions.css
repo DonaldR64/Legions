@@ -40,7 +40,7 @@ input[type="hidden"][name="attr_faction"][value="Space Wolves"] ~ .mysheet {
 input[type="hidden"][name="attr_faction"][value="Salamanders"] ~ .mysheet {
   background-color: #556b2f;
 }
-input[type="hidden"][name="attr_faction"][value="Cthonian"] ~ .mysheet {
+input[type="hidden"][name="attr_faction"][value="Traitor Auxilia"] ~ .mysheet {
   background-color: #000000;
 }
 
