@@ -815,7 +815,7 @@ const LI = (()=> {
             }
             ModelArray[tokenID] = this;
 
-            let unit = UnitArray[this.unitID];
+            let unit = UnitArray[this.unitID];d
             if (unit) {
                 unit.add(this);
             }
@@ -823,86 +823,36 @@ const LI = (()=> {
 
 
         addCondition(condition) {
-            let imgSrc,charID;
+            let imgSrc;
             let size = 70;
             let rotation = 0;
+            let charID = "-Nhno4KrMYcgi0c6_keC";
 
             switch (condition) {
-                case 'Dash':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/367732138/K6sIzwifj9tIXcgYPIaw6g/thumb.png?1700012748";
-                    charID = "-NhnnimsL_fUE_I44tij";
+                case 'Advance':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053492/4byaI600GExE8ZlV5Oucfg/thumb.png?1706663494";
                     break;
-                case 'Tactical':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/367732123/yi-DF0tNtuUCiFf5qQJGsw/thumb.png?1700012741";
-                    charID = "-Nhno-si_pOx9WcyqX8Q";
+                case 'First Fire':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053219/F7X1ptGQvkey-pG-grYmWg/thumb.png?1706663368";
                     break;
-                case 'Hold':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/367733007/GPUaJjq4Y3VkbNAjypBGkg/thumb.png?1700013183";
-                    charID = "-Nhno4KrMYcgi0c6_keC";
+                case 'March':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053135/82GwckjrcutgMM9N3OWc8A/thumb.png?1706663332";
                     break;
-                case 'Assault':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364740790/-PpYtjvGninT5CBZ9cgvcw/thumb.png?1698193663";
-                    charID = "-Nhno9pRPTXGOICorXWV";
+                case 'Charge':
+                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/378053417/KqJ2uns13UjOz_7q5Q60Zg/thumb.png?1706663455";
                     break;
-                case 'AAFire':
-                    imgSrc =  "https://s3.amazonaws.com/files.d20.io/images/364738389/jQaMAvsc3yfx7tsgMpkZ-Q/thumb.png?1698192640";
-                    charID = "-NhnoEpVGQnaSECosUQs";
+                case 'Fall Back':
+                    imgSrc =  "https://s3.amazonaws.com/files.d20.io/images/378053284/PuXLBkN0aQZJ0B-4LSZVAg/thumb.png?1706663402";
                     break;
-                case 'Fired':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364738390/jRn7kK1dz3EnFwy8lFzyJw/thumb.png?1698192640";
-                    charID = "-NhnoJcnvMESfrIA4ipF";
-                    break;
-                case 'GTG':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364740777/TkNdbvE_My02jE0bkz1KzA/thumb.png?1698193655";
-                    charID = "-NhnoOo2ydvrjTOFGMXW";
-                    break;
-                case 'Spot':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/364839305/-UanVemZgRrwTu3fVijGwA/thumb.png?1698268901";
-                    charID = "-NhnoS6WDdovvJrkTeHC";
-                    break;
-                case 'Passengers':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/365230932/HxeMNYtOiyWDnoyvoa8FCQ/thumb.png?1698516760";
-                    charID = "-NhrUN0XxRco5XKwLdSM";
-                    size = 40;
-                    break;
-                case 'Land/Take Off':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/366077088/FP0gaU13t5SB11Cq4Fq4zQ/thumb.png?1699037802";
-                    charID = "-NiLY-VogcGd_EbrZegV";
-                    break;
-                case 'Flare':
-                    imgSrc = "https://s3.amazonaws.com/files.d20.io/images/366077896/UYxOO1P7P1wBDD75gtpsFA/thumb.png?1699038152";
-                    charID = "-NiLYVaQvQOHD16lukjv";
-                    rotation = this.token.get("rotation");
-                    size = 130;
-                    break;
-
-
-
-
             }
 
-            let leftConditions = ["Tactical","Dash","Hold","Assault"];
-            let rightConditions = ["Fired","AAFire","GTG","Land/Take Off"];
-            let topConditions = ["Flare"];
-            let array = [];
-            if (leftConditions.includes(condition)) {
-                array = leftConditions;
-            } else if (rightConditions.includes(condition)) {
-                array = rightConditions;
-            } else if (topConditions.includes(condition)) {
-                array = topConditions;
-            }
-            //clear other conditions in that array
-            if (state.TY.conditions[this.id]) {
-                for (let a=0;a<array.length;a++) {
-                    if (state.TY.conditions[this.id][array[a]]) {
-                        this.removeCondition(array[a]);
-                    }
-                }
-            } else {
-                state.TY.conditions[this.id] = {};
-            }
-
+            let conditions = ["Advance","First Fire","March","Charge","Fall Back"];
+            //clear other conditions
+            _.each(conditions,condition => {
+                this.removeCondition(condition);
+            })
+            state.LI.conditions[this.id] = [];
+        
             imgSrc = getCleanImgSrc(imgSrc);
 
             let conditionToken = createObj("graphic", {   
@@ -919,26 +869,23 @@ const LI = (()=> {
             });
             toFront(conditionToken);
             TokenCondition.AttachConditionToToken(conditionToken.id,this.id);
-            state.TY.conditions[this.id][condition] = conditionToken.id;
+            state.LI.conditions[this.id][condition] = conditionToken.id;
         }
 
         removeCondition(condition) {
-            if (state.TY.conditions[this.id]) {
-                let conditions = state.TY.conditions[this.id];
-                if (conditions[condition]) {
-                    let conditionID = conditions[condition];
-                    let token = findObjs({_type:"graphic", id: conditionID})[0];
-                    if (token) {
-                        token.remove();
-                    }
-                    delete state.TY.conditions[this.id][condition];
+            let conditionID = state.LI.conditions[this.id][condition]
+            if (conditionID) {
+                let token = findObjs({_type:"graphic", id: conditionID})[0];
+                if (token) {
+                    token.remove();
                 }
+                state.LI.conditions[this.id][condition] = "";
             }
         }
 
         queryCondition(condition) {
             let result = false;
-            if (state.TY.conditions[this.id]) {
+            if (state.LI.conditions[this.id]) {
                 let conditions = state.TY.conditions[this.id];
                 if (conditions[condition]) {
                     result = true;
@@ -2147,6 +2094,7 @@ log("Same Terrain:" + sameTerrain)
             mission: '1',
             turnMarkerIDs: tmID,
             buildings: {},
+            conditions: {},
         }
         for (let i=0;i<UnitMarkers.length;i++) {
             state.LI.markers[0].push(i);
@@ -3132,8 +3080,17 @@ log("Same Terrain:" + sameTerrain)
 
     const RevealOrders = () => {
         _.each(UnitArray,unit => {
+            let order = unit.order || "Advance";
+            _.each(unit.modelIDs,id => {
+                let model = ModelArray[id];
+                if (model) {
+                    model.addCondition(order);
+                }
+            });
+
+        /*
             let ord = unit.order.toLowerCase();
-            if (!ord) {ord = "advance"}
+            if (!ord) {ord = "advance"};
             let mark = SM[ord];
             for (let i=0;i<unit.modelIDs.length;i++) {
                 let model = ModelArray[unit.modelIDs[i]];
@@ -3144,6 +3101,9 @@ log("Same Terrain:" + sameTerrain)
                     }
                 }
             }
+        */
+
+
         });
     }
 
