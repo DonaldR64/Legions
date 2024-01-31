@@ -213,6 +213,8 @@ const LI = (()=> {
         "Skyfire": 'Can target Flyers. If overwatch, -1 to hit instead of -2. If multiple weapons in Detachment, can fire all Skyfire weapons at another target than Detachment designated target if this secondary target is Flyer.',
         "Tracking": 'Re-roll failed hits against Flyer',
         "Wrecker (X)": 'Can attempt to destroy building when activated in First Fire or Advance Fire stage. Choose structure in base contact, opponent rolls Save, if failed Structure receives X Wounds. If model has multiple Wrecker (X) weapons, it can target multiple Structures or a single Structure. Use combined total of weapons AP for the Structure Save roll and Structure suffers combined X Wounds if Save failed.',
+        "Chain of Command": 'Detachments with the Chain of Command special rule can only be issued an Advance Order unless instructed otherwise. If an Independent Unit contains only models without this rule, then that Independent Unit can be issued another Order, even if the larger Detachment can only be issued with the Advance Order.',
+        "Solar Auxilia HQ (X)": 'If a Detachment with the Chain of Command special rule has at least one model wholly within the Command Range of a model with the Solar Auxilia HQ (X) special rule, it can be issued with any Order it would be eligible to be issued (i.e., First Fire Order, Charge Order, March Order or Advance Order), instead of just an Advance Order. A model’s ‘Command Range’ is a number of inches equal to the value in brackets noted as part of this special rule. This special rule does not allow a Broken Detachment to be issued an Order other than the Advance Order or Charge Order.',
     }
 
     //LOS: true = doesnt block, false = blocks unless within same terrain
