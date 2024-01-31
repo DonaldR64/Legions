@@ -587,6 +587,8 @@ const LI = (()=> {
             let height = 0;
             let wounds = parseInt(attributeArray.wounds) || 1;
             let scale = parseInt(attributeArray.scale);
+            let shields = 0;
+
 
             if (!faction) {
                 faction = "Neutral";
@@ -726,11 +728,15 @@ const LI = (()=> {
                 specials = " ";
             }
             specials = specials.split(",");
+
             for (let i=0;i<specials.length;i++) {
                 let special = specials[i].trim();
                 let attName = "special" + i;
                 AttributeSet(char.id,attName,special);
                 infoArray.push(special);
+                if (special.includes("Void Shields")) {
+                    shields = special.replace(/[^\d]/g,"");
+                }
             }
 
             infoArray = [...new Set(infoArray)];
@@ -795,6 +801,8 @@ const LI = (()=> {
             this.special = special;
             this.wounds = wounds;
             this.token = token;
+
+            this.shields = shields;
 
             this.save = parseInt(attributeArray.save) || 7;
             this.caf = parseInt(attributeArray.caf) || 0;
@@ -1925,10 +1933,6 @@ log("Same Terrain:" + sameTerrain)
             if (!state.LI.players[playerID] || state.LI.players[playerID] === undefined) {
                 if (msg.selected) {
                     let id = msg.selected[0]._id;
-                    let data = TokenCondition.LookUpMaster(id);
-                    if (data) {
-                        id = data.target;
-                    }
                     if (id) {
                         let tok = findObjs({_type:"graphic", id: id})[0];
                         let char = getObj("character", tok.get("represents")); 
@@ -2019,7 +2023,6 @@ log("Same Terrain:" + sameTerrain)
             mission: '1',
             turnMarkerIDs: tmID,
             buildings: {},
-            conditions: {},
         }
         for (let i=0;i<UnitMarkers.length;i++) {
             state.LI.markers[0].push(i);
@@ -2116,6 +2119,14 @@ log("Same Terrain:" + sameTerrain)
             }
             model.token.set("statusmarkers","");
             model.token.set("status_"+unit.symbol,true);
+            let shields = parseInt(model.shields) || 0;
+            if (shields > 0) {
+                model.token.set({
+                    bar2_value: shields,
+                    bar2_max: shields,
+                    showplayers_bar2: true,
+                });
+            }
         }
 
         let leader = ModelArray[unit.modelIDs[0]];
@@ -2146,10 +2157,6 @@ log("Same Terrain:" + sameTerrain)
             return;
         };
         let id = msg.selected[0]._id;
-        let data = TokenCondition.LookUpMaster(id);
-        if (data) {
-            id = data.target;
-        }
         let model = ModelArray[id];
         if (!model) {
             sendChat("","Not in Model Array Yet");
@@ -2319,10 +2326,6 @@ log("Same Terrain:" + sameTerrain)
     const AddAbilities = (msg) => {
         if (!msg) {return}
         let id = msg.selected[0]._id;
-        let data = TokenCondition.LookUpMaster(id);
-        if (data) {
-            id = data.target;
-        }
         if (!id) {return};
         let token = findObjs({_type:"graphic", id: id})[0];
         let char = getObj("character", token.get("represents"));
@@ -2584,16 +2587,8 @@ log("Same Terrain:" + sameTerrain)
     const CheckLOS = (msg) => {
         let Tag = msg.content.split(";");
         let shooterID = Tag[1];
-        let sdata = TokenCondition.LookUpMaster(shooterID);
-        if (sdata) {
-            shooterID = sdata.target;
-        }
         let shooter = ModelArray[shooterID];
         let targetID = Tag[2];
-        let tdata = TokenCondition.LookUpMaster(targetID);
-        if (tdata) {
-            targetID = tdata.target;
-        }
         let target = ModelArray[targetID];
         SetupCard(shooter.name,"LOS",shooter.faction);
         let checkLOS = LOS(shooterID,targetID);
@@ -2899,10 +2894,6 @@ log("Same Terrain:" + sameTerrain)
         }
         let Tag = msg.content.split(";");
         let id = msg.selected[0]._id;
-        let data = TokenCondition.LookUpMaster(id);
-        if (data) {
-            id = data.target;
-        }
         let playerID = msg.playerid;
         let playerObj = findObjs({type: 'player',id: playerID})[0];
         let who = playerObj.get("displayname");
@@ -3011,15 +3002,16 @@ log(ord)
             if (!ord) {ord = "advance"};
             let mark = SM[ord];
 log(mark)
-            for (let i=0;i<unit.modelIDs.length;i++) {
-                let model = ModelArray[unit.modelIDs[i]];
+            _.each(unit.modelIDs,id => {
+                let model = ModelArray[id];
                 if (model) {
+log(model.name)
                     model.token.set(mark,true);
-                    if (i === 0) {
+                    if (id === unit.modelIDs[0]) {
                         model.token.set("aura1_color",Colours.green);
                     }
                 }
-            }
+            })
         });
     }
 
