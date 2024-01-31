@@ -40,9 +40,13 @@ input[type="hidden"][name="attr_faction"][value="Space Wolves"] ~ .mysheet {
 input[type="hidden"][name="attr_faction"][value="Salamanders"] ~ .mysheet {
   background-color: #556b2f;
 }
-input[type="hidden"][name="attr_faction"][value="Traitor Auxilia"] ~ .mysheet {
+input[type="hidden"][name="attr_faction"]:is([value="Traitor Auxilia"],[value="Legio Mortis"],[value="House Malinax"]) ~ .mysheet {
   background-color: #000000;
 }
+input[type="hidden"][name="attr_faction"]:is([value="Legio Tempestus"],[value="House Raven"],[value="Loyalist Auxilia"]) ~ .mysheet {
+  background-color: #d4af37;
+}
+
 
 
 main {
@@ -159,11 +163,8 @@ section {
   color: white;
 }
 
-input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Tau"],[value="Space Wolves"],[value="Ratlings"]) ~ .header :is(h1,h3){
+input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Space Wolves"],[value="Legio Tempestus"],[value="House Raven"],[value="Loyalist Auxilia"]) ~ .header :is(h1,h3){
   color: black;
-}
-input[type="hidden"][name="attr_faction"]:is([value="Necron"]) ~ .header :is(h1,h3) {
-  color: #39FF14;
 }
 
 .special {
@@ -403,22 +404,16 @@ input[type="hidden"][value="Equipped"].weapon10-status ~ .weapon10{
   color: white;
 }
 
-input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Tau"],[value="Space Wolves"],[value="Ratlings"]) ~ .spheader h2 {
+input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Space Wolves"],[value="Legio Tempestus"],[value="House Raven"],[value="Loyalist Auxilia"]) ~ .spheader h2 {
   color: black;
-}
-input[type="hidden"][name="attr_faction"]:is([value="Necron"]) ~ .spheader h2 {
-  color:  #39FF14;
 }
 
 
 .spbody h4 {
   color: white;
 }
-input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Tau"],[value="Space Wolves"],[value="Ratlings"]) ~ .spbody {
+input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Space Wolves"],[value="Legio Tempestus"],[value="House Raven"],[value="Loyalist Auxilia"]) ~ .spbody {
   color: black;
-}
-input[type="hidden"][name="attr_faction"]:is([value="Necron"]) ~ .spbody {
-  color:  #39FF14;
 }
 .item span {
   font-size: 14px;
