@@ -1065,8 +1065,6 @@ const LI = (()=> {
     }
 
 
-
-
     const UnitMarkers = ["Plus-1d4::2006401","Minus-1d4::2006429","Plus-1d6::2006402","Minus-1d6::2006434","Plus-1d20::2006409","Minus-1d20::2006449","Hot-or-On-Fire-2::2006479","Animal-Form::2006480","Red-Cloak::2006523","A::6001458","B::6001459","C::6001460","D::6001461","E::6001462","F::6001463","G::6001464","H::6001465","I::6001466","J::6001467","L::6001468","M::6001469","O::6001471","P::6001472","Q::6001473","R::6001474","S::6001475"];
 
 
@@ -3038,6 +3036,31 @@ log(model.name)
     const Test = (msg) => {
        return;
     }
+
+    const ClosestDistance = (shooterUnit,targetUnit) => {
+        let closestDistance = Infinity;
+        let closestShooter,closestTarget;
+        _.each(shooterUnit.modelIDs,id1 => {
+            let shooter = ModelArray[id1];
+            _.each(targetUnit.modelIDs,id2 => {
+                let target = ModelArray[id2];
+                let dist = ModelDistance(shooter,target);
+                if (dist < closestDistance) {
+                    closestDistance = dist;
+                    closestShooter = shooter;
+                    closestTarget = target;
+                }
+            });
+        });
+        let info = {
+            distance: closestDistance,
+            shooter: closestShooter,
+            target: closestTarget,
+        }
+        return info;
+    }
+
+
 
 
 
