@@ -47,6 +47,7 @@ const LI = (()=> {
         firstfire: "status_First-Fire::6534652",
         advance: "status_Advance::6534653",
         march: "status_March::6534654",
+        pinned: "status_Restrained-or-Webbed::2006494",
     };
 
     let outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
@@ -600,7 +601,6 @@ const LI = (()=> {
             let wounds = parseInt(attributeArray.wounds) || 1;
             let scale = parseInt(attributeArray.scale);
             let shields = 0;
-            let outerRange = 0;
 
             if (!faction) {
                 faction = "Neutral";
@@ -703,7 +703,6 @@ const LI = (()=> {
                 } else {
                     maxRange= parseInt(r);
                 }
-                outerRange = Math.max(maxRange,outerRange);
 
                 let dice = attributeArray["weapon"+i+"dice"];
                 let tohit = parseInt(attributeArray["weapon"+i+"tohit"]) || 0;
@@ -712,6 +711,17 @@ const LI = (()=> {
                     ap = parseInt(ap);
                 }
                 let traits = attributeArray["weapon"+i+"traits"] || " ";
+                let arc = "Any";
+                if (traits.includes("Arc")) {
+                    let t = traits.split(",");
+                    for (let t=0;t<traits.length;t++) {
+                        if (traits[t].includes("Arc")) {
+                            arc = (traits[t].includes("Front")) ? "Front":"Rear";
+                            break;
+                        }
+                    }
+                }
+                
                 let fx = attributeArray["weapon"+i+"fx"];
                 let sound = attributeArray["weapon"+i+"sound"];
 
@@ -723,6 +733,7 @@ const LI = (()=> {
                     tohit: tohit,
                     ap: ap,
                     traits: traits,
+                    arc: arc,
                     fx: fx,
                     sound: sound,
                 }
@@ -816,9 +827,8 @@ const LI = (()=> {
             this.wounds = wounds;
             this.token = token;
             
-            this.outerRange = outerRange; //max weapons range of all weapons
-
-
+            this.eta = [];//used to track eligible targets
+            
             this.shields = shields;
 
             this.save = parseInt(attributeArray.save) || 7;
@@ -1738,7 +1748,19 @@ log("Same Terrain:" + sameTerrain)
     
         let finalLOS = false;
         let losReason;
-        let finalCover = model2Hex.cover;
+        let finalCoverSave = model2Hex.coverSave;
+        let toHitMod = 0;
+        if (model2Hex.hitLevel > 0 && model2.special.includes("Flyer") === false) {
+            if (hitLevel === 4) {toHitMod = -2};
+            if (hitLevel === 3) {toHitMod = -1};
+            if (hitLevel === 2 && model2.scale < 5) {toHitMod = -1};
+            if (hitLevel === 1 && model2.scale < 3) {toHitMod = -1};
+        }
+        if (model2.type === "Building") {
+            toHitMod = 1;
+        }
+
+
         let model1Height = modelElevation(model1) + model1.height;
         let model2Base = modelElevation(model2);
         let model2Height = model2Base + model2.height;
@@ -1781,9 +1803,10 @@ log("Same Terrain:" + sameTerrain)
                 distance: distanceT1T2,
                 arc: finalArc,
                 los: true,
-                cover: finalCover,
+                coverSave: finalCoverSave,
                 losReason: "",
                 percent: 1,
+                toHitMod: toHitMod,
             }
             return result;
         }
@@ -1929,9 +1952,10 @@ log("Same Terrain:" + sameTerrain)
             distance: distanceT1T2,
             arc: finalArc,
             los: finalLOS,
-            cover: finalCover,
+            coverSave: finalCoverSave,
             losReason: losReason,
             percent: fractions,
+            toHitMod: toHitMod,
         }
         return result;
     }
@@ -3037,30 +3061,121 @@ log(model.name)
        return;
     }
 
-    const ClosestDistance = (shooterUnit,targetUnit) => {
-        let closestDistance = Infinity;
-        let closestShooter,closestTarget;
-        _.each(shooterUnit.modelIDs,id1 => {
-            let shooter = ModelArray[id1];
-            _.each(targetUnit.modelIDs,id2 => {
-                let target = ModelArray[id2];
-                let dist = ModelDistance(shooter,target);
-                if (dist < closestDistance) {
-                    closestDistance = dist;
-                    closestShooter = shooter;
-                    closestTarget = target;
-                }
-            });
-        });
-        let info = {
-            distance: closestDistance,
-            shooter: closestShooter,
-            target: closestTarget,
+
+    const Shooting = (msg) => {
+        let Tag = msg.content.split(";");
+        let shooterID = Tag[1];
+        let targetID = Tag[2];
+        let ignoreCover = (Tag[3] === "Yes") ? true:false;
+        let numbers = Tag[4]; //weapon numbers
+    
+        let shooter = ModelArray[shooterID];
+        let target = ModelArray[targetID];
+        let shooterUnit = UnitArray[shooter.unitID];
+        let targetUnit = UnitArray[target.unitID];
+    
+        SetupCard(shooterUnit.name,"Weapons Fire",shooterUnit.faction);
+        //check Unit hasnt already fired
+        let shooterLeader = ModelArray[shooterUnit.modelIDs[0]];
+        if (shooterLeader.token.get("aura1_color") === Colours.black) {
+            outputCard.body.push("Unit has already Activated/Fired");
+            PrintCard();
+            return;
         }
-        return info;
+    
+        //go through shooter unit and see who has range/los to at least 1 target, make their their eligible target list
+        //add target ids also to an array
+    
+        let shooterIDArray = [];
+        let targetIDArray = [];
+        let toHitMod = 0;
+        let pinFlag = false;
+        let shooterExceptions = [];
+    
+        for (let s=0;s<shooterUnit.modelIDs.length;s++) {
+            shooter = ModelArray[shooterUnit.modelIDs[s]];
+            let eta = [];
+            let losFlag = false;
+            let coverFlag = false;
+            let rangeFlag = false;
+            let arcFlag = false;
+    
+            for (let t=0;t<targetUnit.modelIDs.length;t++) {
+                target = ModelArray[targetUnit.modelIDs[t]];
+                if (target.get(SM.pinned) === true) {
+                    pinFlag = true;
+                    continue;
+                }; 
+                let losResult = LOS(shooter.id,target.id);
+                if (losResult.los === false) {
+                    losFlag = true;
+                    continue;
+                };
+                if (ignoreCover === true && losResult.toHitMod < 0) {
+                    coverFlag = true;
+                    continue;
+                };
+                toHitMod = Math.min(toHitMod,losResult.toHitMod); //as is a minus
+                let weaponFlag = false;
+                for (let w=0;w<shooter.weaponArray.length;w++) {
+                    let weapon = shooter.weaponArray[w];
+                    if (losResult.distance > weapon.maxRange || los.distance < weapon.minRange) {
+                        rangeFlag = true;
+                        continue;
+                    };
+                    if ((weapon.arc === "Front" && losResult.arc !== "Front") || (weapon.arc === "Rear" && losResult.arc !== "Rear")) {
+                        arcFlag = true;
+                        continue;
+                    };
+                    weaponFlag = true;
+                    break;
+                }
+                if (weaponFlag === true) {
+                    let etaInfo = {
+                        targetID: target.id,
+                        losResult: losResult,
+                    }
+                    eta.push(etaInfo);
+                    targetIDArray.push(target.id);
+                };
+            }
+    
+            shooter.eta = eta;
+            if (eta.length > 0) {
+                shooterIDArray.push(shooter.id);
+            } else {
+                let exception = "<br>" + shooter.name + ":";
+                if (losFlag === true) {exception += " No LOS"};
+                if (coverFlag === true) {exception += " Targets In Cover"};
+                if (rangeFlag === true) {exception += " Targets Out of Range"};
+                if (arcFlag === true) {exception += " Targets Out of Arc"};
+                shooterExceptions.push(exception);
+            }
+        }
+    
+        targetIDArray = [...new Set(targetIDArray)];
+        if (shooterIDArray.length === 0) {
+            let line = "Shooters without Targets" + shooterExceptions.toString();
+            line = '[😡](#" class="showtip" title="No Targets' + line + ')';
+            outputCard.body.push(line);
+            PrintCard();
+            return;
+        }
+    
+        log(shooterIDArray) //array of IDs of shooters with at least 1 target
+        log(targetIDArray) //array of any valid targets, the ETA saved in ModelArray
+    
+        log(ModelArray[shooterIDArray[0]].eta) //1st shooters ETA
+    
+    
+    
+    
+    
+    
+        outputCard.body.push("At Least One Shooter has a Target")
+        PrintCard();
+
     }
-
-
 
 
 
@@ -3165,7 +3280,9 @@ log(model.name)
             case '!Test':
                 Test(msg);
                 break;
-    
+            case '!Shooting':
+                Shooting(msg);
+                break;
         }
     };
     const registerEventHandlers = () => {
