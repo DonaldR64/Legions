@@ -222,17 +222,17 @@ const LI = (()=> {
     //Class: Difficult, Obstructing, Dangerous, Obstacle, Impassable, Open, Structure
 
     const TerrainInfo = {
-        "#000000": {name: "Hill 1", height: 10,los: true,cover: 7,class: "Open"},
-        "#434343": {name: "Hill 2", height: 20,los: true,cover: 7,class: "Open"},  
-        "#666666": {name: "Hill 3",height:30,los: true,cover: 7,class: "Open"},
-        "#c0c0c0": {name: "Hill 4",height:40,los: true,cover: 7,class: "Open"},
-        "#d9d9d9": {name: "Hill 5",height:50,los: true,cover: 7,class: "Open"},
-        "#ffffff": {name: "Ridgeline",height: 5,los: true,cover: 7,class: "Open/Obstacle"},
+        "#000000": {name: "Hill 1", height: 10,los: true,coverSave: 7,class: "Open"},
+        "#434343": {name: "Hill 2", height: 20,los: true,coverSave: 7,class: "Open"},  
+        "#666666": {name: "Hill 3",height:30,los: true,coverSave: 7,class: "Open"},
+        "#c0c0c0": {name: "Hill 4",height:40,los: true,coverSave: 7,class: "Open"},
+        "#d9d9d9": {name: "Hill 5",height:50,los: true,coverSave: 7,class: "Open"},
+        "#ffffff": {name: "Ridgeline",height: 5,los: true,coverSave: 7,class: "Open/Obstacle"},
 
-        "#00ff00": {name: "Woods",height: 20,los: false,cover: 5,class: "Obstructing"},
-        "#b6d7a8": {name: "Scrub",height: 0,los: true,cover: 6,class: "Difficult"},
-        "#fce5cd": {name: "Craters",height: 0,los: true,cover: 6,class: "Difficult"},
-        "#980000": {name: "Ruins",height: 10,los: false,cover: 5,class: "Obstructing"},
+        "#00ff00": {name: "Woods",height: 20,los: false,coverSave: 5,class: "Obstructing"},
+        "#b6d7a8": {name: "Scrub",height: 0,los: true,coverSave: 6,class: "Difficult"},
+        "#fce5cd": {name: "Craters",height: 0,los: true,coverSave: 6,class: "Difficult"},
+        "#980000": {name: "Ruins",height: 10,los: false,coverSave: 5,class: "Obstructing"},
 
 
 
@@ -240,8 +240,8 @@ const LI = (()=> {
 
     //generally obstacles and such, maybe look at being able to burn woods
     const MapTokenInfo = {
-        "wall": {name: "Wall",height: 0,los: true,cover: 7,class: "Obstacle"},
-        "woods": {name: "Woods",height: 20,los: false,cover: 5,class: "Obstructing"},
+        "wall": {name: "Wall",height: 0,los: true,coverSave: 7,class: "Obstacle"},
+        "woods": {name: "Woods",height: 20,los: false,coverSave: 5,class: "Obstructing"},
     }
 
     const simpleObj = (o) => {
@@ -600,7 +600,7 @@ const LI = (()=> {
             let wounds = parseInt(attributeArray.wounds) || 1;
             let scale = parseInt(attributeArray.scale);
             let shields = 0;
-
+            let outerRange = 0;
 
             if (!faction) {
                 faction = "Neutral";
@@ -703,6 +703,8 @@ const LI = (()=> {
                 } else {
                     maxRange= parseInt(r);
                 }
+                outerRange = Math.max(maxRange,outerRange);
+
                 let dice = attributeArray["weapon"+i+"dice"];
                 let tohit = parseInt(attributeArray["weapon"+i+"tohit"]) || 0;
                 let ap = attributeArray["weapon"+i+"ap"] || 0;
@@ -813,6 +815,9 @@ const LI = (()=> {
             this.special = special;
             this.wounds = wounds;
             this.token = token;
+            
+            this.outerRange = outerRange; //max weapons range of all weapons
+
 
             this.shields = shields;
 
@@ -1447,10 +1452,9 @@ const LI = (()=> {
                     elevation: 0, //based on hills, in metres
                     height: 0, //height of top of terrain over elevation
                     nonHillHeight: 0,//height of trees etc above hills
-                    cover: 7,
-                    obstacleTerrain: false,
+                    coverSave: 7,
+                    hitLevel: 0, //0 is no minus to hit, 1 = -1 for under size 3, 2 = -1 for all but Titan, 3 = -1 for all, 4 = Building
                     los: true,
-                    obstructingTerrain: false,
                 };
                 hexMap[label] = hexInfo;
                 columnLabel += 2;
@@ -1494,15 +1498,18 @@ const LI = (()=> {
                     if (num > 2) {
                         temp.terrain.push(polygon.name);
                         temp.terrainIDs.push(polygon.id);
-                        temp.cover = Math.min(temp.cover,polygon.cover);
+                        temp.coverSave = Math.min(temp.coverSave,polygon.coverSave);
                         if (polygon.los === false) {
                             temp.los = false;
                         }
                         if (polygon.class === "Obstructing") {
-                            temp.obstructingTerrain = true;
+                            temp.hitLevel = 3;
+                        }
+                        if (polygon.class === "Difficult" || polygon.class === "Dangerous") {
+                            temp.hitLevel = Math.max(temp.hitLevel,2);
                         }
                         if (polygon.class === "Obstacle") {
-                            temp.obstacleTerrain = true;
+                            temp.hitLevel = Math.max(temp.hitLevel,1);
                         }
                         if (polygon.name.includes("Hill")) {
                             temp.elevation = Math.max(temp.elevation,polygon.height);
@@ -2531,9 +2538,10 @@ log("Same Terrain:" + sameTerrain)
                 hexMap[hex.label()].buildingID = model.id;
                 hexMap[hex.label()].cover = cover;
                 hexMap[hex.label()].los = false;
-                hexMap[hex.label()].obstructingTerrain = true;
+                hexMap[hex.label()].hitLevel = 4;
                 hexMap[hex.label()].nonHillHeight = Math.max(hexMap[hex.label()].nonHillHeight,height);
                 hexMap[hex.label()].height = Math.max(hexMap[hex.label()].height,(hexMap[hex.label()].elevation + hexMap[hex.label()].nonHillHeight));
+        
             }
         })
     }
