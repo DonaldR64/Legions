@@ -48,6 +48,7 @@ const LI = (()=> {
         advance: "status_Advance::6534653",
         march: "status_March::6534654",
         pinned: "status_Restrained-or-Webbed::2006494",
+        engaged: "status_blue",
     };
 
     let outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
@@ -835,7 +836,9 @@ const LI = (()=> {
             this.token = token;
             
             this.eta = [];//used to track eligible targets
-            
+            this.ewa = [];//used to track eligible weapons
+            this.engaged = [];//ids of other models in close combat
+
             this.shields = shields;
 
             this.save = parseInt(attributeArray.save) || 7;
@@ -1967,7 +1970,30 @@ const LI = (()=> {
         return result;
     }
     
-
+    const CentreUnit = (unit) => {
+        //centroid of points
+        let centre = new Point(0,0);
+        for (let i=0;i<unit.modelIDs.length;i++) {
+            let model = ModelArray[unit.modelIDs[i]];
+            centre.x += model.location.x;
+            centre.y += model.location.y;
+        }
+        centre.x = Math.round(centre.x/unit.modelIDs.length);
+        centre.y = Math.round(centre.y/unit.modelIDs.length);
+        let centreHex = pointToHex(centre);
+        //closest team
+        let closestDist = Infinity;
+        let closestModel;
+        for (let i=0;i<unit.modelIDs.length;i++) {
+            let model = ModelArray[unit.modelIDs[i]];
+            let dist = model.hex.distance(centreHex);
+            if (dist < closestDist) {
+                closestModel = model;
+                closestDist = dist;
+            }
+        }
+        return closestModel;
+    }
 
 
 
@@ -3101,7 +3127,8 @@ log(model.name)
     
         for (let s=0;s<shooterUnit.modelIDs.length;s++) {
             shooter = ModelArray[shooterUnit.modelIDs[s]];
-            let eta = [];
+            let eta = []; //targets
+            let ewa = []; //weapons with range/arc
             let losFlag = false;
             let coverFlag = false;
             let rangeFlag = false;
@@ -3123,7 +3150,28 @@ log(model.name)
                     continue;
                 };
                 toHitMod = Math.min(toHitMod,losResult.toHitMod); //as is a minus
-                let weaponFlag = false;
+                if (target.scale > 3) {
+                    let percent = losResult.percent;
+                    if (percent <= 50) {
+                        toHitMod = Math.min(toHitMod,-2);
+                    } else if (percent > 50 && percent <= 75) {
+                        toHitMod = Math.min(toHitMod,-1);
+                    }
+                }
+                //check for engaged friendly, if pinned already screened out
+                //additional -1 unless friendly is much smaller
+                if (target.token.get(SM.engaged) === true) {
+                    for (let i=0;i<target.engagedIDs.length;i++) {
+                        let engaged = ModelArray[target.engagedIDs[i]];
+                        if (parseInt(target.scale) - parseInt(engaged.scale) < 2) {
+                            toHitMod -= 1;
+                            break;
+                        }
+                    }
+                }
+                
+
+                let weaponNumbers = [];
                 for (let w=0;w<shooter.weaponArray.length;w++) {
                     let weapon = shooter.weaponArray[w];
                     if (losResult.distance > weapon.maxRange || losResult.distance < weapon.minRange) {
@@ -3134,10 +3182,11 @@ log(model.name)
                         arcFlag = true;
                         continue;
                     };
-                    weaponFlag = true;
+                    weaponNumbers.push(w);
+                    ewa.push(w);
                     break;
                 }
-                if (weaponFlag === true) {
+                if (weaponNumbers.length > 0) {
                     let etaInfo = {
                         targetID: target.id,
                         losResult: losResult,
@@ -3146,8 +3195,9 @@ log(model.name)
                     targetIDArray.push(target.id);
                 };
             }
-    
+            ewa = [...new Set(ewa)];
             shooter.eta = eta;
+            shooter.ewa = ewa;
             if (eta.length > 0) {
                 shooterIDArray.push(shooter.id);
             } else {
@@ -3161,7 +3211,6 @@ log(model.name)
             }
         }
     
-        targetIDArray = [...new Set(targetIDArray)];
         if (shooterIDArray.length === 0) {
             let line = shooterExceptions.toString();
             line = '[😡](#" class="showtip" title="Shooters without Targets' + line + ')';
@@ -3170,17 +3219,83 @@ log(model.name)
             return;
         }
     
-        log(shooterIDArray) //array of IDs of shooters with at least 1 target
-        log(targetIDArray) //array of any valid targets, the ETA saved in ModelArray
+        targetIDArray = [...new Set(targetIDArray)];
+        //organize targetarray based on rank then wounds then distance from unit's 'centre' 
+        //so hits will go to lowest ranks first, then if multiple wounds, any wounded are picked off first, then farthest from centre
+        if (targetIDArray.length > 1) {
+            let centreTargetModel = CentreUnit(targetUnit);
+            targetIDArray.sort(function (a,b) {
+                let aM = ModelArray[a];
+                let bM = ModelArray[b];
+                if (aM.rank < bM.rank) {return -1};
+                if (aM.rank > bM.rank) {return 1};
+                let aW = parseInt(aM.token.get("bar1_value"));
+                let bW = parseInt(bM.token.get("bar1_value"));
+                if (aW < bW) {return 1};
+                if (aW > bW) {return -1};
+                let aD = ModelDistance(aM,centreTargetModel).distance;
+                let bD = ModelDistance(bM,centreTargetModel).distance;
+                return (bD - aD);
+            })
+        }
+
+
+
+        let hitArray = [];
+
+
+        for (let s=0;s<shooterIDArray.length;s++) {
+            let shooter = ModelArray[shooterIDArray[s]];
+
+
+            for (let i=0;i<shooter.ewa.length;i++) {
+                let weapon = shooter.weaponArray[shooter.ewa[i]];
+                //1 is auto miss, 6 = auto hit
+                let needed = Math.min(6,Math.max(2,weapon.tohit + toHitMod)); 
+                let hits = 0;
+                let rolls = [];
+
+                for (let j=0;j<weapon.dice;j++) {
+                    let roll = randomInteger(6);
+                    rolls.push(roll);
+                    if (roll >= needed) {
+                        hits++;
+                        hitArray.push(weapon);
+                    }
+                }
+
+                //add in tips
+                if (hits === 0) {
+                    line = shooter.name + " misses";
+                } else {
+                    let s = (hits > 1) ? "s":"";
+                    line = shooter.name + " gets " + hits + " hit" + s + " with " + weapon.name;
+                }
+
+                outputCard.body.push(line);
+
+            }
+            
+
+
+        }
+
+        let s = (hitArray.length > 1 || hitArray.length === 0) ? "s":"";
+        outputCard.body.push("[hr]");
+        outputCard.body.push(hitArray.length + " hit" + s + " total");
+
+        //now run through each hit and apply
+
+
+
+
+
+
     
-        log(ModelArray[shooterIDArray[0]].eta) //1st shooters ETA
     
     
     
     
-    
-    
-        outputCard.body.push("At Least One Shooter has a Target")
         PrintCard();
 
     }
