@@ -1354,7 +1354,7 @@ const LI = (()=> {
         output += `color: ` + Factions[outputCard.faction].fontColour + `; `;
         output += `text-shadow: none; `;
         output += `">`+ outputCard.title + `</span><br /><span style="`;
-        output += `font-family: Helvetica; font-variant: normal; font-size: 13px; font-style: normal; font-weight: bold; `;
+        output += `font-family: Arial; font-variant: normal; font-size: 13px; font-style: normal; font-weight: bold; `;
         output += `color: ` +  Factions[outputCard.faction].fontColour + `; `;
         output += `">` + outputCard.subtitle + `</span></div></div></div>`;
 
