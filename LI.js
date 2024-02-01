@@ -60,6 +60,7 @@ const LI = (()=> {
             "fontColour": "#000000",
             "borderColour": "#FFD700",
             "borderStyle": "5px ridge",  
+            "dice": "Ultramarines",
         },
         "Deathguard": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406",
@@ -68,6 +69,7 @@ const LI = (()=> {
             "fontColour": "#000000",
             "borderColour": "#000000",
             "borderStyle": "5px ridge",
+            "dice": "Deathguard",
         },
         "Blood Angels": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541",
@@ -76,6 +78,7 @@ const LI = (()=> {
             "fontColour": "#000000",
             "borderColour": "#000000",
             "borderStyle": "5px ridge",
+            "dice": "BloodAngels",
         },
         "Space Wolves": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748",
@@ -84,6 +87,7 @@ const LI = (()=> {
             "fontColour": "#000000",
             "borderColour": "#000000",
             "borderStyle": "5px groove",
+            "dice": "SpaceWolves",
         },
         "Salamanders": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/274614673/_-mcGObetfMZtFANsG7nKA/thumb.png?1646767013",
@@ -92,6 +96,7 @@ const LI = (()=> {
             "fontColour": "#000000",
             "borderColour": "#000000",
             "borderStyle": "5px groove",
+            "dice": "Neutral",
         },
         "Traitor Auxilia": {
             "image": "https://s3.amazonaws.com/files.d20.io/images/378070096/oShLaPkIOEq0P5y7YHHAmg/thumb.png?1706671346",
@@ -100,6 +105,7 @@ const LI = (()=> {
             "fontColour": "#ffffff",
             "borderColour": "#be0b07",
             "borderStyle": "5px groove",
+            "dice": "Traitor",
         },
 
 
@@ -113,6 +119,7 @@ const LI = (()=> {
             "fontColour": "#FFFFFF",
             "borderColour": "#00FF00",
             "borderStyle": "5px ridge",
+            "dice": "Neutral"
         },
 
     };
@@ -1710,7 +1717,7 @@ const LI = (()=> {
         let model2Hex = hexMap[model2.hexLabel];
 
         let sameTerrain = findCommonElements(model1Hex.terrainIDs,model2Hex.terrainIDs);
-log("Same Terrain:" + sameTerrain)
+        //log("Same Terrain:" + sameTerrain)
         let shooterHexes = [model1.hex];
         let targetHexes = [];
         if (model1.type === "Infantry" && model1Hex.buildingID.length > 0) {
@@ -1751,10 +1758,10 @@ log("Same Terrain:" + sameTerrain)
         let finalCoverSave = model2Hex.coverSave;
         let toHitMod = 0;
         if (model2Hex.hitLevel > 0 && model2.special.includes("Flyer") === false) {
-            if (hitLevel === 4) {toHitMod = -2};
-            if (hitLevel === 3) {toHitMod = -1};
-            if (hitLevel === 2 && model2.scale < 5) {toHitMod = -1};
-            if (hitLevel === 1 && model2.scale < 3) {toHitMod = -1};
+            if (model2Hex.hitLevel === 4) {toHitMod = -2};
+            if (model2Hex.hitLevel === 3) {toHitMod = -1};
+            if (model2Hex.hitLevel === 2 && model2.scale < 5) {toHitMod = -1};
+            if (model2Hex.hitLevel === 1 && model2.scale < 3) {toHitMod = -1};
         }
         if (model2.type === "Building") {
             toHitMod = 1;
@@ -1784,11 +1791,11 @@ log("Same Terrain:" + sameTerrain)
         model2Base -= level;
     
     
-    log("Team1 Height: " + model1Height)
-    log("Team2 Base Elev: " + model2Base)
-    log("Team2 Total Height: " + model2Height)
-    log("Level: " + level)
-    log("Case: " + losCase)
+    //log("Team1 Height: " + model1Height)
+    //log("Team2 Base Elev: " + model2Base)
+    //log("Team2 Total Height: " + model2Height)
+    //log("Level: " + level)
+    //log("Case: " + losCase)
 
         let md = ModelDistance(model1,model2);
         let finalArc = md.arc;
@@ -1815,12 +1822,12 @@ log("Same Terrain:" + sameTerrain)
         shooterHexLoop:
         for (let s=0;s<shooterHexes.length;s++) {
             let shooterHex = shooterHexes[s];
-    log("Shooter Hex: " + shooterHex.label())
+    //log("Shooter Hex: " + shooterHex.label())
     
             targetHexLoop:
             for (let t=0;t<targetHexes.length;t++) {
                 let targetHex = targetHexes[t];
-    log("Target Hex: " + targetHex.label())
+    //log("Target Hex: " + targetHex.label())
                 let targetLOS = 1;
                 let interHexes = shooterHex.linedraw(targetHex); //hexes between shooter and target
                 let denom = interHexes.length - 1;
@@ -1831,7 +1838,7 @@ log("Same Terrain:" + sameTerrain)
                 for (let i=1;i<interHexes.length;i++) {
                     let interHex = interHexes[i];
                     let ihLabel = interHex.label();
-    log(i + ": " + ihLabel)
+    //log(i + ": " + ihLabel)
     
                     let hex = hexMap[ihLabel];
                     let hexLOS = (sameTerrain === false) ? hex.los:true;
@@ -1853,13 +1860,13 @@ log("Same Terrain:" + sameTerrain)
                         B2 = (((model2Height - model1Height)/denom) * i) + model1Height;
                     }
     
-    log("InterHex Elevation: " + interHexElevation);
-    log("Last Elevation: " + lastElevation);
-    log("InterHex Height: " + interHexHeight);
-    log("Highest Elevation: " + highestElevation);
+    //log("InterHex Elevation: " + interHexElevation);
+    //log("Last Elevation: " + lastElevation);
+    //log("InterHex Height: " + interHexHeight);
+    //log("Highest Elevation: " + highestElevation);
     
-    log("B1: " + B1)
-    log("B2: " + B2)
+    //log("B1: " + B1)
+    //log("B2: " + B2)
     
                     //Hills
                     if (interHexElevation < lastElevation) {
@@ -1870,7 +1877,7 @@ log("Same Terrain:" + sameTerrain)
                             break interHexLoop;
                         } else if (highestElevation >= model1Height && highestElevation < model2Height && highestElevation > model2Base) {
                             //partially blocks LOS
-                            log("Partial block by Hill")
+                            //log("Partial block by Hill")
                             targetLOS = Math.min(((B2 - highestElevation) / (B2 - B1)),targetLOS);
                         }
                     }
@@ -1886,8 +1893,8 @@ log("Same Terrain:" + sameTerrain)
                                 continue;
                             };
                             let model3Height = modelElevation(model3) + model3.height - level;
-    log(model3.name)
-    log("Height: " + model3Height)
+    //log(model3.name)
+    //log("Height: " + model3Height)
                             if (model3Height > B2) {
                                 //fully blocks LOS
                                 targetLOS = 0;
@@ -1895,7 +1902,7 @@ log("Same Terrain:" + sameTerrain)
                                 break interHexLoop;
                             } else if (model3Height > B1 && model3Height <= B2) {
                                 //partially blocks LOS
-                                log("Partial block by Unit")
+                                //log("Partial block by Unit")
                                 targetLOS = Math.min(((B2 - model3Height) / (B2 - B1)),targetLOS);
                             } 
                         }
@@ -1909,16 +1916,16 @@ log("Same Terrain:" + sameTerrain)
                             break interHexLoop;
                         } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
                             //partially blocks LOS
-                            log("Partial block by Terrain")
+                            //log("Partial block by Terrain")
                             targetLOS = Math.min(((B2 - interHexHeight) / (B2 - B1)),targetLOS);
                         } else {
-                            log("Overlooks Terrain in Hex")
+                            //log("Overlooks Terrain in Hex")
                         }
                     } 
                     lastElevation = hex.elevation - level;
                 } //end interHex Loop
-    log("Model 2 scale: " + model2.scale)
-    log("Target LOS: " + targetLOS)
+    //log("Model 2 scale: " + model2.scale)
+    //log("Target LOS: " + targetLOS)
                 if (model2.scale < 4 && targetLOS > 0) {
                     //not a knight, can see a portion of it, so has LOS
                     finalLOS = true;
@@ -1942,7 +1949,7 @@ log("Same Terrain:" + sameTerrain)
     
         if (model2.scale > 3) {
             fractions = fractions / (shooterHexes.length * targetHexes.length);
-    log(fractions)
+    //log(fractions)
             if (fractions > 0) {
                 finalLOS = true;
             }
@@ -1970,8 +1977,8 @@ log("Same Terrain:" + sameTerrain)
         let roll = randomInteger(6);
         if (Tag.length === 1) {
             let playerID = msg.playerid;
-            let side = "Neutral";
-            if (!state.LI.players[playerID] || state.LI.players[playerID] === undefined) {
+            let faction = "Neutral";
+            if (!state.LI.factions[playerID] || state.LI.factions[playerID] === undefined) {
                 if (msg.selected) {
                     let id = msg.selected[0]._id;
                     if (id) {
@@ -1987,9 +1994,9 @@ log("Same Terrain:" + sameTerrain)
                     return;
                 }
             } else {
-                side = state.LI.players[playerID];
+                faction = state.LI.factions[playerID];
             }
-            let res = "/direct " + DisplayDice(roll,side,40);
+            let res = "/direct " + DisplayDice(roll,Factions[faction].dice,40);
             sendChat("player|" + playerID,res);
         } else {
             if (Tag[1] === "Morale") {
@@ -3102,7 +3109,7 @@ log(model.name)
     
             for (let t=0;t<targetUnit.modelIDs.length;t++) {
                 target = ModelArray[targetUnit.modelIDs[t]];
-                if (target.get(SM.pinned) === true) {
+                if (target.token.get(SM.pinned) === true) {
                     pinFlag = true;
                     continue;
                 }; 
@@ -3119,7 +3126,7 @@ log(model.name)
                 let weaponFlag = false;
                 for (let w=0;w<shooter.weaponArray.length;w++) {
                     let weapon = shooter.weaponArray[w];
-                    if (losResult.distance > weapon.maxRange || los.distance < weapon.minRange) {
+                    if (losResult.distance > weapon.maxRange || losResult.distance < weapon.minRange) {
                         rangeFlag = true;
                         continue;
                     };
@@ -3144,20 +3151,21 @@ log(model.name)
             if (eta.length > 0) {
                 shooterIDArray.push(shooter.id);
             } else {
-                let exception = "<br>" + shooter.name + ":";
-                if (losFlag === true) {exception += " No LOS"};
-                if (coverFlag === true) {exception += " Targets In Cover"};
-                if (rangeFlag === true) {exception += " Targets Out of Range"};
-                if (arcFlag === true) {exception += " Targets Out of Arc"};
+                let exception = [];
+                if (losFlag === true) {exception.push(" No LOS")};
+                if (coverFlag === true) {exception.push(" Targets In Cover")};
+                if (rangeFlag === true) {exception.push(" Targets Out of Range")};
+                if (arcFlag === true) {exception.push(" Targets Out of Arc")};
+                exception = "<br>" + shooter.name + ":" + exception.toString();
                 shooterExceptions.push(exception);
             }
         }
     
         targetIDArray = [...new Set(targetIDArray)];
         if (shooterIDArray.length === 0) {
-            let line = "Shooters without Targets" + shooterExceptions.toString();
-            line = '[😡](#" class="showtip" title="No Targets' + line + ')';
-            outputCard.body.push(line);
+            let line = shooterExceptions.toString();
+            line = '[😡](#" class="showtip" title="Shooters without Targets' + line + ')';
+            outputCard.body.push(line + " No Shooters Have Targets");
             PrintCard();
             return;
         }
