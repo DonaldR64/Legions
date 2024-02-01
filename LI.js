@@ -609,6 +609,9 @@ const LI = (()=> {
             let wounds = parseInt(attributeArray.wounds) || 1;
             let scale = parseInt(attributeArray.scale);
             let shields = 0;
+            let ionShields = 0;
+            let jink = 0;
+            let invul = 0;
 
             if (!faction) {
                 faction = "Neutral";
@@ -770,6 +773,18 @@ const LI = (()=> {
                 if (special.includes("Void Shields")) {
                     shields = special.replace(/[^\d]/g,"");
                 }
+                if (special.includes("Ion Shields")) {
+                    ionShields = special.replace(/[^\d]/g,"");
+                }
+                if (special.includes("Jink")) {
+                    jink = special.replace(/[^\d]/g,"");
+                    if (faction === "White Scars") {
+                        jink -= 1;
+                    }
+                }
+                if (special.includes("Invulnerable Save")) {
+                    invul = special.replace(/[^\d]/g,"");
+                }
             }
 
             infoArray = [...new Set(infoArray)];
@@ -837,9 +852,13 @@ const LI = (()=> {
             
             this.eta = [];//used to track eligible targets
             this.ewa = [];//used to track eligible weapons
+            this.closestDist = 0; //used for ranging
             this.engaged = [];//ids of other models in close combat
 
             this.shields = shields;
+            this.ionShields = ionShields;
+            this.jinkSave = jink;
+            this.invulSave = invul;
 
             this.save = parseInt(attributeArray.save) || 7;
             this.caf = parseInt(attributeArray.caf) || 0;
@@ -892,8 +911,8 @@ const LI = (()=> {
             this.moraleCheck = false;
 
             this.type = "";
+            this.flyers = false;
             this.scale = 1;
-            this.hitArray = []; //used to track hits
             UnitArray[unitID] = this;
 
             let formation = FormationArray[this.formationID];
@@ -912,6 +931,9 @@ const LI = (()=> {
                     })
                 }
                 this.type = model.type;
+                if (model.special.includes("Flyer")) {
+                    this.flyers = true;
+                }
                 this.scale = model.scale;
             }
         }
@@ -1332,7 +1354,7 @@ const LI = (()=> {
         output += `color: ` + Factions[outputCard.faction].fontColour + `; `;
         output += `text-shadow: none; `;
         output += `">`+ outputCard.title + `</span><br /><span style="`;
-        output += `font-family: Arial; font-variant: normal; font-size: 13px; font-style: normal; font-weight: bold; `;
+        output += `font-family: Helvetica; font-variant: normal; font-size: 13px; font-style: normal; font-weight: bold; `;
         output += `color: ` +  Factions[outputCard.faction].fontColour + `; `;
         output += `">` + outputCard.subtitle + `</span></div></div></div>`;
 
@@ -1596,7 +1618,7 @@ const LI = (()=> {
                 vertices: vertices,
                 centre: centre,
                 height: t.height,
-                cover: t.cover,
+                coverSave: t.coverSave,
                 class: t.class,
                 los: t.los,
                 linear: linear,
@@ -1760,14 +1782,28 @@ const LI = (()=> {
         let losReason;
         let finalCoverSave = model2Hex.coverSave;
         let toHitMod = 0;
+        let toHitTip = "";
         if (model2Hex.hitLevel > 0 && model2.special.includes("Flyer") === false) {
-            if (model2Hex.hitLevel === 4) {toHitMod = -2};
-            if (model2Hex.hitLevel === 3) {toHitMod = -1};
-            if (model2Hex.hitLevel === 2 && model2.scale < 5) {toHitMod = -1};
-            if (model2Hex.hitLevel === 1 && model2.scale < 3) {toHitMod = -1};
+            if (model2Hex.hitLevel === 4) {
+                toHitMod = -2
+                toHitTip = "<br>In Building -2";
+            };
+            if (model2Hex.hitLevel === 3) {
+                toHitMod = -1
+                toHitTip = "<br>Terrain -1";
+            };
+            if (model2Hex.hitLevel === 2 && model2.scale < 5) {
+                toHitMod = -1
+                toHitTip = "<br>Terrain -1";
+            };
+            if (model2Hex.hitLevel === 1 && model2.scale < 3) {
+                toHitMod = -1
+                toHitTip = "<br>Terrain -1";
+            };
         }
         if (model2.type === "Building") {
             toHitMod = 1;
+            toHitTip = "<br>Target is Building +1";
         }
 
 
@@ -1817,6 +1853,7 @@ const LI = (()=> {
                 losReason: "",
                 percent: 1,
                 toHitMod: toHitMod,
+                toHitTip: toHitTip,
             }
             return result;
         }
@@ -1955,6 +1992,14 @@ const LI = (()=> {
     //log(fractions)
             if (fractions > 0) {
                 finalLOS = true;
+                if (fractions <= .5) {
+                    toHitMod = -2;
+                    toHitTip = "<br>50% Obscured";
+                };
+                if (fractions > .5 && fractions <= .75) {
+                    toHitMod = -1;
+                    toHitTip = "<br>25% Obscured";
+                }
             }
         }
     
@@ -1964,8 +2009,8 @@ const LI = (()=> {
             los: finalLOS,
             coverSave: finalCoverSave,
             losReason: losReason,
-            percent: fractions,
             toHitMod: toHitMod,
+            toHitTip: toHitTip,
         }
         return result;
     }
@@ -2264,14 +2309,14 @@ const LI = (()=> {
             let terrain = h.terrain;
             terrain = terrain.toString();
             let elevation = modelElevation(model);
-            let cover = h.cover;
+            let coverSave = h.coverSave;
             let unit = UnitArray[model.unitID];
             let save = parseInt(model.save);
     
             outputCard.body.push("Terrain: " + terrain);
-            if (cover < 7) {
-                if (cover < save) {
-                    outputCard.body.push("Cover Save: " + cover + "+");
+            if (coverSave < 7) {
+                if (coverSave < save) {
+                    outputCard.body.push("Cover Save: " + coverSave + "+");
                 } else {
                     outputCard.body.push("No Benefit from Cover Save");
                 }
@@ -2677,15 +2722,17 @@ const LI = (()=> {
             outputCard.body.push("Shooter has LOS");
             outputCard.body.push("Distance: " + checkLOS.distance);
             outputCard.body.push("Target is in " + checkLOS.arc + " Arc");
-            if (parseInt(checkLOS.cover) < 7) {
-                outputCard.body.push("Cover Save of " + checkLOS.cover + "+");
+            if (parseInt(checkLOS.coverSave) < 7) {
+                outputCard.body.push("Cover Save of " + checkLOS.coverSave + "+");
             }
-            if (target.scale > 3 && checkLOS.percent < 1) {
-                if (checkLOS.percent <= .75 && checkLOS.percent > .5) {
-                    outputCard.body.push("Target is Partially Obscured, -1 to hit");
-                } else if (checkLOS.percent <= .5) {
-                    outputCard.body.push("Target is Fairly Obscured, -2 to hit");
+            if (target.scale > 3) {
+                if (checkLOS.toHitMod === -1) {
+                    outputCard.body.push("Target is 25%+ Obscured, -1 to hit");
+                } else if (checkLOS.toHitMod === -2) {
+                    outputCard.body.push("Target is 50%+ Obscured, -1 to hit");
                 }
+            } else if (target.scale < 4 && checkLOS.toHitMod < 0) {
+                outputCard.body.push(checkLOS.toHitMod + " to Hit due to Cover");
             }
         }
         PrintCard();
@@ -3106,8 +3153,9 @@ log(model.name)
         let target = ModelArray[targetID];
         let shooterUnit = UnitArray[shooter.unitID];
         let targetUnit = UnitArray[target.unitID];
-    
-        SetupCard(shooterUnit.name,"Weapons Fire",shooterUnit.faction);
+        let targetUnitStartingModels = targetUnit.modelIDs.length;
+
+        SetupCard(shooterUnit.name,"Hits",shooterUnit.faction);
         //check Unit hasnt already fired
         let shooterLeader = ModelArray[shooterUnit.modelIDs[0]];
         if (shooterLeader.token.get("aura1_color") === Colours.black) {
@@ -3122,13 +3170,14 @@ log(model.name)
         let shooterIDArray = [];
         let targetIDArray = [];
         let toHitMod = 0;
-        let pinFlag = false;
+        let toHitTip = "";
         let shooterExceptions = [];
     
         for (let s=0;s<shooterUnit.modelIDs.length;s++) {
             shooter = ModelArray[shooterUnit.modelIDs[s]];
             let eta = []; //targets
             let ewa = []; //weapons with range/arc
+            let closestDist = Infinity;
             let losFlag = false;
             let coverFlag = false;
             let rangeFlag = false;
@@ -3149,15 +3198,13 @@ log(model.name)
                     coverFlag = true;
                     continue;
                 };
-                toHitMod = Math.min(toHitMod,losResult.toHitMod); //as is a minus
-                if (target.scale > 3) {
-                    let percent = losResult.percent;
-                    if (percent <= 50) {
-                        toHitMod = Math.min(toHitMod,-2);
-                    } else if (percent > 50 && percent <= 75) {
-                        toHitMod = Math.min(toHitMod,-1);
-                    }
+                closestDist = Math.min(closestDist,losResult.distance);
+
+                if (losResult.toHitMod < toHitMod) {
+                    toHitMod = losResult.toHitMod;
+                    toHitTip = losResult.toHitTip;
                 }
+
                 //check for engaged friendly, if pinned already screened out
                 //additional -1 unless friendly is much smaller
                 if (target.token.get(SM.engaged) === true) {
@@ -3165,6 +3212,7 @@ log(model.name)
                         let engaged = ModelArray[target.engagedIDs[i]];
                         if (parseInt(target.scale) - parseInt(engaged.scale) < 2) {
                             toHitMod -= 1;
+                            toHitTip += "<br>Targeting Engaged Enemy"
                             break;
                         }
                     }
@@ -3197,6 +3245,7 @@ log(model.name)
             }
             ewa = [...new Set(ewa)];
             shooter.eta = eta;
+            shooter.closestDist = closestDist;
             shooter.ewa = ewa;
             if (eta.length > 0) {
                 shooterIDArray.push(shooter.id);
@@ -3222,6 +3271,7 @@ log(model.name)
         targetIDArray = [...new Set(targetIDArray)];
         //organize targetarray based on rank then wounds then distance from unit's 'centre' 
         //so hits will go to lowest ranks first, then if multiple wounds, any wounded are picked off first, then farthest from centre
+        //Precise hits will do opposite
         if (targetIDArray.length > 1) {
             let centreTargetModel = CentreUnit(targetUnit);
             targetIDArray.sort(function (a,b) {
@@ -3239,37 +3289,109 @@ log(model.name)
             })
         }
 
-
-
         let hitArray = [];
 
 
         for (let s=0;s<shooterIDArray.length;s++) {
             let shooter = ModelArray[shooterIDArray[s]];
 
-
             for (let i=0;i<shooter.ewa.length;i++) {
                 let weapon = shooter.weaponArray[shooter.ewa[i]];
-                //1 is auto miss, 6 = auto hit
-                let needed = Math.min(6,Math.max(2,weapon.tohit + toHitMod)); 
-                let hits = 0;
-                let rolls = [];
+                let wthtip = toHitTip;
+                let wth = toHitMod;
+                let extraTips = "";
 
-                for (let j=0;j<weapon.dice;j++) {
-                    let roll = randomInteger(6);
-                    rolls.push(roll);
-                    if (roll >= needed) {
-                        hits++;
-                        hitArray.push(weapon);
+                let attacks = weapon.dice;
+                if (weapon.traits.includes("Assault") && shooter.closestDist <= (weapon.maxRange/2)) {
+                    attacks *= 2;
+                    if (extraTips.includes("Assault") === false) {
+                        extraTips += "<br>Assault";
+                    }
+                }
+                if (weapon.traits.includes("Ignores Cover")) {
+                    if (wthtip.includes("Terrain -1")) {
+                        wthtip.replace("Terrain -1","Ignores Cover");
+                        wth += 1;
+                    }
+                    if (wthtip.includes("In Building -2")) {
+                        wthtip.replace("In Building -2","Ignores Cover");
+                        wth += 2;
                     }
                 }
 
-                //add in tips
+                let hits = 0;
+                let rolls = [];
+                let needed = Math.min(6,Math.max(2,weapon.tohit - wth)); 
+                //1 is auto miss, 6 = auto hit
+
+                for (let j=0;j<attacks;j++) {
+                    let roll = randomInteger(6);
+                    rollText = roll.toString();
+                    let roll2;
+
+//redo rerolls
+//accurate, ripple fire, tracking
+
+                    if (weapon.traits.includes("Accurate") && roll < needed) {
+                        roll2 = randomInteger(6);
+                        roll = Math.max(roll,roll2);
+                        if (extraTips.includes("Accurate") === false) {
+                            extraTips += "<br>Accurate";
+                        }
+                    } 
+                    if (weapon.traits.includes("Ripple Fire") && roll === 1 && shooterUnit.order === "First Fire") {
+                        roll2 = randomInteger(6);
+                        roll = Math.max(roll,roll2);
+                        if (extraTips.includes("Ripple Fire") === false) {
+                            extraTips += "<br>Ripple Fire";
+                        }
+                    }
+                    if (weapon.traits.includes("Tracking") && targetUnit.flyers === true && roll < needed) {
+                        roll2 = randomInteger(6);
+                        roll = Math.max(roll,roll2);
+                        if (extraTips.includes("Tracking") === false) {
+                            extraTips += "<br>Tracking";
+                        }
+                    }
+                    
+                    if (roll2) {
+                        rollText = rollText + "/" + roll2;
+                    }
+                    rolls.push(rollText);
+
+                    if (roll >= needed) {
+                        if (weapon.traits.includes("Rapid Fire") && roll === 6) {
+                            if (extraTips.includes("Rapid Fire") === false) {
+                                extraTips += "<br>Rapid Fire";
+                            }
+                            hits++;
+                            let hitInfo = {
+                                weapon: weapon,
+                                roll: roll,
+                            }
+                            hitArray.push(hitInfo);
+                            rolls.push(7);
+                        }
+
+                        hits++;
+                        let hitInfo = {
+                            shooterID: shooterID,
+                            weapon: weapon,
+                            roll: roll,
+                        }
+                        hitArray.push(hitInfo);
+                    }
+                }
+                rolls.sort();
+                rolls.reverse();
+                let tip = "Rolls: " + rolls.toString() + " vs " + needed + "+";
+                tip += toHitTip + extraTips;
+                tip = '[🎲](#" class="showtip" title="' + tip + ')';
                 if (hits === 0) {
-                    line = shooter.name + " misses";
+                    line = tip + " " + shooter.name + " misses";
                 } else {
                     let s = (hits > 1) ? "s":"";
-                    line = shooter.name + " gets " + hits + " hit" + s + " with " + weapon.name;
+                    line = tip + " " + shooter.name + " gets " + hits + " hit" + s + " with " + weapon.name;
                 }
 
                 outputCard.body.push(line);
@@ -3283,10 +3405,158 @@ log(model.name)
         let s = (hitArray.length > 1 || hitArray.length === 0) ? "s":"";
         outputCard.body.push("[hr]");
         outputCard.body.push(hitArray.length + " hit" + s + " total");
+        PrintCard();
+
+        if (hitArray.length === 0) {
+            return;
+        }
+
+        //sort hits by AP 
+        //if Titan/Knight, lowest first - so that lesser weapons bounce off shields
+        //otherwise highest first so that higher weapons kill lesser bases
+        hitArray.sort(function(a,b) {
+            let aAP = parseInt(a.weapon.ap);
+            let bAP = parseInt(b.weapon.ap);
+            if (targetUnit.type === "Knight" || targetUnit.type === "Titan") {
+                return aAP - bAP;
+            } else {
+                return bAP - aAP;
+            }
+        })
 
         //now run through each hit and apply
+ log(hitArray)
+
+        SetupCard(targetUnit.name,"Saves",targetUnit.faction);
+        let kills = 0;
+
+        for (let i=0;i<hitArray.length;i++) {
+            let hit = hitArray[i];
+            let shooter = ModelArray[hit.shooterID];
+            let arc = Arc(target,shooter); //arc that shooter is in
+            let weapon = hit.weapon;
+
+            let ap = hit.weapon.ap;
+
+            target = ModelArray[targetIDArray[0]];
+            if (weapon.traits.includes("Precise")) {
+                target = ModelArray[targetIDArray[targetIDArray.length - 1]];
+            }
+            if (!target) {
+                outputCard.body.push("[hr]");
+                outputCard.body.push("Entire Target Detachment Destroyed!");
+                //consepences here
+                break;
+            }
+
+            let wounds = parseInt(target.token.get("bar1_value")) || 1;
+
+            //apply hits to voidshields first
+            let voidShields = parseInt(target.token.get("bar2_value")) || 0;
+            if (voidShields > 0) {
+                //modifications
+                if (ap === 0) {
+                    outputCard.body.push("Hit from " + hit.weapon.name + " bounces");
+                    continue;
+                } else {
+                    //shield takes damage
 
 
+                }
+            }
+
+            needed = target.save;
+            let saveTips = "<br>Armour Save: " + needed + "+";
+            //modify ap
+
+            if (ap < 0) {
+                saveTips += "<br>AP: " + ap;
+                needed -= ap;
+            }
+
+            //alternative saves - have to check and pick best 
+            let altSaveTips = "";
+            let altSave = 7;
+            //cover
+log(hexMap[target.hexLabel])            
+            let coverSave = hexMap[target.hexLabel].coverSave;
+log(coverSave)
+            if (coverSave < 7) {
+                if (weapon.traits.includes("Ignores Cover") === false && coverSave < needed) {
+                    altSaveTips += "<br>Cover Save Used: " + coverSave + "+";
+                    altSave = coverSave;
+                }
+            }
+            //ion shields
+            let ionSave = target.ionShields;
+            if (ionSave > 0 && arc === "Front") {
+                let ionSave = target.ionShields;
+                if (ap === -2 || ap === -3) {
+                    ionSave++;
+                }
+                if (ap > -3) {
+                    ionSave+=2;
+                }
+                if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Ionic Flare Shield")) {
+                    ionSave -= 1;
+                }
+                if (ionSave < needed && ionSave < altSave) {
+                    altSaveTips = "<br>Ion Shield Used: " + ionSave + "+";
+                    altSave = ionSave;
+                }
+            }
+            //Jink Save
+            let jinkSave = target.jinkSave;
+            if (jinkSave > 0 && targetUnit.order !== "First Fire") {
+                if (jinkSave < needed && jinkSave < altSave) {
+                    altSaveTips = "<br>Jink Save: " + jinkSave + "+";
+                    altSave = jinkSave;
+                }
+            }
+            //Invulnerable
+            let invulSave = target.invulSave;
+            if (invulSave > 0) {
+                if (invulSave < needed && invulSave < altSave) {
+                    altSaveTips = "<br>Invul Save: " + invulSave + "+";
+                    altSave = invulSave;
+                }
+            }
+
+
+            if (altSave < needed) {
+                needed = altSave;
+                saveTips += altSaveTips;
+            }
+
+
+            let saveRoll = randomInteger(6);
+
+            let tip = "Roll: " + saveRoll + " vs " + needed + "+";
+            tip += saveTips;
+            tip = '[🎲](#" class="showtip" title="' + tip + ')';
+
+            if (saveRoll < needed) {
+                if (wounds === 1) {
+                    kills++;
+                    outputCard.body.push(tip + " " + target.name + " is killed");
+                    //kill routine and remove from target array
+                } else {
+                    outputCard.body.push(tip + " " + target.name + " is damaged");
+                    target.token.set("bar1_value",(wounds -1));
+                }
+            } else {
+                outputCard.body.push(tip + " " + target.name + " - Saves");
+            }
+
+
+
+        }
+
+        if (kills > Math.round(targetUnitStartingModels/2) && targetUnit.modelIDs.length > 0) {
+            outputCard.body.push("Morale Check");
+
+
+        }
 
 
 
