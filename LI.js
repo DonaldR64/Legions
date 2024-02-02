@@ -3470,8 +3470,12 @@ log(model.name)
             //modify ap
 
             if (ap < 0) {
-                saveTips += "<br>AP: " + ap;
+                saveTips += "<br>AP " + ap;
                 needed -= ap;
+            }
+            if (arc === "Rear" && target.scale > 1) {
+                saveTips += "<br>Rear Arc -1";
+                needed += 1;
             }
 
             //alternative saves - have to check and pick best 
