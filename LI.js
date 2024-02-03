@@ -3145,12 +3145,16 @@ const LI = (()=> {
         if (ability === "Battlesmith" && target.type !== "Walker" && target.type.includes("Vehicle") === false && target.special.includes("Automata") === false && target.special.includes("Automated Sentry") === false) {return false};
         let keys = Object.keys(ModelArray);
         for (let i=0;i<keys.length;i++) {
-            let model = ModelArray[keys[i]];
-            if (model.player !== target.player) {continue};
+            let model = ModelArray[keys[i]];            
+            if (model.player !== target.player && ability !== "Shield Generator") {continue};
             if (model.special.includes(ability)) {
                 let dist = ModelDistance(model,target);
                 if (dist <= range) {
-                    return true;
+                    if (ability === "Shield Generator") {
+                        return getX(model.special,"Shield Generator");
+                    } else {
+                        return true;
+                    }
                 }
             }
         }
@@ -3383,7 +3387,7 @@ log(model.name)
                 let needed = Math.min(6,Math.max(2,weapon.tohit - wth)); 
                 //1 is auto miss, 6 = auto hit
 
-                if (targetUnit.flyers === true && weapon.traits.includes("Skyfire") === false) {
+                if (targetUnit.flyers === true && weapon.traits.includes("Skyfire") === false && shooter.special.includes("Tracking Array") === false) {
                     wthtip = "<br>Targetting Flyers";
                     needed = 6;
                 }
@@ -3532,6 +3536,8 @@ log(model.name)
                 break;
             }
 
+            let distance = ModelDistance(shooter,target);
+
             let wounds = parseInt(target.token.get("bar1_value")) || 1;
 
             //apply hits to voidshields first
@@ -3588,7 +3594,10 @@ log(model.name)
             //cover
             if (SearchSpecials(weapon.traits,bypassCover) === false) {
                 let coverSave = hexMap[target.hexLabel].coverSave;
-                if (coverSave < 7) {
+                if (coverSave < 7 && target.special.includes("Scout")) {
+                    coverSave = Math.max(2,coverSave - 1);
+                }
+                if (coverSave < 7 && coverSave < needed) {
                     altSaveTips += "<br>Cover Save Used: " + coverSave + "+";
                     altSave = coverSave;
                 }
@@ -3629,6 +3638,12 @@ log(model.name)
                 let invulSave = target.invulSave;
                 if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Explorator Adaptation")) {
                     invulSave = Math.min(invulSave,6);
+                }
+                if (distance > 6) {
+                    let sg = Aura(target,"Shield Generator",6);
+                    if (sg > 0) {
+                        invulSave = sg;
+                    }
                 }
 
                 if (invulSave < 7) {
