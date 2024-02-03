@@ -3460,6 +3460,7 @@ log(model.name)
                             let hitInfo = {
                                 weapon: weapon,
                                 roll: roll,
+                                needed: needed,
                             }
                             hitArray.push(hitInfo);
                             rolls.push(7);
@@ -3470,6 +3471,7 @@ log(model.name)
                             shooterID: shooterID,
                             weapon: weapon,
                             roll: roll,
+                            needed: needed,
                         }
                         hitArray.push(hitInfo);
                     }
@@ -3517,8 +3519,9 @@ log(model.name)
         SetupCard(targetUnit.name,"Saves",targetUnit.faction);
         let kills = 0;
 
-        for (let i=0;i<hitArray.length;i++) {
-            let hit = hitArray[i];
+        let hit = hitArray.shift();
+
+        if (hit) {
             let shooter = ModelArray[hit.shooterID];
             let arc = Arc(target,shooter); //arc that shooter is in
             let weapon = hit.weapon;
@@ -3526,216 +3529,245 @@ log(model.name)
             let ap = hit.weapon.ap;
 
             target = ModelArray[targetIDArray[0]];
-            if (weapon.traits.includes("Precise")) {
-                target = ModelArray[targetIDArray[targetIDArray.length - 1]];
-            }
-            if (!target) {
+            if (target) {
+                if (weapon.traits.includes("Precise")) {
+                    target = ModelArray[targetIDArray[targetIDArray.length - 1]];
+                }
+                else {
+                    outputCard.body.push("[hr]");
+                    outputCard.body.push("Entire Target Detachment Destroyed!");
+                    //consepences here
+                    ;
+                }
+
+                let distance = ModelDistance(shooter,target);
+
+                let wounds = parseInt(target.token.get("bar1_value")) || 1;
+
+                //apply hits to voidshields first
+                let voidShields = parseInt(target.token.get("bar2_value")) || 0;
+                if (voidShields > 0 && SearchSpecials(weapon.traits,bypassVoid) === false) {
+                    //if has trait in bypassVoid list, bypasses the Void Shields
+                    let num = 1;
+                    if (weapon.traits.includes("Shock Pulse")) {num = 2};
+                    num = Math.min(voidShields,num);
+                    let s = (num === 1) ? "":"s";
+                    let line = "[#ff0000]Hit takes down " + num + " Void Shield" + s;
+                    voidShields -= num;
+                    target.token.set("bar2_value",voidShields);
+                    if (voidShields === 0) {
+                        line += "causing the Shields to collapse!";
+                    }
+                    outputCard.body.push(line + "[/#]");
+                }
+
+                needed = target.save;
+                let saveTips = "<br>Armour Save: " + needed + "+";
+                let armourFlag = true;
+                if (weapon.traits.includes("Bunker Buster") && target.type === "Structure") {
+                    ap *= 2;
+                    saveTips += "<br>AP doubled due to Bunker Buster";
+                }
+
+                if (SearchSpecials(weapon.traits,["Light"]) === true && target.special.includes("Armoured")) {
+                    ap = 0;
+                    saveTips += "<br>Light is Ap 0 vs Armoured";
+                }
+
+
+                if (weapon.traits.includes("Anti-Tank") ||weapon.traits.includes("Anti-tank") && (target.type === "Infantry" || target.type === "Cavalry")) {
+                    ap = 0;
+                    saveTips += "<br>AP is 0 vs " + target.type;
+
+                }
+
+                if (ap < 0) {
+                    saveTips += "<br>AP " + ap;
+                    needed -= ap;
+                }
+
+
+                if ((arc === "Rear" && target.scale > 1) || weapon.traits.includes("Burrowing")) {
+                    saveTips += "<br>Rear Arc -1";
+                    needed += 1;
+                }
+
+                //alternative saves - have to check and pick best 
+                let altSaveTips = "";
+                let altSave = 7;
+                //cover
+                if (SearchSpecials(weapon.traits,bypassCover) === false) {
+                    let coverSave = hexMap[target.hexLabel].coverSave;
+                    if (coverSave < 7 && target.special.includes("Scout")) {
+                        coverSave = Math.max(2,coverSave - 1);
+                    }
+                    if (coverSave < 7 && coverSave < needed) {
+                        altSaveTips += "<br>Cover Save Used: " + coverSave + "+";
+                        altSave = coverSave;
+                    }
+                }
+
+                //ion shields
+                if (SearchSpecials(weapon.traits,bypassIon) === false && arc === "Front") {
+                    let ionSave = target.ionShields;
+                    if (ionSave < 7) {
+                        let ionSave = target.ionShields;
+                        if (ap === -2 || ap === -3) {
+                            ionSave++;
+                        }
+                        if (ap > -3) {
+                            ionSave+=2;
+                        }
+                        if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Ionic Flare Shield")) {
+                            ionSave -= 1;
+                        }
+                        if (ionSave < needed && ionSave < altSave) {
+                            altSaveTips = "<br>Ion Shield Used: " + ionSave + "+";
+                            altSave = ionSave;
+                        }
+                    }
+                }
+                //Jink Save
+                if (SearchSpecials(weapon.traits,bypassJink) === false && targetUnit.order !== "First Fire") {
+                    let jinkSave = target.jinkSave;
+                    if (jinkSave < 7) {
+                        if (jinkSave < needed && jinkSave < altSave) {
+                            altSaveTips = "<br>Jink Save: " + jinkSave + "+";
+                            altSave = jinkSave;
+                        }
+                    }
+                }
+                //Invulnerable
+                if (SearchSpecials(weapon.traits,bypassInvulnerable) === false) {
+                    let invulSave = target.invulSave;
+                    if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Explorator Adaptation")) {
+                        invulSave = Math.min(invulSave,6);
+                    }
+                    if (distance > 6) {
+                        let sg = Aura(target,"Shield Generator",6);
+                        if (sg > 0) {
+                            invulSave = sg;
+                        }
+                    }
+
+                    if (invulSave < 7) {
+                        if (invulSave < needed && invulSave < altSave) {
+                            altSaveTips = "<br>Invul Save: " + invulSave + "+";
+                            altSave = invulSave;
+                        }
+                    }
+                }
+
+                if (altSave < needed) {
+                    needed = altSave;
+                    saveTips += altSaveTips;
+                    armourFlag = false;
+                }
+
+
+                let saveRoll = randomInteger(6);
+
+                let tip = "Roll: " + saveRoll + " vs " + needed + "+";
+
+                let rerollNeeded = false;
+
+                if (armourFlag === true) {
+                    if (weapon.traits.includes("Shred") && (target.type === "Infantry" || target.type === "Cavalry")) {
+                        rerollNeeded = "Shred";
+                    }
+                    if (weapon.traits.includes("Armourbane") && target.scale > 1) {
+                        rerollNeeded = "Armourbane";
+                    }
+                }
+
+                if (rerollNeeded !== false && saveRoll >= needed) {
+                    saveRoll = randomInteger(6);
+                    tip += "Reroll due to " + rerollNeeded + ": " + saveRoll;
+                }
+
+
+                tip += saveTips;
+                tip = '[🎲](#" class="showtip" title="' + tip + ')';
+
+
+                if (saveRoll < needed) {
+                    let damage = 1;
+                    if (Aura(target,"Medicae",4) === true || target.special.includes("Feel No Pain") && SearchSpecials(weapon.traits,["Light"]) === true) {
+                        let roll3 = randomInteger(6);
+                        tip += "<br>Medicae/Feel No Pain: " + roll3 + " vs. 5+";
+                        if (roll3 > 4) {
+                            outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
+                            damage = 0;
+                        }
+                    }
+                    if (Aura(target,"Battlesmith",3) === true  && weapon.ap < -1) {
+                        let roll3 = randomInteger(6);
+                        tip += "<br>Battlesmith: " + roll3 + " vs. 5+";
+                        if (roll3 > 4) {
+                            outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
+                            damage = 0;
+                        }
+                    }
+
+
+                    if (damage > 0) {
+                        if (weapon.traits.includes("Engine Killer")) {
+                            let extra = getX(weapon.traits,"Engine Killer");
+                            outputCard.body.push("Engine Killer causes " + extra + " extra Damage");
+                            damage += extra;
+                        }
+
+                        if (wounds === 1) {
+                            kills++;
+                            outputCard.body.push(tip + " " + target.name + " is killed");
+                            //kill routine and remove from target array
+                        } else if (wounds > 1) {
+                            
+                            wounds -= damage;
+
+                            if (wounds > 0) {
+                                outputCard.body.push(tip + " " + target.name + " is damaged");
+                                target.token.set("bar1_value",(wounds -1));
+                            } else {
+                                kills++;
+                                outputCard.body.push(tip + " " + target.name + " is killed");
+                                //kill routine and remove from target array
+                            }
+                        }
+
+
+                        if (weapon.traits.includes("Deflagrate")) {
+                            let deflagrateRoll = randomInteger(6);
+                            let tip = "Deflagrate Roll: " + deflagrateRoll + " vs. " + hit.needed + "+"; 
+                            tip = '[🎲](#" class="showtip" title="' + tip + ')';
+                            if (deflagrateRoll >= hit.needed) {
+                                let hitInfo = {
+                                    shooterID: shooter.id,
+                                    weapon: weapon,
+                                    roll: deflagrateRoll,
+                                    needed: hit.needed,
+                                }
+                                hitInfo.weapon.ap.replace("Deflagrate","");
+                                hitArray.push(hitInfo);
+                                outputCard.body.push(tip + " Deflagrate hits");
+                            } else {
+                                outputCard.body.push(tip + " Deflagrate does not hit")
+                            }
+                        }
+                    }
+
+                } else {
+                    outputCard.body.push(tip + " " + target.name + " - Saves");
+                }
+            
+            
+            } else {
                 outputCard.body.push("[hr]");
                 outputCard.body.push("Entire Target Detachment Destroyed!");
+                hitArray = [];
                 //consepences here
-                break;
+                
             }
-
-            let distance = ModelDistance(shooter,target);
-
-            let wounds = parseInt(target.token.get("bar1_value")) || 1;
-
-            //apply hits to voidshields first
-            let voidShields = parseInt(target.token.get("bar2_value")) || 0;
-            if (voidShields > 0 && SearchSpecials(weapon.traits,bypassVoid) === false) {
-                //if has trait in bypassVoid list, bypasses the Void Shields
-                let num = 1;
-                if (weapon.traits.includes("Shock Pulse")) {num = 2};
-                num = Math.min(voidShields,num);
-                let s = (num === 1) ? "":"s";
-                let line = "[#ff0000]Hit takes down " + num + " Void Shield" + s;
-                voidShields -= num;
-                target.token.set("bar2_value",voidShields);
-                if (voidShields === 0) {
-                    line += "causing the Shields to collapse!";
-                }
-                outputCard.body.push(line + "[/#]");
-            }
-
-            needed = target.save;
-            let saveTips = "<br>Armour Save: " + needed + "+";
-            let armourFlag = true;
-            if (weapon.traits.includes("Bunker Buster") && target.type === "Structure") {
-                ap *= 2;
-                saveTips += "<br>AP doubled due to Bunker Buster";
-            }
-
-            if (SearchSpecials(weapon.traits,["Light"]) === true && target.special.includes("Armoured")) {
-                ap = 0;
-                saveTips += "<br>Light is Ap 0 vs Armoured";
-            }
-
-
-            if (weapon.traits.includes("Anti-Tank") ||weapon.traits.includes("Anti-tank") && (target.type === "Infantry" || target.type === "Cavalry")) {
-                ap = 0;
-                saveTips += "<br>AP is 0 vs " + target.type;
-
-            }
-
-            if (ap < 0) {
-                saveTips += "<br>AP " + ap;
-                needed -= ap;
-            }
-
-
-            if ((arc === "Rear" && target.scale > 1) || weapon.traits.includes("Burrowing")) {
-                saveTips += "<br>Rear Arc -1";
-                needed += 1;
-            }
-
-            //alternative saves - have to check and pick best 
-            let altSaveTips = "";
-            let altSave = 7;
-            //cover
-            if (SearchSpecials(weapon.traits,bypassCover) === false) {
-                let coverSave = hexMap[target.hexLabel].coverSave;
-                if (coverSave < 7 && target.special.includes("Scout")) {
-                    coverSave = Math.max(2,coverSave - 1);
-                }
-                if (coverSave < 7 && coverSave < needed) {
-                    altSaveTips += "<br>Cover Save Used: " + coverSave + "+";
-                    altSave = coverSave;
-                }
-            }
-
-            //ion shields
-            if (SearchSpecials(weapon.traits,bypassIon) === false && arc === "Front") {
-                let ionSave = target.ionShields;
-                if (ionSave < 7) {
-                    let ionSave = target.ionShields;
-                    if (ap === -2 || ap === -3) {
-                        ionSave++;
-                    }
-                    if (ap > -3) {
-                        ionSave+=2;
-                    }
-                    if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Ionic Flare Shield")) {
-                        ionSave -= 1;
-                    }
-                    if (ionSave < needed && ionSave < altSave) {
-                        altSaveTips = "<br>Ion Shield Used: " + ionSave + "+";
-                        altSave = ionSave;
-                    }
-                }
-            }
-            //Jink Save
-            if (SearchSpecials(weapon.traits,bypassJink) === false && targetUnit.order !== "First Fire") {
-                let jinkSave = target.jinkSave;
-                if (jinkSave < 7) {
-                    if (jinkSave < needed && jinkSave < altSave) {
-                        altSaveTips = "<br>Jink Save: " + jinkSave + "+";
-                        altSave = jinkSave;
-                    }
-                }
-            }
-            //Invulnerable
-            if (SearchSpecials(weapon.traits,bypassInvulnerable) === false) {
-                let invulSave = target.invulSave;
-                if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Explorator Adaptation")) {
-                    invulSave = Math.min(invulSave,6);
-                }
-                if (distance > 6) {
-                    let sg = Aura(target,"Shield Generator",6);
-                    if (sg > 0) {
-                        invulSave = sg;
-                    }
-                }
-
-                if (invulSave < 7) {
-                    if (invulSave < needed && invulSave < altSave) {
-                        altSaveTips = "<br>Invul Save: " + invulSave + "+";
-                        altSave = invulSave;
-                    }
-                }
-            }
-
-            if (altSave < needed) {
-                needed = altSave;
-                saveTips += altSaveTips;
-                armourFlag = false;
-            }
-
-
-            let saveRoll = randomInteger(6);
-
-            let tip = "Roll: " + saveRoll + " vs " + needed + "+";
-
-            let rerollNeeded = false;
-
-            if (armourFlag === true) {
-                if (weapon.traits.includes("Shred") && (target.type === "Infantry" || target.type === "Cavalry")) {
-                    rerollNeeded = "Shred";
-                }
-                if (weapon.traits.includes("Armourbane") && target.scale > 1) {
-                    rerollNeeded = "Armourbane";
-                }
-            }
-
-            if (rerollNeeded !== false && saveRoll >= needed) {
-                saveRoll = randomInteger(6);
-                tip += "Reroll due to " + rerollNeeded + ": " + saveRoll;
-            }
-
-
-            tip += saveTips;
-            tip = '[🎲](#" class="showtip" title="' + tip + ')';
-
-
-            if (saveRoll < needed) {
-                if (Aura(target,"Medicae",4) === true || target.special.includes("Feel No Pain") && SearchSpecials(weapon.traits,["Light"]) === true) {
-                    let roll3 = randomInteger(6);
-                    tip += "<br>Medicae/Feel No Pain: " + roll3 + " vs. 5+";
-                    if (roll3 > 4) {
-                        outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
-                        continue;
-                    }
-                }
-                if (Aura(target,"Battlesmith",3) === true  && weapon.ap < -1) {
-                    let roll3 = randomInteger(6);
-                    tip += "<br>Battlesmith: " + roll3 + " vs. 5+";
-                    if (roll3 > 4) {
-                        outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
-                        continue;
-                    }
-                }
-
-
-
-
-                if (wounds === 1) {
-                    kills++;
-                    outputCard.body.push(tip + " " + target.name + " is killed");
-                    //kill routine and remove from target array
-                } else {
-                    let damage = 1;
-                    if (weapon.traits.includes("Engine Killer") && wounds > 1) {
-                        let extra = getX(weapon.traits,"Engine Killer");
-                        outputCard.body.push("Engine Killer causes " + extra + " extra");
-                        damage += extra;
-                    }
-
-                    wounds -= damage;
-
-                    if (wounds > 0) {
-                        outputCard.body.push(tip + " " + target.name + " is damaged");
-                        target.token.set("bar1_value",(wounds -1));
-                    } else {
-                        kills++;
-                        outputCard.body.push(tip + " " + target.name + " is killed");
-                        //kill routine and remove from target array
-                    }
-                }
-            } else {
-                outputCard.body.push(tip + " " + target.name + " - Saves");
-            }
-
-
-
         }
 
         if (kills > Math.round(targetUnitStartingModels/2) && targetUnit.modelIDs.length > 0) {
