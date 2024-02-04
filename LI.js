@@ -3695,7 +3695,7 @@ log(model.name)
                 }
                
                 if (hit.weapon.traits.includes("Impale")) {
-                    let sRoll = randomInteger(6;)
+                    let sRoll = randomInteger(6);
                     let tRoll = randomInteger(6)
                     let sW = parseInt(shooter.token.get("bar1_value")) || 1;
                     let sWMod = Math.min(2,Math.round((sW-2)/2));
