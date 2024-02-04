@@ -3586,7 +3586,7 @@ log(model.name)
                 needed = target.save;
                 let saveTips = "<br>Armour Save: " + needed + "+";
                 let armourFlag = true;
-                if (weapon.traits.includes("Bunker Buster") && target.type === "Structure") {
+                if (weapon.traits.includes("Bunker Buster") && target.type === "Building") {
                     ap *= 2;
                     saveTips += "<br>AP doubled due to Bunker Buster";
                 }
@@ -3599,7 +3599,6 @@ log(model.name)
                 if (weapon.traits.includes("Anti-Tank") ||weapon.traits.includes("Anti-tank") && (target.type === "Infantry" || target.type === "Cavalry")) {
                     ap = 0;
                     saveTips += "<br>AP is 0 vs " + target.type;
-
                 }
 
                 if (ap < 0) {
