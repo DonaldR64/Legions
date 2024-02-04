@@ -3607,7 +3607,6 @@ log(model.name)
                     needed -= ap;
                 }
 
-
                 if ((arc === "Rear" && target.scale > 1) || weapon.traits.includes("Burrowing")) {
                     saveTips += "<br>Rear Arc -1";
                     needed += 1;
