@@ -330,6 +330,10 @@ const LI = (()=> {
         }
     }
 
+    const SpaceMarineFactions = ["Blood Angels","Ultramarines","Space Wolves","Deathguard","Salamanders"];
+    const SpaceMarineNames = ["Felix","Valerius","Valentine","Lucius","Cassius","Magnus","Claudius","Adrian","August","Gaius","Agrippa","Marcellus","Silas","Atticus","Jude","Sebastian","Miles","Magnus","Aurelius","Leo"];
+    const AuxiliaNames = ["Anders","Bale","Bask","Black","Creed","Dekkler","Gruber","Hekler","Janssen","Karsk","Kell","Lenck","Lynch","Mira","Niels","Odon","Ovik","Pask","Quill","Rogg","Ryse","Stahl","Stein","Sturm","Trane","Volkok","Wulfe"];
+
     const Naming = (name,faction) => {
         name = name.replace(faction + " ","");
         if (name.includes("w/")) {
@@ -344,6 +348,28 @@ const LI = (()=> {
             nameArray[name] = 1;
         }
         name += " " + nameArray[name];
+
+
+        if (rank === 4) {
+            if (SpaceMarineFactions.includes(faction)) {
+                name += " " + SpaceMarineNames[randomInteger(SpaceMarineNames.length - 1)];
+            } else if (faction.includes("Auxilia")) {
+                name += " " + AuxiliaNames[randomInteger(FactionNames[faction].length - 1)];
+            } else if (faction.includes("Legio")) {
+                //Titan Legions
+            } else if (faction.includes("House")) {
+                //Knight Households
+            }
+        } else {
+            if (nameArray[name]) {
+                nameArray[name]++;
+            } else {
+                nameArray[name] = 1;
+            }
+            name += " " + nameArray[name];
+        }
+
+
 
         return name;
     }
