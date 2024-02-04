@@ -738,7 +738,7 @@ const LI = (()=> {
                 }
 
                 let dice = attributeArray["weapon"+i+"dice"];
-                let tohit = parseInt(attributeArray["weapon"+i+"tohit"]) || 0;
+                let tohit = parseInt(attributeArray["weapon"+i+"tohit"]) || 7;
                 let ap = attributeArray["weapon"+i+"ap"] || 0;
                 if (ap !== "Special") {
                     ap = parseInt(ap);
@@ -3243,7 +3243,7 @@ log(model.name)
         let toHitMod = 0;
         let toHitTip = "";
         let shooterExceptions = [];
-    
+
         for (let s=0;s<shooterUnit.modelIDs.length;s++) {
             shooter = ModelArray[shooterUnit.modelIDs[s]];
             let eta = []; //targets
@@ -3254,6 +3254,8 @@ log(model.name)
             let rangeFlag = false;
             let arcFlag = false;
     
+
+
             for (let t=0;t<targetUnit.modelIDs.length;t++) {
                 target = ModelArray[targetUnit.modelIDs[t]];
                 if (target.token.get(SM.pinned) === true) {
@@ -3343,6 +3345,9 @@ log(model.name)
         //organize targetarray based on rank then wounds then distance from unit's 'centre' 
         //so hits will go to lowest ranks first, then if multiple wounds, any wounded are picked off first, then farthest from centre
         //Precise hits will do opposite
+
+        let avgArmour;
+
         if (targetIDArray.length > 1) {
             let centreTargetModel = CentreUnit(targetUnit);
             targetIDArray.sort(function (a,b) {
@@ -3370,6 +3375,25 @@ log(model.name)
                 let weapon = shooter.weaponArray[shooter.ewa[i]];
                 let wthtip = toHitTip;
                 let wth = toHitMod;
+                let toHit = weapon.toHit;
+
+
+                if (weapon.traits.includes("Graviton")) {
+                    if (avgArmour === undefined) {
+                        if (targetUnit.type === "Structure") {
+                            avgArmour = 3;
+                            wth = 0;
+                        } else {
+                            _.each(targetIDArray,id => {
+                                avgArmour += parseInt(ModelArray[id].save) || 6;
+                            });
+                            avgArmour = Math.floor(avgArmour/targetIDArray.length);
+                        }
+                    }
+                    toHit = avgArmour;
+                    wthtip = "Graviton: " + toHit + "+<br>" + wthtip;
+                }
+
                 let extraTips = "";
 
                 let attacks = weapon.dice;
@@ -3400,7 +3424,7 @@ log(model.name)
 
                 let hits = 0;
                 let rolls = [];
-                let needed = Math.min(6,Math.max(2,weapon.tohit - wth)); 
+                let needed = Math.min(6,Math.max(2,toHit - wth)); 
                 //1 is auto miss, 6 = auto hit
 
                 if (targetUnit.flyers === true && weapon.traits.includes("Skyfire") === false && shooter.special.includes("Tracking Array") === false) {
@@ -3437,9 +3461,6 @@ log(model.name)
                             extraTips += "<br>Macro-Extinction";
                         }
                     }
-
-
-
 
                     if (weapon.traits.includes("Ripple Fire") && roll === 1 && shooterUnit.order === "First Fire") {
                         roll2 = randomInteger(6);
@@ -3745,6 +3766,10 @@ log(model.name)
                             outputCard.body.push("Engine Killer causes " + extra + " extra Damage");
                             damage += extra;
                         }
+                        if (weapon.traits.includes("Graviton") && target.type === "Structure") {
+                            damage = randomInteger(3) + 1;
+                            outputCard.body.push("Graviton Pulse causes " + damage + " Damage");
+                        }
 
                         if (wounds === 1) {
                             kills++;
@@ -3759,7 +3784,11 @@ log(model.name)
                                 target.token.set("bar1_value",(wounds -1));
                             } else {
                                 kills++;
-                                outputCard.body.push(tip + " " + target.name + " is killed");
+                                if (target.type === "Infantry" || target.type === "Cavalry") {
+                                    outputCard.body.push(tip + " " + target.name + " is killed");
+                                } else {
+                                    outputCard.body.push(tip + " " + target.name + " is destroyed");
+                                }
                                 //kill routine and remove from target array
                             }
                         }
