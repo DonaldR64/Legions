@@ -3741,12 +3741,8 @@ log(model.name)
                             let tip = "Deflagrate Roll: " + deflagrateRoll + " vs. " + hit.needed + "+"; 
                             tip = '[🎲](#" class="showtip" title="' + tip + ')';
                             if (deflagrateRoll >= hit.needed) {
-                                let hitInfo = {
-                                    shooterID: shooter.id,
-                                    weapon: weapon,
-                                    roll: deflagrateRoll,
-                                    needed: hit.needed,
-                                }
+                                let hitInfo = DeepCopy(hit)
+                                hitInto.roll = deflagrateRoll
                                 hitInfo.weapon.ap.replace("Deflagrate","");
                                 hitArray.push(hitInfo);
                                 outputCard.body.push(tip + " Deflagrate hits");
