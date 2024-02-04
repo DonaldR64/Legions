@@ -332,7 +332,6 @@ const LI = (()=> {
 
     const Naming = (name,faction) => {
         name = name.replace(faction + " ","");
-        name = name.replace("Primaris ","");
         if (name.includes("w/")) {
             name = name.split("w/")[0];
         } else if (name.includes("//")) {
@@ -3672,23 +3671,24 @@ log(model.name)
                 let rerollNeeded = false;
 
                 if (armourFlag === true) {
-                    if (weapon.traits.includes("Shred") && (target.type === "Infantry" || target.type === "Cavalry")) {
+                    if (weapon.traits.includes("Shred") && (target.type === "Infantry" || target.type === "Cavalry") && saveRoll >= needed) {
                         rerollNeeded = "Shred";
                     }
-                    if (weapon.traits.includes("Armourbane") && target.scale > 1) {
+                    if (weapon.traits.includes("Armourbane") && target.scale > 1 && saveRoll >= needed) {
                         rerollNeeded = "Armourbane";
                     }
+                    if (SearchSpecials(weapon.traits,["Light"]) === true && target.special.includes("Armoured") && saveRoll < needed) {
+                        rerollNeeded = "Armooured vs Light Weapon"
+                    }                
                 }
 
-                if (rerollNeeded !== false && saveRoll >= needed) {
+                if (rerollNeeded !== false) {
                     saveRoll = randomInteger(6);
                     tip += "Reroll due to " + rerollNeeded + ": " + saveRoll;
                 }
 
-
                 tip += saveTips;
                 tip = '[🎲](#" class="showtip" title="' + tip + ')';
-
 
                 if (saveRoll < needed) {
                     let damage = 1;
