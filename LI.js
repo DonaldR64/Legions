@@ -3407,8 +3407,14 @@ log(model.name)
                     needed = 6;
                 }
 
-
-
+                if (targetUnit.flyers === true) {
+                    if (weapon.traits.includes("Skyfire") || (shooter.special.includes("Tracking Array") && shooterUnit.order === "First Fire")) {
+                        wthtip = "<br>Skyfire vs Flyers";
+                    } else {
+                        wthtip = "<br>Targetting Flyers without Skyfire";
+                        needed = 6;
+                    }
+                }
 
                 for (let j=0;j<attacks;j++) {
                     let roll = randomInteger(6);
@@ -3453,18 +3459,19 @@ log(model.name)
                         rollText = rollText + "/" + roll2;
                     }
 
-                    if (voidShields > 0 && SearchSpecials(weapon.traits,bypassVoid) === false && weapon.traits.includes("Shieldbane") === false &&( weapon.ap === 0 || weapon.traits.includes("Light")) ) {
+                    if (SearchSpecials(weapon.traits,["Light"]) === true && target.scale > 1) {
                         roll = 0;
                         rollText = 0;
-                        extraTips += "<br>Pings off Void Shields";
+                        extraTips = "<br>Light Weapon, Unable to Damage";
                     }
 
+                    if (voidShields > 0 && SearchSpecials(weapon.traits,bypassVoid) === false && weapon.traits.includes("Shieldbane") === false && ( weapon.ap === 0 || weapon.traits.includes("Light AT")) ) {
+                        roll = 0;
+                        rollText = 0;
+                        extraTips += "<br>Weapon's Fire Pings off Void Shields";
+                    }
 
                     rolls.push(rollText);
-
-
-
-
 
                     if (roll >= needed) {
                         if (weapon.traits.includes("Rapid Fire") && roll === 6) {
@@ -3588,7 +3595,6 @@ log(model.name)
                     ap = 0;
                     saveTips += "<br>Light is Ap 0 vs Armoured";
                 }
-
 
                 if (weapon.traits.includes("Anti-Tank") ||weapon.traits.includes("Anti-tank") && (target.type === "Infantry" || target.type === "Cavalry")) {
                     ap = 0;
