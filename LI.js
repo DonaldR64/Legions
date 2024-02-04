@@ -9,7 +9,7 @@ const LI = (()=> {
     let edgeArray = [];
 
     let TraitorForces = ["Deathguard"];
-    let BuildingNames = ["Civitas","Militas","Imperialis","Grandus","Fortification"];
+    let StructureNames = ["Civitas","Militas","Imperialis","Grandus","Fortification"];
 
     let ModelArray = {}; //Individual Models, Tanks etc
     let UnitArray = {}; //Units of Models - Detachments
@@ -221,7 +221,7 @@ const LI = (()=> {
         "Siege Weapon": 'Double range if model has not yet moved this round.',
         "Skyfire": 'Can target Flyers. If overwatch, -1 to hit instead of -2. If multiple weapons in Detachment, can fire all Skyfire weapons at another target than Detachment designated target if this secondary target is Flyer.',
         "Tracking": 'Re-roll failed hits against Flyer',
-        "Wrecker (X)": 'Can attempt to destroy building when activated in First Fire or Advance Fire stage. Choose structure in base contact, opponent rolls Save, if failed Structure receives X Wounds. If model has multiple Wrecker (X) weapons, it can target multiple Structures or a single Structure. Use combined total of weapons AP for the Structure Save roll and Structure suffers combined X Wounds if Save failed.',
+        "Wrecker (X)": 'Can attempt to destroy structure when activated in First Fire or Advance Fire stage. Choose structure in base contact, opponent rolls Save, if failed Structure receives X Wounds. If model has multiple Wrecker (X) weapons, it can target multiple Structures or a single Structure. Use combined total of weapons AP for the Structure Save roll and Structure suffers combined X Wounds if Save failed.',
         "Chain of Command": 'Detachments with the Chain of Command special rule can only be issued an Advance Order unless instructed otherwise. If an Independent Unit contains only models without this rule, then that Independent Unit can be issued another Order, even if the larger Detachment can only be issued with the Advance Order.',
         "Solar Auxilia HQ (X)": 'If a Detachment with the Chain of Command special rule has at least one model wholly within the Command Range of a model with the Solar Auxilia HQ (X) special rule, it can be issued with any Order it would be eligible to be issued (i.e., First Fire Order, Charge Order, March Order or Advance Order), instead of just an Advance Order. A model’s ‘Command Range’ is a number of inches equal to the value in brackets noted as part of this special rule. This special rule does not allow a Broken Detachment to be issued an Order other than the Advance Order or Charge Order.',
     }
@@ -626,7 +626,7 @@ const LI = (()=> {
             let faction = attributeArray.faction;
             let player = (TraitorForces.includes(faction)) ? 1:0;
             let type = attributeArray.type;
-            let buildingInfo;
+            let structureInfo;
             let height = 0;
             let wounds = parseInt(attributeArray.wounds) || 1;
             let scale = parseInt(attributeArray.scale);
@@ -639,7 +639,7 @@ const LI = (()=> {
                 faction = "Neutral";
                 player = 2;
             }
-            if (type !== "Building" && type !== "System Unit") {
+            if (type !== "Structure" && type !== "System Unit") {
                 if (!state.LI.models[tokenID]) {
                     name = Naming(char.get("name"),faction);
                     state.LI.models[tokenID] = {
@@ -690,7 +690,7 @@ const LI = (()=> {
                     caf = 2;
                     save = 4;
                 }
-                buildingInfo = {
+                structureInfo = {
                     height: height,
                     armourSave: as,
                     garrisonNumber: gn,
@@ -888,7 +888,7 @@ const LI = (()=> {
             this.movement = parseInt(attributeArray.movement) || 0;
 
             this.weaponArray = weaponArray;
-            this.buildingInfo = buildingInfo;
+            this.structureInfo = structureInfo;
             this.height = height;
             this.scale = scale;
             this.radius = radius;
@@ -1141,18 +1141,18 @@ const LI = (()=> {
         if (model2.large === true) {
             hexes2 = model2.largeHexList;
         }
-        if (model1.type === "Infantry" && hexMap[model1.hexLabel].buildingID.length > 0) {
-            //Infantry in building, use building hexes for LOS
-            let buildingModel = ModelArray[hexMap[model1.hexLabel].buildingID];
-            if (buildingModel) {
-                hexes1 = buildingModel.largeHexList;
+        if (model1.type === "Infantry" && hexMap[model1.hexLabel].structureID.length > 0) {
+            //Infantry in structure, use structure hexes for LOS
+            let structureModel = ModelArray[hexMap[model1.hexLabel].structureID];
+            if (structureModel) {
+                hexes1 = structureModel.largeHexList;
             }
         } 
-        if (model2.type === "Infantry" && hexMap[model2.hexLabel].buildingID.length > 0) {
-            //Infantry in building, use building hexes for LOS
-            let buildingModel = ModelArray[hexMap[model2.hexLabel].buildingID];
-            if (buildingModel) {
-                hexes2 = buildingModel.largeHexList;
+        if (model2.type === "Infantry" && hexMap[model2.hexLabel].structureID.length > 0) {
+            //Infantry in structure, use structure hexes for LOS
+            let structureModel = ModelArray[hexMap[model2.hexLabel].structureID];
+            if (structureModel) {
+                hexes2 = structureModel.largeHexList;
             }
         } 
         let closestDist = Infinity;
@@ -1508,14 +1508,14 @@ const LI = (()=> {
                     id: label,
                     centre: point,
                     terrain: [], //array of names of terrain in hex
-                    buildingID: [],
+                    structureID: [],
                     terrainIDs: [],
                     tokenIDs: [], //ids of tokens in hex
                     elevation: 0, //based on hills, in metres
                     height: 0, //height of top of terrain over elevation
                     nonHillHeight: 0,//height of trees etc above hills
                     coverSave: 7,
-                    hitLevel: 0, //0 is no minus to hit, 1 = -1 for under size 3, 2 = -1 for all but Titan, 3 = -1 for all, 4 = Building
+                    hitLevel: 0, //0 is no minus to hit, 1 = -1 for under size 3, 2 = -1 for all but Titan, 3 = -1 for all, 4 = Structure
                     los: true,
                 };
                 hexMap[label] = hexInfo;
@@ -1697,10 +1697,10 @@ const LI = (()=> {
                     model = new Model(token.id,unit.id,formation.id);
                 }
                 let type = Attribute(char,"type");
-                if (type === "Building") {
+                if (type === "Structure") {
                     model = new Model(token.id)
 //add back into terrain array, based on side
-                    AddBuilding(model);
+                    AddStructure(model);
                 }
 
 
@@ -1756,7 +1756,7 @@ const LI = (()=> {
     const modelElevation = (model) => {
         let hex = hexMap[model.hexLabel];
         let elevation = parseInt(hex.elevation);
-        if (hex.buildingID.length > 0 && model.type === "Infantry") {
+        if (hex.structureID.length > 0 && model.type === "Infantry") {
             elevation = parseInt(hex.height);
         }
         if (model.type === "Aircraft") {
@@ -1783,17 +1783,17 @@ const LI = (()=> {
         //log("Same Terrain:" + sameTerrain)
         let shooterHexes = [model1.hex];
         let targetHexes = [];
-        if (model1.type === "Infantry" && model1Hex.buildingID.length > 0) {
-            //Infantry in building, use building hexes for LOS
-            let buildingModel = ModelArray[model1Hex.buildingID];
-            if (buildingModel) {
-                shooterHexes = buildingModel.largeHexList;
+        if (model1.type === "Infantry" && model1Hex.structureID.length > 0) {
+            //Infantry in structure, use structure hexes for LOS
+            let structureModel = ModelArray[model1Hex.structureID];
+            if (structureModel) {
+                shooterHexes = structureModel.largeHexList;
             }
         } 
-        if (model2.large === true || (model2.type === "Infantry" && model2Hex.buildingID.length > 0)) {
+        if (model2.large === true || (model2.type === "Infantry" && model2Hex.structureID.length > 0)) {
             //finds the hexes closest to shooter hex
             let targetHexLabels = [];
-            let sorted = (model2.large === true) ? model2.largeHexList:ModelArray[model2Hex.buildingID].largeHexList;
+            let sorted = (model2.large === true) ? model2.largeHexList:ModelArray[model2Hex.structureID].largeHexList;
             sorted = sorted.sort(function (a,b) {
                 let aDist = a.distance(model1.hex);
                 let bDist = b.distance(model1.hex);
@@ -1824,7 +1824,7 @@ const LI = (()=> {
         if (model2Hex.hitLevel > 0 && model2.special.includes("Flyer") === false) {
             if (model2Hex.hitLevel === 4) {
                 toHitMod = -2
-                toHitTip = "<br>In Building -2";
+                toHitTip = "<br>In Structure -2";
             };
             if (model2Hex.hitLevel === 3) {
                 toHitMod = -1
@@ -1839,9 +1839,9 @@ const LI = (()=> {
                 toHitTip = "<br>Terrain -1";
             };
         }
-        if (model2.type === "Building") {
+        if (model2.type === "Structure") {
             toHitMod = 1;
-            toHitTip = "<br>Target is Building +1";
+            toHitTip = "<br>Target is Structure +1";
         }
 
 
@@ -1967,7 +1967,7 @@ const LI = (()=> {
                             let id3 = id3s[j];
                             let model3 = ModelArray[id3];
                             if (!model3) {continue};
-                            if (model3.type === "System Unit" || model3.type === "Building" || model3.scale < 2 || model3.unitID === model1.unitID || model3.unitID === model2.unitID) {
+                            if (model3.type === "System Unit" || model3.type === "Structure" || model3.scale < 2 || model3.unitID === model1.unitID || model3.unitID === model2.unitID) {
                                 continue;
                             };
                             let model3Height = modelElevation(model3) + model3.height - level;
@@ -2179,7 +2179,7 @@ const LI = (()=> {
             deployLines: [],
             mission: '1',
             turnMarkerIDs: tmID,
-            buildings: {},
+            structures: {},
         }
         for (let i=0;i<UnitMarkers.length;i++) {
             state.LI.markers[0].push(i);
@@ -2324,24 +2324,24 @@ const LI = (()=> {
         let requestingPlayerID = msg.playerid;
         let ownUnit = (state.LI.factions[requestingPlayerID] === faction) ? true:false;
 
-        if (model.type === "Building") {
+        if (model.type === "Structure") {
             SetupCard(model.name,"",faction);
             let side = parseInt(model.token.get("currentSide"));
             if (side === 0) {
                 outputCard.body.push("Wounds: " + model.token.get("bar1_value"));
-                outputCard.body.push("Height: " + model.buildingInfo.height);
-                outputCard.body.push("Armour Save: " + model.buildingInfo.armourSave + "+");
-                outputCard.body.push("Garrison Number: " + model.buildingInfo.garrisonNumber);
-                outputCard.body.push("CAF Bonus: +" + model.buildingInfo.cafBonus);
-                outputCard.body.push("Cover Save: " + model.buildingInfo.coverSave + "+");
+                outputCard.body.push("Height: " + model.structureInfo.height);
+                outputCard.body.push("Armour Save: " + model.structureInfo.armourSave + "+");
+                outputCard.body.push("Garrison Number: " + model.structureInfo.garrisonNumber);
+                outputCard.body.push("CAF Bonus: +" + model.structureInfo.cafBonus);
+                outputCard.body.push("Cover Save: " + model.structureInfo.coverSave + "+");
             } else {
-                outputCard.body.push("Building is in Ruins");
+                outputCard.body.push("Structure is in Ruins");
                 outputCard.body.push("Height: 1");
                 outputCard.body.push("Cover Save: 5+");
             }
 
 
-        } else if (model.type !== "System Unit" && model.type !== "Building") {
+        } else if (model.type !== "System Unit" && model.type !== "Structure") {
             SetupCard(model.name,"Hex: " + model.hexLabel,faction);
             let h = hexMap[model.hexLabel];
             let terrain = h.terrain;
@@ -2578,9 +2578,9 @@ const LI = (()=> {
                     hex: hex,
                 }
                 state.LI.objectives.push(obj);
-            } else if (findCommonElements(BuildingNames,name) === true) {
-                //reset buildings
-                let buildingModel = new Model(token.id);
+            } else if (findCommonElements(StructureNames,name) === true) {
+                //reset structures
+                let structureModel = new Model(token.id);
                 let sides = token.get("sides").split("|");
                 if (sides[0] !== "") {
                     img = tokenImage(sides[0]);
@@ -2592,13 +2592,13 @@ const LI = (()=> {
                     }
                 }
                 token.set({
-                    bar1_value: buildingModel.wounds,
-                    bar1_max: buildingModel.wounds,
+                    bar1_value: structureModel.wounds,
+                    bar1_max: structureModel.wounds,
                     lockMovement: true,
-                    name: buildingModel.name,
+                    name: structureModel.name,
                 });
                 toBack(token);
-                AddBuilding(buildingModel); //adds to map
+                AddStructure(structureModel); //adds to map
             }
         }
         state.LI.turn = 1;
@@ -2658,10 +2658,10 @@ const LI = (()=> {
         state.LI.turnMarkerIDs[num] = newToken.id;
     }
 
-    const AddBuilding = (model) => {
+    const AddStructure = (model) => {
         let hexes = model.largeHexList;
         let side = parseInt(model.token.get("currentSide"));
-        let cover = model.buildingInfo.coverSave;
+        let cover = model.structureInfo.coverSave;
         let height = parseInt(model.height);
         let name = model.name;
         if (side > 0) {
@@ -2673,7 +2673,7 @@ const LI = (()=> {
         _.each(hexes,hex => {
             if (hexMap[hex.label()].terrain.includes(name) === false) {
                 hexMap[hex.label()].terrain.push(model.name);
-                hexMap[hex.label()].buildingID = model.id;
+                hexMap[hex.label()].structureID = model.id;
                 hexMap[hex.label()].cover = cover;
                 hexMap[hex.label()].los = false;
                 hexMap[hex.label()].hitLevel = 4;
@@ -2717,7 +2717,7 @@ const LI = (()=> {
         if (tok.get('subtype') === "token") {
             let model = ModelArray[tok.id];
             if (!model) {return};
-            if (model.type === "Building") {
+            if (model.type === "Structure") {
                 if (model.token.get("lockMovement") === true) {
                     t = simpleObj(tok);
                     delete t.id
@@ -2735,7 +2735,7 @@ const LI = (()=> {
                     new Model(newTok.id);
                 }
 
-            } else if (model.type !== "System Unit" && model.type !== "Building") {
+            } else if (model.type !== "System Unit" && model.type !== "Structure") {
                             //model.kill();
 
             }            
@@ -3391,8 +3391,8 @@ log(model.name)
                         wthtip.replace("Terrain -1","Ignores Cover");
                         wth += 1;
                     }
-                    if (wthtip.includes("In Building -2")) {
-                        wthtip.replace("In Building -2","Ignores Cover");
+                    if (wthtip.includes("In Structure -2")) {
+                        wthtip.replace("In Structure -2","Ignores Cover");
                         wth += 2;
                     }
                 }
@@ -3586,7 +3586,7 @@ log(model.name)
                 needed = target.save;
                 let saveTips = "<br>Armour Save: " + needed + "+";
                 let armourFlag = true;
-                if (weapon.traits.includes("Bunker Buster") && target.type === "Building") {
+                if (weapon.traits.includes("Bunker Buster") && target.type === "Structure") {
                     ap *= 2;
                     saveTips += "<br>AP doubled due to Bunker Buster";
                 }
