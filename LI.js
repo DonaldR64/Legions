@@ -3218,6 +3218,7 @@ log(model.name)
         let bypassIon = ["Collapsing Singularity","Psi","Warp"];
         let bypassCover = ["Psi","Warp","Firestorm","Ignores Cover"];
         let bypassJink = ["placeholder"];
+        let antiStructure = ["Bombing Run","Bunker Buster","Demolisher","Heavy Barrage","Heavy Beam","Wrecker"]
 
         let shooter = ModelArray[shooterID];
         let target = ModelArray[targetID];
@@ -3462,7 +3463,7 @@ log(model.name)
                     if (SearchSpecials(weapon.traits,["Light"]) === true && target.scale > 1) {
                         roll = 0;
                         rollText = 0;
-                        extraTips = "<br>Light Weapon, Unable to Damage";
+                        extraTips = "<br>Light Weapon's Fire pings off the Target'";
                     }
 
                     if (voidShields > 0 && SearchSpecials(weapon.traits,bypassVoid) === false && weapon.traits.includes("Shieldbane") === false && ( weapon.ap === 0 || weapon.traits.includes("Light AT")) ) {
@@ -3470,6 +3471,14 @@ log(model.name)
                         rollText = 0;
                         extraTips += "<br>Weapon's Fire Pings off Void Shields";
                     }
+
+                    if (targetUnit.type === "Structure" && SearchSpecials(weapon.traits,antiStructure) === false) {
+                        roll = 0;
+                        rollText = 0;
+                        extraTips += "<br>Weapon's Fire takes some chunks out of the Building but is unable to Damage";
+                    }
+
+
 
                     rolls.push(rollText);
 
