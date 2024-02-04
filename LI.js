@@ -49,6 +49,8 @@ const LI = (()=> {
         march: "status_March::6534654",
         pinned: "status_Restrained-or-Webbed::2006494",
         engaged: "status_blue",
+        quake: "status_yellow", //temporary
+        shocked: "status_yellow", //temporary
     };
 
     let outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
@@ -620,7 +622,6 @@ const LI = (()=> {
         constructor(tokenID,unitID,formationID){
             let token = findObjs({_type:"graphic", id: tokenID})[0];
             let name = token.get("name");
-            let hp = parseInt(token.get("bar1_value"));
             let char = getObj("character", token.get("represents")); 
             let attributeArray = AttributeArray(char.id);
             let faction = attributeArray.faction;
@@ -634,6 +635,7 @@ const LI = (()=> {
             let ionShields = 7;
             let jink = 7;
             let invul = 7;
+            let indirectWeapon = false;
 
             if (!faction) {
                 faction = "Neutral";
@@ -754,6 +756,10 @@ const LI = (()=> {
                         }
                     }
                 }
+                if (traits.includes("Barrage")) {
+                    indirectWeapon = true;
+                }
+
                 
                 let fx = attributeArray["weapon"+i+"fx"];
                 let sound = attributeArray["weapon"+i+"sound"];
@@ -882,6 +888,8 @@ const LI = (()=> {
             this.jinkSave = jink;
             this.invulSave = invul;
 
+            this.hasIndirect = indirectWeapon;
+
             this.save = parseInt(attributeArray.save) || 7;
             this.caf = parseInt(attributeArray.caf) || 0;
             this.morale = parseInt(attributeArray.morale) || 0;
@@ -989,28 +997,32 @@ const LI = (()=> {
         }
 
         resetFlags() {
-            if (this.order !== "Fall Back") {
-                _.each(this.modelIDs,id => {
-                    let model = ModelArray[id];
-                    if (model) {
+
+            _.each(this.modelIDs,id => {
+                let model = ModelArray[id];
+                if (model) {
+                    model.token.set(SM.quake,false);
+                    model.token.set(SM.fired,false);
+                    model.token.set(SM.moved,false);
+                    model.token.set(SM.shocked,false);
+                    if (this.order !== "Fall Back") {
                         model.token.set(SM.charge,false);
                         model.token.set(SM.firstfire,false);
                         model.token.set(SM.advance,false);
                         model.token.set(SM.march,false);
-                        model.token.set(SM.fired,false);
-                        model.token.set(SM.moved,false);
                         if (id === this.modelIDs[0]) {
                             model.token.set("aura1_color",Colours.green);
                         }
-                    }
-                });
+                    } 
+                }
+            });
+
+            if (this.order !== "Fall Back") {
                 this.order = "";
                 this.moraleCheck = false;
-
             } else {
                 this.moraleCheck = true; //Units with Fall Back take no further morale checks
             }
-
 
         }
 
@@ -1508,7 +1520,7 @@ const LI = (()=> {
                     id: label,
                     centre: point,
                     terrain: [], //array of names of terrain in hex
-                    structureID: [],
+                    structureID: "",
                     terrainIDs: [],
                     tokenIDs: [], //ids of tokens in hex
                     elevation: 0, //based on hills, in metres
@@ -1952,7 +1964,9 @@ const LI = (()=> {
                             //fully blocks LOS
                             targetLOS = 0;
                             losReason = "Terrain Drops Off";
-                            break interHexLoop;
+                            if (special !== "Indirect") {
+                                break interHexLoop;
+                            }
                         } else if (highestElevation >= model1Height && highestElevation < model2Height && highestElevation > model2Base) {
                             //partially blocks LOS
                             //log("Partial block by Hill")
@@ -1977,8 +1991,9 @@ const LI = (()=> {
                                 //fully blocks LOS
                                 targetLOS = 0;
                                 losReason = "LOS blocked by " + model3.name;
-                                break interHexLoop;
-                            } else if (model3Height > B1 && model3Height <= B2) {
+                                if (special !== "Indirect") {
+                                    break interHexLoop;
+                                }                            } else if (model3Height > B1 && model3Height <= B2) {
                                 //partially blocks LOS
                                 //log("Partial block by Unit")
                                 targetLOS = Math.min(((B2 - model3Height) / (B2 - B1)),targetLOS);
@@ -1991,8 +2006,9 @@ const LI = (()=> {
                             //fully blocks LOS
                             targetLOS = 0;
                             losReason = "LOS blocked by Terrain";
-                            break interHexLoop;
-                        } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
+                            if (special !== "Indirect") {
+                                break interHexLoop;
+                            }                        } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
                             //partially blocks LOS
                             //log("Partial block by Terrain")
                             targetLOS = Math.min(((B2 - interHexHeight) / (B2 - B1)),targetLOS);
@@ -2306,6 +2322,13 @@ const LI = (()=> {
 
 
     }
+
+
+
+
+
+
+
 
 
     const TokenInfo = (msg) => {
@@ -3211,11 +3234,12 @@ log(model.name)
         let shooterID = Tag[1];
         let targetID = Tag[2];
         let ignoreCover = (Tag[3] === "Yes") ? true:false;
-        let numbers = Tag[4]; //weapon numbers
+        let numbers = Tag[4] || 1; //weapon numbers
+        let onlyVisible = (Tag[5] === "No") ? false:true;//place a query in weapon macro, with "Target Only Visible Models|No|Yes"
 
-        let bypassVoid = ["Burrowing","Bypass","Collapsing Singularity","Impale","Psi","Warp"];
-        let bypassInvulnerable = ["Collapsing Singularity","Psi","Warp"];
-        let bypassIon = ["Collapsing Singularity","Psi","Warp"];
+        let bypassVoid = ["Burrowing","Bypass","Impale","Psi","Warp"];
+        let bypassInvulnerable = ["Psi","Warp"];
+        let bypassIon = ["Psi","Warp"];
         let bypassCover = ["Psi","Warp","Firestorm","Ignores Cover"];
         let bypassJink = ["placeholder"];
         let antiStructure = ["Bombing Run","Bunker Buster","Demolisher","Heavy Barrage","Heavy Beam","Wrecker"]
@@ -3225,6 +3249,10 @@ log(model.name)
         let shooterUnit = UnitArray[shooter.unitID];
         let targetUnit = UnitArray[target.unitID];
         let targetUnitStartingModels = targetUnit.modelIDs.length;
+       
+        let isGarrisoned = (target.type === "Infantry" && hexMap[target.hexLabel].structureID !== "") ? true:false;
+//add in other units IF barrage and targetUnit is garrisoned - other units owuld be other units garrison in that building
+
 
         SetupCard(shooterUnit.name,"Hits",shooterUnit.faction);
         //check Unit hasnt already fired
@@ -3234,7 +3262,16 @@ log(model.name)
             PrintCard();
             return;
         }
-    
+
+
+
+
+
+
+
+
+
+
         //go through shooter unit and see who has range/los to at least 1 target, make their their eligible target list
         //add target ids also to an array
     
@@ -3253,8 +3290,7 @@ log(model.name)
             let coverFlag = false;
             let rangeFlag = false;
             let arcFlag = false;
-    
-
+            let losPenalty = 0;
 
             for (let t=0;t<targetUnit.modelIDs.length;t++) {
                 target = ModelArray[targetUnit.modelIDs[t]];
@@ -3262,9 +3298,14 @@ log(model.name)
                     pinFlag = true;
                     continue;
                 }; 
-                let losResult = LOS(shooter.id,target.id);
-                if (losResult.los === false) {
+                let special = " ";
+                if (shooter.hasIndirect === true) {
+                    special = "Indirect"
+                }
+                let losResult = LOS(shooter.id,target.id,special);
+                if ((losResult.los === false && shooter.hasIndirect === false) || onlyVisible === true) {
                     losFlag = true;
+                    losPenalty = 1;
                     continue;
                 };
                 if (ignoreCover === true && losResult.toHitMod < 0) {
@@ -3294,15 +3335,28 @@ log(model.name)
 
                 let weaponNumbers = [];
                 for (let w=0;w<shooter.weaponArray.length;w++) {
-                    let weapon = shooter.weaponArray[w];
+                    if (shooter.token.get(SM.shocked) === true && w > 0) {
+                        continue;
+                    }
+                    let weapon = DeepCopy(shooter.weaponArray[w]);
+                    if (shooter.token.get(SM.moved) === false && weapon.traits.includes("Siege Weapon") === true) {
+                        weapon.maxRange *= 2;
+                    }
+
                     if (losResult.distance > weapon.maxRange || losResult.distance < weapon.minRange) {
                         rangeFlag = true;
                         continue;
                     };
+                    if (losResult.los === false && weapon.traits.includes("Barrage") === false) {
+                        continue;
+                    }
+
                     if ((weapon.arc === "Front" && losResult.arc !== "Front") || (weapon.arc === "Rear" && losResult.arc !== "Rear")) {
                         arcFlag = true;
                         continue;
                     };
+
+
                     weaponNumbers.push(w);
                     ewa.push(w);
                     break;
@@ -3340,7 +3394,7 @@ log(model.name)
             PrintCard();
             return;
         }
-    
+
         targetIDArray = [...new Set(targetIDArray)];
         //organize targetarray based on rank then wounds then distance from unit's 'centre' 
         //so hits will go to lowest ranks first, then if multiple wounds, any wounded are picked off first, then farthest from centre
@@ -3376,6 +3430,29 @@ log(model.name)
                 let wthtip = toHitTip;
                 let wth = toHitMod;
                 let toHit = weapon.toHit;
+                let csFlag = false;
+                if (weapon.traits.includes("Collapsing Singularity")) {
+                    let csRoll = randomInteger(6);
+                    if (csRoll === 1) {
+                        let hp = parseInt(shooter.token.get("bar1_value")) || 1;
+                        if (hp === 1) {
+                            outputCard.body.push("[#ff0000]" + shooter.name + " creates a Collapsing Singularity upon itself. It is Destroyed![/#]");
+///kill the shooter
+                            continue;
+                        } else {
+                            outputCard.body.push("[#ff0000]" + shooter.name + " creates a Collapsing Singularity upon itself and takes 1 Damage[/#]");
+                            shooter.token.set("bar1_value",(hp - 1));
+                        }
+                    } else if (csRoll === 6) {
+                        csFlag = true;
+                        outputCard.body.push("[#ff0000]" + shooter.name + " creates a Collapsing Singularity upon the target![/#]");
+                        wthtip += "Collapsing Singularity!<br>Shields bypassed, Invulnerable Saves bypassed!";
+                    }
+                }
+
+
+
+
 
 
                 if (weapon.traits.includes("Graviton")) {
@@ -3403,6 +3480,23 @@ log(model.name)
                         extraTips += "<br>Assault";
                     }
                 }
+                if (weapon.traits.includes("Warp")) {
+                    attacks = 0;
+                    if (targetUnit.type === "Knight" || targetUnit.type === "Titan") {
+                        _.each(targetIDArray,id => {
+                            attacks += parseInt(ModelArray[id].token.get("bar1_value"));
+                        })
+                    } else {
+                        attacks = targetIDArray.length;
+                    }
+                }
+
+                if (weapon.traits.includes("Barrage") && isGarrisoned === true) {
+                    attacks = Math.round(attacks/2);
+                    extraTips += "<br>Barrage";
+                }
+
+
                 if (weapon.traits.includes("Power Capacitor") && shooterUnit.order === "First Fire") {
                     attacks *= 2;
                     if (extraTips.includes("Power Capacitor") === false) {
@@ -3421,6 +3515,12 @@ log(model.name)
                         wth += 2;
                     }
                 }
+
+                if (shooter.token.get(SM.quake) === true) {
+                    wthtip += "<br>Quake -1";
+                    wth += 1;
+                }
+
 
                 let hits = 0;
                 let rolls = [];
@@ -3504,15 +3604,22 @@ log(model.name)
                     rolls.push(rollText);
 
                     if (roll >= needed) {
+                        hitNotes = "";
+                        if (csFlag === true) {
+                            hitNotes += "CS";
+                        }
+
                         if (weapon.traits.includes("Rapid Fire") && roll === 6) {
                             if (extraTips.includes("Rapid Fire") === false) {
                                 extraTips += "<br>Rapid Fire";
                             }
                             hits++;
                             let hitInfo = {
+                                shooterID: shooterID,
                                 weapon: weapon,
                                 roll: roll,
                                 needed: needed,
+                                notes: hitNotes,
                             }
                             hitArray.push(hitInfo);
                             rolls.push(7);
@@ -3524,6 +3631,7 @@ log(model.name)
                             weapon: weapon,
                             roll: roll,
                             needed: needed,
+                            notes: hitNotes,
                         }
                         hitArray.push(hitInfo);
                     }
@@ -3570,7 +3678,7 @@ log(model.name)
 
         SetupCard(targetUnit.name,"Saves",targetUnit.faction);
         let kills = 0;
-
+        let quakeFlag = false;
         let hit = hitArray.shift();
 
         if (hit) {
@@ -3582,238 +3690,307 @@ log(model.name)
 
             target = ModelArray[targetIDArray[0]];
             if (target) {
-                if (weapon.traits.includes("Precise")) {
+                if (weapon.traits.includes("Precise") || weapon.traits.includes("Impale")) {
                     target = ModelArray[targetIDArray[targetIDArray.length - 1]];
                 }
-                else {
-                    outputCard.body.push("[hr]");
-                    outputCard.body.push("Entire Target Detachment Destroyed!");
-                    //consepences here
-                    ;
-                }
-
-                let distance = ModelDistance(shooter,target);
-
-                let wounds = parseInt(target.token.get("bar1_value")) || 1;
-
-                //apply hits to voidshields first
-                let voidShields = parseInt(target.token.get("bar2_value")) || 0;
-                if (voidShields > 0 && SearchSpecials(weapon.traits,bypassVoid) === false) {
-                    //if has trait in bypassVoid list, bypasses the Void Shields
-                    let num = 1;
-                    if (weapon.traits.includes("Shock Pulse")) {num = 2};
-                    num = Math.min(voidShields,num);
-                    let s = (num === 1) ? "":"s";
-                    let line = "[#ff0000]Hit takes down " + num + " Void Shield" + s;
-                    voidShields -= num;
-                    target.token.set("bar2_value",voidShields);
-                    if (voidShields === 0) {
-                        line += "causing the Shields to collapse!";
-                    }
-                    outputCard.body.push(line + "[/#]");
-                }
-
-                needed = target.save;
-                let saveTips = "<br>Armour Save: " + needed + "+";
-                let armourFlag = true;
-                if (weapon.traits.includes("Bunker Buster") && target.type === "Structure") {
-                    ap *= 2;
-                    saveTips += "<br>AP doubled due to Bunker Buster";
-                }
-
-                if (SearchSpecials(weapon.traits,["Light"]) === true && target.special.includes("Armoured")) {
-                    ap = 0;
-                    saveTips += "<br>Light is Ap 0 vs Armoured";
-                }
-
-                if (weapon.traits.includes("Anti-Tank") ||weapon.traits.includes("Anti-tank") && (target.type === "Infantry" || target.type === "Cavalry")) {
-                    ap = 0;
-                    saveTips += "<br>AP is 0 vs " + target.type;
-                }
-
-                if (ap < 0) {
-                    saveTips += "<br>AP " + ap;
-                    needed -= ap;
-                }
-
-                if ((arc === "Rear" && target.scale > 1) || weapon.traits.includes("Burrowing")) {
-                    saveTips += "<br>Rear Arc -1";
-                    needed += 1;
-                }
-
-                //alternative saves - have to check and pick best 
-                let altSaveTips = "";
-                let altSave = 7;
-                //cover
-                if (SearchSpecials(weapon.traits,bypassCover) === false) {
-                    let coverSave = hexMap[target.hexLabel].coverSave;
-                    if (coverSave < 7 && target.special.includes("Scout")) {
-                        coverSave = Math.max(2,coverSave - 1);
-                    }
-                    if (coverSave < 7 && coverSave < needed) {
-                        altSaveTips += "<br>Cover Save Used: " + coverSave + "+";
-                        altSave = coverSave;
-                    }
-                }
-
-                //ion shields
-                if (SearchSpecials(weapon.traits,bypassIon) === false && arc === "Front") {
-                    let ionSave = target.ionShields;
-                    if (ionSave < 7) {
-                        let ionSave = target.ionShields;
-                        if (ap === -2 || ap === -3) {
-                            ionSave++;
-                        }
-                        if (ap > -3) {
-                            ionSave+=2;
-                        }
-                        if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Ionic Flare Shield")) {
-                            ionSave -= 1;
-                        }
-                        if (ionSave < needed && ionSave < altSave) {
-                            altSaveTips = "<br>Ion Shield Used: " + ionSave + "+";
-                            altSave = ionSave;
-                        }
-                    }
-                }
-                //Jink Save
-                if (SearchSpecials(weapon.traits,bypassJink) === false && targetUnit.order !== "First Fire") {
-                    let jinkSave = target.jinkSave;
-                    if (jinkSave < 7) {
-                        if (jinkSave < needed && jinkSave < altSave) {
-                            altSaveTips = "<br>Jink Save: " + jinkSave + "+";
-                            altSave = jinkSave;
-                        }
-                    }
-                }
-                //Invulnerable
-                if (SearchSpecials(weapon.traits,bypassInvulnerable) === false) {
-                    let invulSave = target.invulSave;
-                    if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Explorator Adaptation")) {
-                        invulSave = Math.min(invulSave,6);
-                    }
-                    if (distance > 6) {
-                        let sg = Aura(target,"Shield Generator",6);
-                        if (sg > 0) {
-                            invulSave = sg;
-                        }
-                    }
-
-                    if (invulSave < 7) {
-                        if (invulSave < needed && invulSave < altSave) {
-                            altSaveTips = "<br>Invul Save: " + invulSave + "+";
-                            altSave = invulSave;
-                        }
-                    }
-                }
-
-                if (altSave < needed) {
-                    needed = altSave;
-                    saveTips += altSaveTips;
-                    armourFlag = false;
-                }
-
-
-                let saveRoll = randomInteger(6);
-
-                let tip = "Roll: " + saveRoll + " vs " + needed + "+";
-
-                let rerollNeeded = false;
-
-                if (armourFlag === true) {
-                    if (weapon.traits.includes("Shred") && (target.type === "Infantry" || target.type === "Cavalry") && saveRoll >= needed) {
-                        rerollNeeded = "Shred";
-                    }
-                    if (weapon.traits.includes("Armourbane") && target.scale > 1 && saveRoll >= needed) {
-                        rerollNeeded = "Armourbane";
-                    }
-                    if (SearchSpecials(weapon.traits,["Light"]) === true && target.special.includes("Armoured") && saveRoll < needed) {
-                        rerollNeeded = "Armooured vs Light Weapon"
-                    }                
-                }
-
-                if (rerollNeeded !== false) {
-                    saveRoll = randomInteger(6);
-                    tip += "Reroll due to " + rerollNeeded + ": " + saveRoll;
-                }
-
-                tip += saveTips;
-                tip = '[🎲](#" class="showtip" title="' + tip + ')';
-
-                if (saveRoll < needed) {
-                    let damage = 1;
-                    if (Aura(target,"Medicae",4) === true || target.special.includes("Feel No Pain") && SearchSpecials(weapon.traits,["Light"]) === true) {
-                        let roll3 = randomInteger(6);
-                        tip += "<br>Medicae/Feel No Pain: " + roll3 + " vs. 5+";
-                        if (roll3 > 4) {
-                            outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
-                            damage = 0;
-                        }
-                    }
-                    if (Aura(target,"Battlesmith",3) === true  && weapon.ap < -1) {
-                        let roll3 = randomInteger(6);
-                        tip += "<br>Battlesmith: " + roll3 + " vs. 5+";
-                        if (roll3 > 4) {
-                            outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
-                            damage = 0;
-                        }
-                    }
-
+               
+                if (hit.weapon.traits.includes("Impale")) {
+                    let sRoll = randomInteger(6;)
+                    let tRoll = randomInteger(6)
+                    let sW = parseInt(shooter.token.get("bar1_value")) || 1;
+                    let sWMod = Math.min(2,Math.round((sW-2)/2));
+                    let tW = parseInt(target.token.get("bar1_value")) || 1;
+                    let tWMod = Math.min(2,Math.round((tW-2)/2));
+                    sRes = sRoll + shooter.scale + sWMod;
+                    tRes = tRoll + target.scale + tWMod;
+                    let damage = Math.max(sRes - tRes,0);
+                    tip += "Net Result of " + damage + " Damage"
+                    tip += "<br>Shooter Total: " + sRes;
+                    tip += "<br>Target Total: " + tRes;
+                    tip += "<br>Shooter Roll: " + sRoll + " + Scale: " + shooter.scale + " + " + sWMod + " for Wounds";
+                    tip += "<br>Target Roll: " + tRoll + " + Scale: " + target.scale + " + " + tWMod + " for Wounds";
+                    tip = '[🎲](#" class="showtip" title="' + tip + ')';
+                    tW -= damage;
+                    target.token.set("bar1_value",tW);
 
                     if (damage > 0) {
-                        if (weapon.traits.includes("Engine Killer")) {
-                            let extra = getX(weapon.traits,"Engine Killer");
-                            outputCard.body.push("Engine Killer causes " + extra + " extra Damage");
-                            damage += extra;
-                        }
-                        if (weapon.traits.includes("Graviton") && target.type === "Structure") {
-                            damage = randomInteger(3) + 1;
-                            outputCard.body.push("Graviton Pulse causes " + damage + " Damage");
-                        }
-
-                        if (wounds === 1) {
+                        if (tW > 0) {
+                            outputCard.body.push(tip + " " + target.name + " takes " + damage + " Damage from Impale");
+                        } else {
                             kills++;
-                            outputCard.body.push(tip + " " + target.name + " is killed");
-                            //kill routine and remove from target array
-                        } else if (wounds > 1) {
-                            
-                            wounds -= damage;
-
-                            if (wounds > 0) {
-                                outputCard.body.push(tip + " " + target.name + " is damaged");
-                                target.token.set("bar1_value",(wounds -1));
+                            if (target.type === "Infantry" || target.type === "Cavalry") {
+                                outputCard.body.push(tip + " " + target.name + " is killed by Impale");
                             } else {
-                                kills++;
-                                if (target.type === "Infantry" || target.type === "Cavalry") {
-                                    outputCard.body.push(tip + " " + target.name + " is killed");
-                                } else {
-                                    outputCard.body.push(tip + " " + target.name + " is destroyed");
-                                }
-                                //kill routine and remove from target array
+                                outputCard.body.push(tip + " " + target.name + " is destroyed by Impale");
                             }
                         }
+                    } else {
+                        outputCard.push(tip + " " + target.name + " takes no damage from the Impale");
+                    }
+                } else {
+                    let distance = ModelDistance(shooter,target);
 
+                    let wounds = parseInt(target.token.get("bar1_value")) || 1;
 
-                        if (weapon.traits.includes("Deflagrate")) {
-                            let deflagrateRoll = randomInteger(6);
-                            let tip = "Deflagrate Roll: " + deflagrateRoll + " vs. " + hit.needed + "+"; 
-                            tip = '[🎲](#" class="showtip" title="' + tip + ')';
-                            if (deflagrateRoll >= hit.needed) {
-                                let hitInfo = DeepCopy(hit)
-                                hitInto.roll = deflagrateRoll
-                                hitInfo.weapon.ap.replace("Deflagrate","");
-                                hitArray.push(hitInfo);
-                                outputCard.body.push(tip + " Deflagrate hits");
-                            } else {
-                                outputCard.body.push(tip + " Deflagrate does not hit")
-                            }
-                        }
+                    //apply hits to voidshields first
+                    let voidShields = parseInt(target.token.get("bar2_value")) || 0;
+                    if (SearchSpecials(weapon.traits,bypassVoid) === true || hit.notes.includes("CS") === true) {
+                        voidShields = 0;
                     }
 
-                } else {
-                    outputCard.body.push(tip + " " + target.name + " - Saves");
+
+
+                    if (voidShields > 0) {
+                        //if has trait in bypassVoid list, bypasses the Void Shields, or if rolled 6 on collapsing singularity roll
+                        let num = 1;
+                        if (weapon.traits.includes("Shock Pulse")) {num = 2};
+                        num = Math.min(voidShields,num);
+                        let s = (num === 1) ? "":"s";
+                        let line = "[#ff0000]Hit takes down " + num + " Void Shield" + s;
+                        voidShields -= num;
+                        target.token.set("bar2_value",voidShields);
+                        if (voidShields === 0) {
+                            line += "causing the Shields to collapse!";
+                        }
+                        outputCard.body.push(line + "[/#]");
+                    }
+                    //if void shields still intact, should go to next hit
+                    //else go to saves
+
+                    if (voidShields === 0) {
+                        if (weapon.traits.includes("Quake")) {
+                            quakeFlag = true;
+                        }
+                        
+
+
+
+                        needed = target.save;
+                        let saveTips = "<br>Armour Save: " + needed + "+";
+                        let armourFlag = true;
+                        if (weapon.traits.includes("Bunker Buster") && target.type === "Structure") {
+                            ap *= 2;
+                            saveTips += "<br>AP doubled due to Bunker Buster";
+                        }
+    
+                        if (SearchSpecials(weapon.traits,["Light"]) === true && target.special.includes("Armoured")) {
+                            ap = 0;
+                            saveTips += "<br>Light is Ap 0 vs Armoured";
+                        }
+    
+                        if (weapon.traits.includes("Anti-Tank") ||weapon.traits.includes("Anti-tank") && (target.type === "Infantry" || target.type === "Cavalry")) {
+                            ap = 0;
+                            saveTips += "<br>AP is 0 vs " + target.type;
+                        }
+    
+                        if (ap < 0) {
+                            saveTips += "<br>AP " + ap;
+                            needed -= ap;
+                        }
+    
+                        if ((arc === "Rear" && target.scale > 1) || weapon.traits.includes("Burrowing")) {
+                            saveTips += "<br>Rear Arc -1";
+                            needed += 1;
+                        }
+    
+                        //alternative saves - have to check and pick best 
+                        let altSaveTips = "";
+                        let altSave = 7;
+                        //cover
+                        if (SearchSpecials(weapon.traits,bypassCover) === false) {
+                            let coverSave = hexMap[target.hexLabel].coverSave;
+                            if (coverSave < 7 && target.special.includes("Scout")) {
+                                coverSave = Math.max(2,coverSave - 1);
+                            }
+                            if (coverSave < 7 && coverSave < needed) {
+                                altSaveTips += "<br>Cover Save Used: " + coverSave + "+";
+                                altSave = coverSave;
+                            }
+                        }
+    
+                        //ion shields
+                        if (SearchSpecials(weapon.traits,bypassIon) === false && arc === "Front" && hit.notes.includes("CS") === false) {
+                            let ionSave = target.ionShields;
+                            if (ionSave < 7) {
+                                let ionSave = target.ionShields;
+                                if (ap === -2 || ap === -3) {
+                                    ionSave++;
+                                }
+                                if (ap > -3) {
+                                    ionSave+=2;
+                                }
+                                if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Ionic Flare Shield")) {
+                                    ionSave -= 1;
+                                }
+                                if (ionSave < needed && ionSave < altSave) {
+                                    altSaveTips = "<br>Ion Shield Used: " + ionSave + "+";
+                                    altSave = ionSave;
+                                }
+                            }
+                        }
+                        //Jink Save
+                        if (SearchSpecials(weapon.traits,bypassJink) === false && targetUnit.order !== "First Fire") {
+                            let jinkSave = target.jinkSave;
+                            if (jinkSave < 7) {
+                                if (jinkSave < needed && jinkSave < altSave) {
+                                    altSaveTips = "<br>Jink Save: " + jinkSave + "+";
+                                    altSave = jinkSave;
+                                }
+                            }
+                        }
+                        //Invulnerable
+                        if (SearchSpecials(weapon.traits,bypassInvulnerable) === false && hit.notes.includes("CS") === false) {
+                            let invulSave = target.invulSave;
+                            if ((weapon.traits.includes("Barrage") || weapon.traits.includes("Blast")) && target.special.includes("Explorator Adaptation")) {
+                                invulSave = Math.min(invulSave,6);
+                            }
+                            if (distance > 6) {
+                                let sg = Aura(target,"Shield Generator",6);
+                                if (sg > 0) {
+                                    invulSave = sg;
+                                }
+                            }
+    
+                            if (invulSave < 7) {
+                                if (invulSave < needed && invulSave < altSave) {
+                                    altSaveTips = "<br>Invul Save: " + invulSave + "+";
+                                    altSave = invulSave;
+                                }
+                            }
+                        }
+    
+                        if (altSave < needed) {
+                            needed = altSave;
+                            saveTips += altSaveTips;
+                            armourFlag = false;
+                        }
+    
+    
+                        let saveRoll = randomInteger(6);
+    
+                        let tip = "Roll: " + saveRoll + " vs " + needed + "+";
+    
+                        let rerollNeeded = false;
+    
+                        if (armourFlag === true) {
+                            if (weapon.traits.includes("Shred") && (target.type === "Infantry" || target.type === "Cavalry") && saveRoll >= needed) {
+                                rerollNeeded = "Shred";
+                            }
+                            if (weapon.traits.includes("Armourbane") && target.scale > 1 && saveRoll >= needed) {
+                                rerollNeeded = "Armourbane";
+                            }
+                            if (SearchSpecials(weapon.traits,["Light"]) === true && target.special.includes("Armoured") && saveRoll < needed) {
+                                rerollNeeded = "Armoured vs Light Weapon"
+                            } 
+                            if (weapon.traits.includes("Neutron-flux") && target.special.includes("Cybernetica") && saveRoll >= needed) {
+                                rerollNeeded = "Neutron-flux vs Cybernetica Cortex";
+                                //counts as Shred or Armourbane basically
+                            }
+                        }
+    
+                        if (rerollNeeded !== false) {
+                            saveRoll = randomInteger(6);
+                            tip += "Reroll due to " + rerollNeeded + ": " + saveRoll;
+                        }
+    
+                        tip += saveTips;
+                        tip = '[🎲](#" class="showtip" title="' + tip + ')';
+    
+                        let alive = true;
+
+                        if (saveRoll < needed) {
+                            let damage = 1;
+                            if (Aura(target,"Medicae",4) === true || target.special.includes("Feel No Pain") && SearchSpecials(weapon.traits,["Light"]) === true) {
+                                let roll3 = randomInteger(6);
+                                tip += "<br>Medicae/Feel No Pain: " + roll3 + " vs. 5+";
+                                if (roll3 > 4) {
+                                    outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
+                                    damage = 0;
+                                }
+                            }
+                            if (Aura(target,"Battlesmith",3) === true  && weapon.ap < -1) {
+                                let roll3 = randomInteger(6);
+                                tip += "<br>Battlesmith: " + roll3 + " vs. 5+";
+                                if (roll3 > 4) {
+                                    outputCard.body.push(tip + " " + target.name + " - ignores the Wound");
+                                    damage = 0;
+                                }
+                            }
+    
+    
+                            if (damage > 0) {
+                                if (weapon.traits.includes("Engine Killer")) {
+                                    let extra = getX(weapon.traits,"Engine Killer");
+                                    outputCard.body.push("Engine Killer causes " + extra + " extra Damage");
+                                    damage += extra;
+                                }
+                                if (weapon.traits.includes("Graviton") && target.type === "Structure") {
+                                    damage = randomInteger(3) + 1;
+                                    outputCard.body.push("Graviton Pulse causes " + damage + " Damage");
+                                }
+    
+                                if (wounds === 1) {
+                                    kills++;
+                                    alive = false;
+                                    if (target.type === "Infantry" || target.type === "Cavalry") {
+                                        outputCard.body.push(tip + " " + target.name + " is killed");
+                                    } else {
+                                        outputCard.body.push(tip + " " + target.name + " is destroyed");
+                                    }
+                                    //kill routine and remove from target array
+                                } else if (wounds > 1) {
+                                    
+                                    wounds -= damage;
+                                    target.token.set("bar1_value",wounds);
+    
+                                    if (wounds > 0) {
+                                        outputCard.body.push(tip + " " + target.name + " takes " + damage + " Damage");
+                                    } else {
+                                        alive = false;
+                                        kills++;
+                                        if (target.type === "Infantry" || target.type === "Cavalry") {
+                                            outputCard.body.push(tip + " " + target.name + " is killed");
+                                        } else {
+                                            outputCard.body.push(tip + " " + target.name + " is destroyed");
+                                        }
+                                        //kill routine and remove from target array
+                                    }
+                                }
+    
+    
+                                if (weapon.traits.includes("Deflagrate")) {
+                                    let deflagrateRoll = randomInteger(6);
+                                    let tip = "Deflagrate Roll: " + deflagrateRoll + " vs. " + hit.needed + "+"; 
+                                    tip = '[🎲](#" class="showtip" title="' + tip + ')';
+                                    if (deflagrateRoll >= hit.needed) {
+                                        let hitInfo = DeepCopy(hit)
+                                        hitInto.roll = deflagrateRoll
+                                        hitInfo.weapon.ap.replace("Deflagrate","");
+                                        hitArray.push(hitInfo);
+                                        outputCard.body.push(tip + " Deflagrate hits");
+                                    } else {
+                                        outputCard.body.push(tip + " Deflagrate does not hit")
+                                    }
+                                }
+                            }
+    
+                        } else {
+                            outputCard.body.push(tip + " " + target.name + " - Saves");
+                        }
+
+                        if (alive === true) {
+                            if (weapon.traits.includes("Shock Pulse")) {
+                                target.token.set(SM.shocked,true);
+                                outputCard.body.push("The Target's movement is halved, and if it hasn't fired this round can only fire its Main weapon");
+                            }
+
+                        }
+
+
+
+                    }
+
                 }
-            
             
             } else {
                 outputCard.body.push("[hr]");
@@ -3830,7 +4007,15 @@ log(model.name)
 
         }
 
-
+        if (quakeFlag === true && targetUnit.modelIDs.length > 0) {
+            outputCard.body.push("The Detachment's movement is affect by Quake");
+            outputCard.body.push("Its movement is halved, and it has -1 to hit");
+            outputCard.body.push("These effects last to the end of the round");
+            _.each(targetUnit.modelIDs,id => {
+                let model = ModelArray[id];
+                model.token.set(SM.quake,true);
+            }) 
+        } 
 
 
     
@@ -3877,6 +4062,9 @@ log(model.name)
                 if (model.large === true) {
                     model.vertices = TokenVertices(tok);
                     LargeTokens(model);
+                }
+                if (state.LI.turn > 0 && newHex !== oldHex) {
+                    tok.set(SM.moved, true);
                 }
             };
         };
