@@ -342,14 +342,7 @@ const LI = (()=> {
             name = name.split("//")[0];
         }
         name = name.trim();
-        if (nameArray[name]) {
-            nameArray[name]++;
-        } else {
-            nameArray[name] = 1;
-        }
         name += " " + nameArray[name];
-
-
         if (rank === 4) {
             if (SpaceMarineFactions.includes(faction)) {
                 name += " " + SpaceMarineNames[randomInteger(SpaceMarineNames.length - 1)];
@@ -368,9 +361,6 @@ const LI = (()=> {
             }
             name += " " + nameArray[name];
         }
-
-
-
         return name;
     }
 
