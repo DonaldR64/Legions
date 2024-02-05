@@ -1,5 +1,5 @@
 const LI = (()=> {
-    const version = '2024.2.2';
+    const version = '2024.2.5';
     const rules = '1.0'
     if (!state.LI) {state.LI = {}};
     const pageInfo = {name: "",page: "",gridType: "",scale: 0,width: 0,height: 0};
@@ -129,7 +129,7 @@ const LI = (()=> {
 
     let specialInfo = {
         "Agile": "Can make 2 90° turns during movement",
-        "Armoured": "Against Light weapons - AP0 and Reroll Failed Saves",
+        "Armoured": "Light Weapons count as AP0 and Reroll Failed Saves",
         "Automated Sentry": "No orders issued. May fire in Movement phase when activated, if no viable targets it can fire in Advancing Fire phase instead. Fires Anti tank weapons at closest Walker, Vehicle, Super heavy Vehicle, Knight or Titan, Light weapons at closest Infantry or Cavalry, Skyfire wepons can be chosen to target closest Flyer. All other weapons fire at closest eligible enemy unit. Can fire when Engaged & Pinned. Ignore enemy Detachments that are Engaged & Pinned (including Detachments they are Engaged & pinned with).",
         "Deep Strike": 'Deploy from round 2. 2” away from enemies. Scatter d6”. If land on Structure or Impassable, Detachment destroyed. Keep 1” away from enemy models. Deploy remaining models within 2” of scattered model. If Embarked on Depp Strike Transport, deploy Transport as per Deep Strike then models disembark.',
         "Explorator Adaptation": '6+ Invulnerable Save against Barrage or Blast weapons.',
@@ -1788,8 +1788,24 @@ const LI = (()=> {
             sendChat("",info + " is not in Model Array");
             return "Error"
         }
+        
         let model1Hex = hexMap[model1.hexLabel];
         let model2Hex = hexMap[model2.hexLabel];
+
+        if (model1Hex.terrain === "Offboard" || model2Hex.terrain === "Offboard") {
+            let result = {
+                distance: 10000,
+                arc: "Front",
+                los: false,
+                coverSave: 7,
+                losReason: "One of Models is Offboard",
+                percent: 1,
+                toHitMod: 0,
+                toHitTip: "",
+            }
+            return result;
+        }
+
 
         let sameTerrain = findCommonElements(model1Hex.terrainIDs,model2Hex.terrainIDs);
         //log("Same Terrain:" + sameTerrain)
@@ -3015,7 +3031,7 @@ const LI = (()=> {
             ResetActivations(phase);
             
         } else if (phase === "End") {
-            //checks to see if any units with fall back and need morale check
+            //1.  checks to see if any units with fall back and need morale check
             //need a flag for first pass being morale checks then once all done into flyers, end phase
             _.each(UnitArray,unit => {  
                 if (unit.order === "Fall Back") {
@@ -3027,11 +3043,11 @@ const LI = (()=> {
                 Checks("Morale");
                 return;
             }
+            //2.End Phase effects
+            ResolveEndPhaseEffects();
+            //3. Remove Flyers
             outputCard.body.push("Remove Flyers");
-
-
-
-            //Objectives and VPs
+            //4. Objectives and VPs
             //check if Game is Over
         }
     
@@ -3228,6 +3244,58 @@ log(model.name)
        return;
     }
 
+    const AugerArray = (shooter,target) => {
+        let targetUnit = UnitArray[target.unitID];
+        _.each(ModelArray,model => {
+            if (model.player === shooter.player) {
+                if (model.special.includes("Auger Array")) {
+                    let number = 0;
+                    _.each(targetUnit.modelIDs,id => {
+                        if (losResult(model.id,id).los === true) {
+                            number++;
+                        }
+                    });
+                    if (number/targetUnit.modelIDs.length >= .5) {
+                        return true;
+                    }
+                }
+            }
+        });
+        return false;
+    }
+
+    const ResolveEndPhaseEffects = () => {
+        _.each(ModelArray,model => {
+            if (model.special.includes("Blessed Auto") || model.special.includes("Neurotechica")) {
+                let wounds =  parseInt(model.token.get("bar1_max")) - parseInt(model.token.get("bar1_value"));
+                let ability = (model.special.includes("Neurotechica")) ? "Neurotechica":"Blessed Auto-Simulacra";
+                if (wounds > 0) {
+                    let recover = 0;
+                    let rolls = [];
+                    for (let i=0;i<wounds;i++) {
+                        let roll = randomInteger(6);
+                        rolls.push(roll);
+                        if (roll > 4) {recover++};
+                    }
+                    rolls.sort();
+                    rolls.reverse();
+                    let tip = "Rolls: " + rolls.toString() + " vs. 5+";
+                    tip = '[🎲](#" class="showtip" title="' + tip + ')';
+                    let s = (recover === 1) ? "":"s";
+                    outputCard.body.push(tip + " " + model.name + " recovers " + recover + " Wound" + s + " from " + ability);
+                    model.token.set("bar1_value",(wounds + recover));
+                }
+            }
+            //Other EndPhase Effects on models here
+        });
+
+
+    }
+
+
+
+
+
 
     const Shooting = (msg) => {
         let Tag = msg.content.split(";");
@@ -3308,10 +3376,24 @@ log(model.name)
                 }
                 let losResult = LOS(shooter.id,target.id,special);
                 if ((losResult.los === false && shooter.hasIndirect === false) || onlyVisible === true) {
-                    losFlag = true;
-                    losPenalty = 1;
-                    continue;
+                        losFlag = true;
+                        continue;
                 };
+                if (losResult.los === false) {
+                    if (shooter.hasIndirect === true && onlyVisible === false) {
+                        //has an indirect capable weapon && is targeting all
+                        if (AugerArray(shooter,target) === false) {
+                            losPenalty = 1;
+                        }
+                    } else {
+                        //no los or has indirect but only targetting visible
+                        losFlag = true;
+                        continue;
+                    }
+                }
+
+
+
                 if (ignoreCover === true && losResult.toHitMod < 0) {
                     coverFlag = true;
                     continue;
