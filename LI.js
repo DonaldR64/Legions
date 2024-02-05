@@ -3250,10 +3250,6 @@ log(model.name)
         let targetUnit = UnitArray[target.unitID];
         let targetUnitStartingModels = targetUnit.modelIDs.length;
        
-        let isGarrisoned = (target.type === "Infantry" && hexMap[target.hexLabel].structureID !== "") ? true:false;
-//add in other units IF barrage and targetUnit is garrisoned - other units owuld be other units garrison in that building
-
-
         SetupCard(shooterUnit.name,"Hits",shooterUnit.faction);
         //check Unit hasnt already fired
         let shooterLeader = ModelArray[shooterUnit.modelIDs[0]];
@@ -3262,6 +3258,14 @@ log(model.name)
             PrintCard();
             return;
         }
+
+        let isGarrisoned = (target.type === "Infantry" && hexMap[target.hexLabel].structureID !== "") ? true:false;
+//add in other units IF barrage and targetUnit is garrisoned - other units owuld be other units garrison in that building
+
+
+
+
+
 
 
 
