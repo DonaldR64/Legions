@@ -131,7 +131,7 @@ const LI = (()=> {
         "Agile": "Can make 2 90° turns during movement",
         "Armoured": "Light Weapons count as AP0 and Reroll Failed Saves",
         "Automated Sentry": "No orders issued. May fire in Movement phase when activated, if no viable targets it can fire in Advancing Fire phase instead. Fires Anti tank weapons at closest Walker, Vehicle, Super heavy Vehicle, Knight or Titan, Light weapons at closest Infantry or Cavalry, Skyfire wepons can be chosen to target closest Flyer. All other weapons fire at closest eligible enemy unit. Can fire when Engaged & Pinned. Ignore enemy Detachments that are Engaged & Pinned (including Detachments they are Engaged & pinned with).",
-        "Deep Strike": 'Deploy from round 2. 2” away from enemies. Scatter d6”. If land on Structure or Impassable, Detachment destroyed. Keep 1” away from enemy models. Deploy remaining models within 2” of scattered model. If Embarked on Depp Strike Transport, deploy Transport as per Deep Strike then models disembark.',
+        "Deep Strike": 'Deploy from round 2. 2” away from enemies. Scatter d6”. If land on Structure or Impassable, Detachment Destroyed. Keep 1” away from enemy models. Deploy remaining models within 2” of scattered model. If Embarked on Depp Strike Transport, deploy Transport as per Deep Strike then models disembark.',
         "Explorator Adaptation": '6+ Invulnerable Save against Barrage or Blast weapons.',
         "Feel No Pain": 'Extra 5+ Save vs Light Weapons. Deflagrate is not triggered. Not against Wounds from Close Combat.',
         "Furious Charge": '+2 Charge bonus if moved at least 1”.',
@@ -147,7 +147,7 @@ const LI = (()=> {
         "Tracking Array": 'Weapons gain Skyfire trait if model issued First Fire order.',
         "Transport (X)": 'Can transport X Infantry models. Detachments in Transport can only be issued Advance or March orders. Cannot Transport Bulky models.',
         "Void Shields (X)": 'Hits first allocated to Void Shield. Can only allocate hits with AP -1 or better. Hits with weapons of modified AP 0 are automatically discarded if at least one Void Shield is active. In End Phase roll d6 for each lost Void Shield, on each 4+ Void Shield increases by 1.',
-        "Attached Deployment": 'Assign model to Detachment of the same type. If not possible, model is destroyed.',
+        "Attached Deployment": 'Assign model to Detachment of the same type. If not possible, model is Destroyed.',
         "Bulky": 'Cannot Embark on Transport unless specified. Counts as 2 models for Transport (X) rule.',
         "Commander": 'Assign to a Detachment within Formation. If cannot assign, then becomes its own Detachment.',
         "Forward Deployment": 'After deployment can move unit up to Move inches ignoring terrain. If both players have Forward Deployment models, roll off to see who goes first.',
@@ -3144,7 +3144,7 @@ const LI = (()=> {
                     sendPing(location.x,location.y, Campaign().get('playerpageid'), null, true); 
                     SetupCard(unit.name,"Morale Check",unit.faction);
                     outputCard.body.push("The Detachment must flee directly towards their side's table edge");
-                    outputCard.body.push("If it moves off the table edge or ends up in an Enemy Detachment it is destroyed.");
+                    outputCard.body.push("If it moves off the table edge or ends up in an Enemy Detachment it is Destroyed.");
                     outputCard.body.push("It moves " + (unitLeader.movement * 2) + '" and must maintain cohesion');
                     outputCard.body.push("When done, the Unit may take a Morale Check to rally");
                     ButtonInfo("Morale Check","!RollD6;Morale");                    
@@ -3727,7 +3727,7 @@ log(weapon.name)
                     line = tip + " " + shooter.name + " misses";
                 } else {
                     let s = (hits > 1) ? "s":"";
-                    line = tip + " " + shooter.name + " gets " + hits + " hit" + s + " with " + weapon.name;
+                    line = tip + " [#FF0000]" + shooter.name + " gets " + hits + " hit" + s + " with " + weapon.name + "[/#]";
                 }
 
                 outputCard.body.push(line);
@@ -3803,9 +3803,9 @@ log(hit)
                         } else {
                             kills++;
                             if (target.type === "Infantry" || target.type === "Cavalry") {
-                                outputCard.body.push(tip + " " + target.name + " is killed by Impale");
+                                outputCard.body.push(tip + " " + target.name + " is Killed by Impale");
                             } else {
-                                outputCard.body.push(tip + " " + target.name + " is destroyed by Impale");
+                                outputCard.body.push(tip + " " + target.name + " is Destroyed by Impale");
                             }
                         }
                     } else {
@@ -4017,9 +4017,9 @@ log(hit)
                                     kills++;
                                     alive = false;
                                     if (target.type === "Infantry" || target.type === "Cavalry") {
-                                        outputCard.body.push(tip + " " + target.name + " is killed by " + weapon.name);
+                                        outputCard.body.push(tip + " [#FF0000]" + target.name + " is Killed by " + weapon.name + "[/#]");
                                     } else {
-                                        outputCard.body.push(tip + " " + target.name + " is destroyed by " + weapon.name);
+                                        outputCard.body.push(tip + " [#FF0000]" + target.name + " is Destroyed by " + weapon.name + "[/#]");
                                     }
                                     //kill routine and remove from target array
                                 } else if (wounds > 1) {
@@ -4028,14 +4028,14 @@ log(hit)
                                     target.token.set("bar1_value",wounds);
     
                                     if (wounds > 0) {
-                                        outputCard.body.push(tip + " " + target.name + " takes " + damage + " Damage from " + weapon.name);
+                                        outputCard.body.push(tip + " [#FF0000]" + target.name + " takes " + damage + " Damage from " + weapon.name + "[/#]");
                                     } else {
                                         alive = false;
                                         kills++;
                                         if (target.type === "Infantry" || target.type === "Cavalry") {
-                                            outputCard.body.push(tip + " " + target.name + " is killed by " + weapon.name);
+                                            outputCard.body.push(tip + " [#FF0000]" + target.name + " is Killed by " + weapon.name + "[/#]");
                                         } else {
-                                            outputCard.body.push(tip + " " + target.name + " is destroyed by " + weapon.name);
+                                            outputCard.body.push(tip + " [#FF0000]" + target.name + " is Destroyed by " + weapon.name + "[/#]");
                                         }
                                         //kill routine and remove from target array
                                     }
@@ -4063,7 +4063,7 @@ log(hit)
                                         log(defhitInfo)
                                         hitArray.push(defhitInfo);
                                         hal++;
-                                        outputCard.body.push(tip + " Deflagrate hits");
+                                        outputCard.body.push(tip + "[#FF0000]Deflagrate hits[/#]");
                                     } else {
                                         outputCard.body.push(tip + " Deflagrate does not hit")
                                     }
@@ -4071,7 +4071,7 @@ log(hit)
                             }
     
                         } else {
-                            outputCard.body.push(tip + " " + target.name + " - Saves vs " + weapon);
+                            outputCard.body.push(tip + " " + target.name + " - Saves vs " + weapon.name);
                         }
 
                         if (alive === true) {
