@@ -336,7 +336,7 @@ const LI = (()=> {
     const SpaceMarineNames = ["Felix","Valerius","Valentine","Lucius","Cassius","Magnus","Claudius","Adrian","August","Gaius","Agrippa","Marcellus","Silas","Atticus","Jude","Sebastian","Miles","Magnus","Aurelius","Leo"];
     const AuxiliaNames = ["Anders","Bale","Bask","Black","Creed","Dekkler","Gruber","Hekler","Janssen","Karsk","Kell","Lenck","Lynch","Mira","Niels","Odon","Ovik","Pask","Quill","Rogg","Ryse","Stahl","Stein","Sturm","Trane","Volkok","Wulfe"];
 
-    const Naming = (name,faction) => {
+    const Naming = (name,faction,rank) => {
         name = name.replace(faction + " ","");
         if (name.includes("w/")) {
             name = name.split("w/")[0];
@@ -344,12 +344,11 @@ const LI = (()=> {
             name = name.split("//")[0];
         }
         name = name.trim();
-        name += " " + nameArray[name];
         if (rank === 4) {
             if (SpaceMarineFactions.includes(faction)) {
                 name += " " + SpaceMarineNames[randomInteger(SpaceMarineNames.length - 1)];
             } else if (faction.includes("Auxilia")) {
-                name += " " + AuxiliaNames[randomInteger(FactionNames[faction].length - 1)];
+                name += " " + AuxiliaNames[randomInteger(AuxiliaNames.length - 1)];
             } else if (faction.includes("Legio")) {
                 //Titan Legions
             } else if (faction.includes("House")) {
@@ -625,6 +624,7 @@ const LI = (()=> {
             let char = getObj("character", token.get("represents")); 
             let attributeArray = AttributeArray(char.id);
             let faction = attributeArray.faction;
+            let rank = parseInt(attributeArray.rank) || 1;
             let player = (TraitorForces.includes(faction)) ? 1:0;
             let type = attributeArray.type;
             let structureInfo;
@@ -643,7 +643,7 @@ const LI = (()=> {
             }
             if (type !== "Structure" && type !== "System Unit") {
                 if (!state.LI.models[tokenID]) {
-                    name = Naming(char.get("name"),faction);
+                    name = Naming(char.get("name"),faction,rank);
                     state.LI.models[tokenID] = {
                         unitID: unitID,
                         formationID: formationID,
@@ -740,7 +740,7 @@ const LI = (()=> {
                 }
 
                 let dice = attributeArray["weapon"+i+"dice"];
-                let tohit = parseInt(attributeArray["weapon"+i+"tohit"]) || 7;
+                let toHit = parseInt(attributeArray["weapon"+i+"tohit"]) || 7;
                 let ap = attributeArray["weapon"+i+"ap"] || 0;
                 if (ap !== "Special") {
                     ap = parseInt(ap);
@@ -769,7 +769,7 @@ const LI = (()=> {
                     minRange: minRange,
                     maxRange: maxRange,
                     dice: dice,
-                    tohit: tohit,
+                    toHit: toHit,
                     ap: ap,
                     traits: traits,
                     arc: arc,
@@ -867,7 +867,7 @@ const LI = (()=> {
             this.id = tokenID;
             this.unitID = unitID;
             this.formationID = formationID;
-            this.rank = parseInt(attributeArray.rank) || 1;
+            this.rank = rank;
             this.player = player;
             this.faction = faction;
             this.location = location;
@@ -3375,10 +3375,7 @@ log(model.name)
                     special = "Indirect"
                 }
                 let losResult = LOS(shooter.id,target.id,special);
-                if ((losResult.los === false && shooter.hasIndirect === false) || onlyVisible === true) {
-                        losFlag = true;
-                        continue;
-                };
+            
                 if (losResult.los === false) {
                     if (shooter.hasIndirect === true && onlyVisible === false) {
                         //has an indirect capable weapon && is targeting all
@@ -3420,11 +3417,13 @@ log(model.name)
                 
 
                 let weaponNumbers = [];
+    
                 for (let w=0;w<shooter.weaponArray.length;w++) {
                     if (shooter.token.get(SM.shocked) === true && w > 0) {
                         continue;
                     }
                     let weapon = DeepCopy(shooter.weaponArray[w]);
+    log(weapon)
                     if (shooter.token.get(SM.moved) === false && weapon.traits.includes("Siege Weapon") === true) {
                         weapon.maxRange *= 2;
                     }
@@ -3445,7 +3444,6 @@ log(model.name)
 
                     weaponNumbers.push(w);
                     ewa.push(w);
-                    break;
                 }
                 if (weaponNumbers.length > 0) {
                     let etaInfo = {
@@ -3510,12 +3508,14 @@ log(model.name)
 
         for (let s=0;s<shooterIDArray.length;s++) {
             let shooter = ModelArray[shooterIDArray[s]];
-
+log(shooter.name)
+log(shooter.ewa)
             for (let i=0;i<shooter.ewa.length;i++) {
                 let weapon = shooter.weaponArray[shooter.ewa[i]];
+log(weapon.name)
                 let wthtip = toHitTip;
-                let wth = toHitMod;
-                let toHit = weapon.toHit;
+                let wth = parseInt(toHitMod);
+                let toHit = parseInt(weapon.toHit);
                 let csFlag = false;
                 if (weapon.traits.includes("Collapsing Singularity")) {
                     let csRoll = randomInteger(6);
@@ -3535,11 +3535,6 @@ log(model.name)
                         wthtip += "Collapsing Singularity!<br>Shields bypassed, Invulnerable Saves bypassed!";
                     }
                 }
-
-
-
-
-
 
                 if (weapon.traits.includes("Graviton")) {
                     if (avgArmour === undefined) {
@@ -3610,7 +3605,8 @@ log(model.name)
 
                 let hits = 0;
                 let rolls = [];
-                let needed = Math.min(6,Math.max(2,toHit - wth)); 
+                let needed = toHit - wth;
+                needed = Math.min(6,Math.max(2,needed)); 
                 //1 is auto miss, 6 = auto hit
 
                 if (targetUnit.flyers === true && weapon.traits.includes("Skyfire") === false && shooter.special.includes("Tracking Array") === false) {
@@ -3765,9 +3761,11 @@ log(model.name)
         SetupCard(targetUnit.name,"Saves",targetUnit.faction);
         let kills = 0;
         let quakeFlag = false;
-        let hit = hitArray.shift();
-
-        if (hit) {
+        let hal = hitArray.length;
+log("HAL: " + hal)
+        do {
+            let hit = hitArray.shift();
+log(hit)
             let shooter = ModelArray[hit.shooterID];
             let arc = Arc(target,shooter); //arc that shooter is in
             let weapon = hit.weapon;
@@ -3779,7 +3777,7 @@ log(model.name)
                 if (weapon.traits.includes("Precise") || weapon.traits.includes("Impale")) {
                     target = ModelArray[targetIDArray[targetIDArray.length - 1]];
                 }
-               
+            
                 if (hit.weapon.traits.includes("Impale")) {
                     let sRoll = randomInteger(6);
                     let tRoll = randomInteger(6)
@@ -4019,9 +4017,9 @@ log(model.name)
                                     kills++;
                                     alive = false;
                                     if (target.type === "Infantry" || target.type === "Cavalry") {
-                                        outputCard.body.push(tip + " " + target.name + " is killed");
+                                        outputCard.body.push(tip + " " + target.name + " is killed by " + weapon.name);
                                     } else {
-                                        outputCard.body.push(tip + " " + target.name + " is destroyed");
+                                        outputCard.body.push(tip + " " + target.name + " is destroyed by " + weapon.name);
                                     }
                                     //kill routine and remove from target array
                                 } else if (wounds > 1) {
@@ -4030,14 +4028,14 @@ log(model.name)
                                     target.token.set("bar1_value",wounds);
     
                                     if (wounds > 0) {
-                                        outputCard.body.push(tip + " " + target.name + " takes " + damage + " Damage");
+                                        outputCard.body.push(tip + " " + target.name + " takes " + damage + " Damage from " + weapon.name);
                                     } else {
                                         alive = false;
                                         kills++;
                                         if (target.type === "Infantry" || target.type === "Cavalry") {
-                                            outputCard.body.push(tip + " " + target.name + " is killed");
+                                            outputCard.body.push(tip + " " + target.name + " is killed by " + weapon.name);
                                         } else {
-                                            outputCard.body.push(tip + " " + target.name + " is destroyed");
+                                            outputCard.body.push(tip + " " + target.name + " is destroyed by " + weapon.name);
                                         }
                                         //kill routine and remove from target array
                                     }
@@ -4048,11 +4046,23 @@ log(model.name)
                                     let deflagrateRoll = randomInteger(6);
                                     let tip = "Deflagrate Roll: " + deflagrateRoll + " vs. " + hit.needed + "+"; 
                                     tip = '[🎲](#" class="showtip" title="' + tip + ')';
-                                    if (deflagrateRoll >= hit.needed) {
-                                        let hitInfo = DeepCopy(hit)
-                                        hitInto.roll = deflagrateRoll
-                                        hitInfo.weapon.ap.replace("Deflagrate","");
-                                        hitArray.push(hitInfo);
+                        ///change back to hit.needed
+                                    if (deflagrateRoll >= 0) {
+                                        defWeapon = DeepCopy(weapon);
+                                        defWeapon.traits = defWeapon.traits.replace("Deflagrate","");
+                                        defWeapon.name = "Deflagrate Hit";
+                                        let defhitInfo = {
+                                            shooterID: shooterID,
+                                            weapon: defWeapon,
+                                            roll: deflagrateRoll,
+                                            needed: needed,
+                                            notes: hitNotes,
+                                        }                                        
+                         
+                                        log("Added Hit")
+                                        log(defhitInfo)
+                                        hitArray.push(defhitInfo);
+                                        hal++;
                                         outputCard.body.push(tip + " Deflagrate hits");
                                     } else {
                                         outputCard.body.push(tip + " Deflagrate does not hit")
@@ -4061,7 +4071,7 @@ log(model.name)
                             }
     
                         } else {
-                            outputCard.body.push(tip + " " + target.name + " - Saves");
+                            outputCard.body.push(tip + " " + target.name + " - Saves vs " + weapon);
                         }
 
                         if (alive === true) {
@@ -4085,7 +4095,9 @@ log(model.name)
                 //consepences here
                 
             }
-        }
+            hal--;
+        } while (hal > 0);
+
 
         if (kills > Math.round(targetUnitStartingModels/2) && targetUnit.modelIDs.length > 0) {
             outputCard.body.push("Morale Check");
