@@ -4046,8 +4046,7 @@ log(hit)
                                     let deflagrateRoll = randomInteger(6);
                                     let tip = "Deflagrate Roll: " + deflagrateRoll + " vs. " + hit.needed + "+"; 
                                     tip = '[🎲](#" class="showtip" title="' + tip + ')';
-                        ///change back to hit.needed
-                                    if (deflagrateRoll >= 0) {
+                                    if (deflagrateRoll >= hit.needed) {
                                         defWeapon = DeepCopy(weapon);
                                         defWeapon.traits = defWeapon.traits.replace("Deflagrate","");
                                         defWeapon.name = "Deflagrate Hit";
