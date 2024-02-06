@@ -8,7 +8,7 @@ const LI = (()=> {
     let TerrainArray = {};
     let edgeArray = [];
 
-    let TraitorForces = ["Deathguard"];
+    let TraitorForces = ["Deathguard","Traitor Auxilia","Legio Mortis"];
     let StructureNames = ["Civitas","Militas","Imperialis","Grandus","Fortification"];
 
     let ModelArray = {}; //Individual Models, Tanks etc
@@ -110,7 +110,15 @@ const LI = (()=> {
             "borderStyle": "5px groove",
             "dice": "Traitor",
         },
-
+        "Legio Mortis": {
+            "image": "https://s3.amazonaws.com/files.d20.io/images/378121193/B0eCWKgF2pwdXXDCSlZp_Q/thumb.png?1706719579",
+            "backgroundColour": "#000000",
+            "titlefont": "Anton",
+            "fontColour": "#ffffff",
+            "borderColour": "#be0b07",
+            "borderStyle": "5px groove",
+            "dice": "Traitor",
+        },
 
 
 
@@ -644,7 +652,7 @@ const LI = (()=> {
             let structureInfo;
             let height = 0;
             let wounds = parseInt(attributeArray.wounds) || 1;
-            let scale = parseInt(attributeArray.scale);
+            let scale = parseInt(attributeArray.scale) || 1;
             let shields = 0;
             let ionShields = 7;
             let jink = 7;
@@ -871,7 +879,7 @@ const LI = (()=> {
                 }
             }
 
-            let special = infoArray.toString();
+            let special = specials.toString();
             if (!special || special === "" || special === " ") {
                 special = " ";
             }
@@ -1806,6 +1814,10 @@ const LI = (()=> {
         
         let model1Hex = hexMap[model1.hexLabel];
         let model2Hex = hexMap[model2.hexLabel];
+        let md = ModelDistance(model1,model2);
+        let finalArc = md.arc;
+        let distanceT1T2 = md.distance; 
+
 
         if (model1Hex.terrain === "Offboard" || model2Hex.terrain === "Offboard") {
             let result = {
@@ -1824,7 +1836,7 @@ const LI = (()=> {
 
         let sameTerrain = findCommonElements(model1Hex.terrainIDs,model2Hex.terrainIDs);
         //log("Same Terrain:" + sameTerrain)
-        let shooterHexes = [model1.hex];
+        let shooterHexes = [md.hex1];
         let targetHexes = [];
         if (model1.type === "Infantry" && model1Hex.structureID.length > 0) {
             //Infantry in structure, use structure hexes for LOS
@@ -1911,15 +1923,12 @@ const LI = (()=> {
         model2Base -= level;
     
     
-    //log("Team1 Height: " + model1Height)
-    //log("Team2 Base Elev: " + model2Base)
-    //log("Team2 Total Height: " + model2Height)
-    //log("Level: " + level)
-    //log("Case: " + losCase)
+    log("Team1 Height: " + model1Height)
+    log("Team2 Base Elev: " + model2Base)
+    log("Team2 Total Height: " + model2Height)
+    log("Level: " + level)
+    log("Case: " + losCase)
 
-        let md = ModelDistance(model1,model2);
-        let finalArc = md.arc;
-        let distanceT1T2 = md.distance; 
 
         //Flyers see all and are seen by all
         if (model1.special.includes("Flyer") || model2.special.includes("Flyer")) {
@@ -1943,23 +1952,24 @@ const LI = (()=> {
         shooterHexLoop:
         for (let s=0;s<shooterHexes.length;s++) {
             let shooterHex = shooterHexes[s];
-    //log("Shooter Hex: " + shooterHex.label())
+    log("Shooter Hex: " + shooterHex.label())
     
             targetHexLoop:
             for (let t=0;t<targetHexes.length;t++) {
                 let targetHex = targetHexes[t];
-    //log("Target Hex: " + targetHex.label())
+    log("Target Hex: " + targetHex.label())
                 let targetLOS = 1;
                 let interHexes = shooterHex.linedraw(targetHex); //hexes between shooter and target
                 let denom = interHexes.length - 1;
                 let lastElevation = model1Height - level; //track hill height as go
-                let highestElevation = lastElevation;
+                let highestElevation = 0;
 
                 interHexLoop:
                 for (let i=1;i<interHexes.length;i++) {
+                 
                     let interHex = interHexes[i];
                     let ihLabel = interHex.label();
-    //log(i + ": " + ihLabel)
+    log(i + ": " + ihLabel)
     
                     let hex = hexMap[ihLabel];
                     let hexLOS = (sameTerrain === false) ? hex.los:true;
@@ -1967,7 +1977,6 @@ const LI = (()=> {
                     let interHexElevation = parseInt(hex.elevation) - level;
                     let interHexHeight = parseInt(hex.height) - level;
                     highestElevation = Math.max(interHexElevation,highestElevation);
-
                     let B1,B2;
     
                     if (losCase === 1) {
@@ -1981,13 +1990,13 @@ const LI = (()=> {
                         B2 = (((model2Height - model1Height)/denom) * i) + model1Height;
                     }
     
-    //log("InterHex Elevation: " + interHexElevation);
-    //log("Last Elevation: " + lastElevation);
-    //log("InterHex Height: " + interHexHeight);
-    //log("Highest Elevation: " + highestElevation);
+    log("InterHex Elevation: " + interHexElevation);
+    log("Last Elevation: " + lastElevation);
+    log("InterHex Height: " + interHexHeight);
+    log("Highest Elevation: " + highestElevation);
     
-    //log("B1: " + B1)
-    //log("B2: " + B2)
+    log("B1: " + B1)
+    log("B2: " + B2)
     
                     //Hills
                     if (interHexElevation < lastElevation) {
@@ -1998,7 +2007,7 @@ const LI = (()=> {
                             if (special !== "Indirect") {
                                 break interHexLoop;
                             }
-                        } else if (highestElevation >= model1Height && highestElevation < model2Height && highestElevation > model2Base) {
+                        } else if (highestElevation >= model1Height && highestElevation <= model2Height && highestElevation > model2Base) {
                             //partially blocks LOS
                             //log("Partial block by Hill")
                             targetLOS = Math.min(((B2 - highestElevation) / (B2 - B1)),targetLOS);
@@ -2006,7 +2015,7 @@ const LI = (()=> {
                     }
 
                     //Units in way
-                    if (hex.tokenIDs.length > 0) {
+                    if (hex.tokenIDs.length > 0 && special !== "Indirect" && special !== "Blast") {
                         let id3s = hex.tokenIDs;
                         for (let j=0;j<id3s.length;j++) {
                             let id3 = id3s[j];
@@ -2022,9 +2031,8 @@ const LI = (()=> {
                                 //fully blocks LOS
                                 targetLOS = 0;
                                 losReason = "LOS blocked by " + model3.name;
-                                if (special !== "Indirect") {
-                                    break interHexLoop;
-                                }                            } else if (model3Height > B1 && model3Height <= B2) {
+                                break interHexLoop;
+                            } else if (model3Height > B1 && model3Height <= B2) {
                                 //partially blocks LOS
                                 //log("Partial block by Unit")
                                 targetLOS = Math.min(((B2 - model3Height) / (B2 - B1)),targetLOS);
@@ -2037,9 +2045,8 @@ const LI = (()=> {
                             //fully blocks LOS
                             targetLOS = 0;
                             losReason = "LOS blocked by Terrain";
-                            if (special !== "Indirect") {
-                                break interHexLoop;
-                            }                        } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
+                            break interHexLoop;                
+                        } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
                             //partially blocks LOS
                             //log("Partial block by Terrain")
                             targetLOS = Math.min(((B2 - interHexHeight) / (B2 - B1)),targetLOS);
@@ -3329,7 +3336,7 @@ log(model.name)
         let shooterID = Tag[2];
         let targetID = Tag[3];
         let ignoreCover = (Tag[4] === "Yes") ? true:false;
-        let weaponNum = Tag[5] || 0; //weapon numbers if firing a single weapon eg. Titans
+        let weaponNum = Tag[5] || "ALL"; //weapon numbers if firing a single weapon eg. Titans
         let targetOnlyVisible = (Tag[6] === "Yes") ? true:false;//place a query in weapon macro, with "Target Only Visible Models|No|Yes"
     
         let shooter = ModelArray[shooterID];
@@ -3394,7 +3401,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
     //Range, Arc, LOS to the blast target
     _.each(shooterUnit.modelIDs,id => {
         let shooter = ModelArray[id];
-        let losResult = LOS(id,targetID);
+        let losResult = LOS(id,targetID,"Blast");
         let exception;
         if (losResult.los === false) {
             exception = "<br>" + shooter.name + ": No LOS to Target";
@@ -3406,7 +3413,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
             exception = "<br>" + shooter.name + ": Target Out of Arc";
         };
         if (exception) {
-            shooterExceptions.push(exception);
+            shooterExceptions += exception;
         } else {
             shooterIDs.push(id);
         }
@@ -3416,7 +3423,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
         results = {
             shooterIDs: [],
             shooterNotes: "",
-            error: tip + " Blast Target No Eligible",
+            error: tip + " Blast Target Not Eligible",
             targetUnitResults: [],
             buildingHit: {},
         }
@@ -3443,7 +3450,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
         let theta = randomInteger(360) * Math.PI / 180;
         let newCentre = new Point(( Math.cos(theta) * scatter + centre.x),(Math.sin(theta) * scatter + centre.y));
         let newHex = pointToHex(newCentre);
-        newCentre = hexMap[newHex.label()];
+        newCentre = hexMap[newHex.label()].centre;
         target.token.set({
             left: newCentre.x,
             top: newCentre.y,
