@@ -682,7 +682,7 @@ const LI = (()=> {
                     if (char.get("name").includes("Reaver")) {height = 20};
                     if (char.get("name").includes("Warlord")) {height = 25};
                 };
-            } else {
+            } else if (type === "Structure") {
                 height = char.get("name").replace(/\D/g,'') * 10;
                 let as,gn,w,caf,save;
                 if (name.includes("Militas")) {
@@ -906,6 +906,9 @@ const LI = (()=> {
             this.closestDist = 0; //used for ranging
             this.engaged = [];//ids of other models in close combat
 
+            this.weaponsFired = [];//weapon #s already fired this turn
+
+
             this.shields = shields;
             this.ionShields = ionShields;
             this.jinkSave = jink;
@@ -926,7 +929,7 @@ const LI = (()=> {
             this.vertices = vertices;
             this.large = large;
             this.largeHexList = []; //hexes that have parts of larger token, mainly for LOS 
-            hexMap[hexLabel].tokenIDs.push(token.id);
+            hexMap[hexLabel].modelIDs.push(token.id);
             if (this.large === true) {
                 LargeTokens(this); 
             }
@@ -1028,6 +1031,7 @@ const LI = (()=> {
                     model.token.set(SM.fired,false);
                     model.token.set(SM.moved,false);
                     model.token.set(SM.shocked,false);
+                    model.weaponsFired = [];
                     if (this.order !== "Fall Back") {
                         model.token.set(SM.charge,false);
                         model.token.set(SM.firstfire,false);
@@ -1310,9 +1314,9 @@ const LI = (()=> {
         //clear Old hexes, if any
         for (let h=0;h<model.largeHexList.length;h++) {
             let chlabel = model.largeHexList[h].label();
-            let index = hexMap[chlabel].tokenIDs.indexOf(model.id);
+            let index = hexMap[chlabel].modelIDs.indexOf(model.id);
             if (index > -1) {
-                hexMap[chlabel].tokenIDs.splice(index,1);
+                hexMap[chlabel].modelIDs.splice(index,1);
             }                    
         }        
         model.largeHexList = [];
@@ -1339,8 +1343,8 @@ const LI = (()=> {
                 if (check === true) {num ++};
             }
             if (num > 2) {
-                if (hexMap[radiusHexLabel].tokenIDs.includes(model.id) === false) {
-                    hexMap[radiusHexLabel].tokenIDs.push(model.id);
+                if (hexMap[radiusHexLabel].modelIDs.includes(model.id) === false) {
+                    hexMap[radiusHexLabel].modelIDs.push(model.id);
                 }
                 model.largeHexList.push(radiusHex);
             }
@@ -1545,7 +1549,7 @@ const LI = (()=> {
                     terrain: [], //array of names of terrain in hex
                     structureID: "",
                     terrainIDs: [],
-                    tokenIDs: [], //ids of tokens in hex
+                    modelIDs: [], //ids of tokens in hex
                     elevation: 0, //based on hills, in metres
                     height: 0, //height of top of terrain over elevation
                     nonHillHeight: 0,//height of trees etc above hills
@@ -1923,11 +1927,11 @@ const LI = (()=> {
         model2Base -= level;
     
     
-    log("Team1 Height: " + model1Height)
-    log("Team2 Base Elev: " + model2Base)
-    log("Team2 Total Height: " + model2Height)
-    log("Level: " + level)
-    log("Case: " + losCase)
+    //log("Team1 Height: " + model1Height)
+    //log("Team2 Base Elev: " + model2Base)
+    //log("Team2 Total Height: " + model2Height)
+    //log("Level: " + level)
+    //log("Case: " + losCase)
 
 
         //Flyers see all and are seen by all
@@ -1952,12 +1956,12 @@ const LI = (()=> {
         shooterHexLoop:
         for (let s=0;s<shooterHexes.length;s++) {
             let shooterHex = shooterHexes[s];
-    log("Shooter Hex: " + shooterHex.label())
+    //log("Shooter Hex: " + shooterHex.label())
     
             targetHexLoop:
             for (let t=0;t<targetHexes.length;t++) {
                 let targetHex = targetHexes[t];
-    log("Target Hex: " + targetHex.label())
+    //log("Target Hex: " + targetHex.label())
                 let targetLOS = 1;
                 let interHexes = shooterHex.linedraw(targetHex); //hexes between shooter and target
                 let denom = interHexes.length - 1;
@@ -1969,7 +1973,7 @@ const LI = (()=> {
                  
                     let interHex = interHexes[i];
                     let ihLabel = interHex.label();
-    log(i + ": " + ihLabel)
+    //log(i + ": " + ihLabel)
     
                     let hex = hexMap[ihLabel];
                     let hexLOS = (sameTerrain === false) ? hex.los:true;
@@ -1990,13 +1994,13 @@ const LI = (()=> {
                         B2 = (((model2Height - model1Height)/denom) * i) + model1Height;
                     }
     
-    log("InterHex Elevation: " + interHexElevation);
-    log("Last Elevation: " + lastElevation);
-    log("InterHex Height: " + interHexHeight);
-    log("Highest Elevation: " + highestElevation);
+    //log("InterHex Elevation: " + interHexElevation);
+    //log("Last Elevation: " + lastElevation);
+    //log("InterHex Height: " + interHexHeight);
+    //log("Highest Elevation: " + highestElevation);
     
-    log("B1: " + B1)
-    log("B2: " + B2)
+    //log("B1: " + B1)
+    //log("B2: " + B2)
     
                     //Hills
                     if (interHexElevation < lastElevation) {
@@ -2015,8 +2019,8 @@ const LI = (()=> {
                     }
 
                     //Units in way
-                    if (hex.tokenIDs.length > 0 && special !== "Indirect" && special !== "Blast") {
-                        let id3s = hex.tokenIDs;
+                    if (hex.modelIDs.length > 0 && special !== "Indirect" && special !== "Blast") {
+                        let id3s = hex.modelIDs;
                         for (let j=0;j<id3s.length;j++) {
                             let id3 = id3s[j];
                             let model3 = ModelArray[id3];
@@ -2722,7 +2726,7 @@ const LI = (()=> {
     const AddStructure = (model) => {
         let hexes = model.largeHexList;
         let side = parseInt(model.token.get("currentSide"));
-        let cover = model.structureInfo.coverSave;
+        let cover = model.structureInfo.coverSave || 7;
         let height = parseInt(model.height);
         let name = model.name;
         if (side > 0) {
@@ -3354,12 +3358,12 @@ log(model.name)
         } else {
             results = Regular(shooterID,targetID,weaponNum);
         }
-        let shooterIDs = results.shooterIDs; //eligible shooters
-        let shooterNotes = results.notes;
+
+        log(results)
+
+        PrintCard();
         let error = results.error;
-        let targetUnitResults = results.targetUnitResults; //eligible targets organized into their units
-    
-    
+
         if (error) {
             outputCard.body.push(error); //already fired, out of arc etc
             PrintCard();
@@ -3367,7 +3371,8 @@ log(model.name)
         }
     
     
-        log(results)
+    
+        
     
     
     
@@ -3384,9 +3389,7 @@ log(model.name)
     
     
     
-    
-    
-    
+        PrintCard();
     
     }
 
@@ -3403,6 +3406,9 @@ const Blast = (shooterID,targetID,weaponNum) => {
         let shooter = ModelArray[id];
         let losResult = LOS(id,targetID,"Blast");
         let exception;
+        if (shooter.weaponsFired.includes(weaponNum)) {
+            exception = "<br>" + shooter.name + ": Has Fired this Weapon already";
+        }
         if (losResult.los === false) {
             exception = "<br>" + shooter.name + ": No LOS to Target";
         }
@@ -3465,6 +3471,10 @@ const Blast = (shooterID,targetID,weaponNum) => {
     let buildingHit = {};
 
     //if NOT, ignores garrison but still hits the building and any units outside
+log(hexMap[target.hexLabel])
+
+
+
     if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
         //Centre of blast is on a building, hits building and those within ONLY
         buildingHit[hexMap[target.hexLabel].structureID] = weapon.dice;
@@ -3472,7 +3482,6 @@ const Blast = (shooterID,targetID,weaponNum) => {
         _.each(garrisonUnitIDs,unitID => {
             let unit = UnitArray[unitID];
             let ids = [];
-            let hits = 0;
             //each model in garrison generates hit 50/50 and becomes legal target
             _.each(unit.modelIDs,id => {
                 if (randomInteger(2) === 1) {
@@ -3489,8 +3498,8 @@ const Blast = (shooterID,targetID,weaponNum) => {
         let targetHexes = target.hex.radius(radius-1); //as target hex is 1;
         let ids = [];
         _.each(targetHexes,targetHex => {
-            let HEX = hexMap[targetHex.label()];
-            _.each(HEX.modelIDs,id => {
+            let hex = hexMap[targetHex.label()];
+            _.each(hex.modelIDs,id => {
                 let model = ModelArray[id];
                 if (weapon.traits.includes("Skyfire") && model.special.includes("Flyer")) {
                     ids.push(id);
@@ -3498,8 +3507,8 @@ const Blast = (shooterID,targetID,weaponNum) => {
                     ids.push(id);
                 }
             })
-            if (Hex.structureID !== "") {
-                buildingHit[Hex.structureID] = weapon.dice;
+            if (hex.structureID !== "") {
+                buildingHit[hex.structureID] = parseInt(weapon.dice);
             }
         });
         ids = [...new Set(ids)];
@@ -3512,7 +3521,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
             if (model.large === true) {
                 //rather than 50/50, base it on % of hexes under blast
                 let numberHexes = 0;
-                _each(model.largeHexList,hex => {
+                _.each(model.largeHexList,hex => {
                     for (let i=0;i<targetHexes.length;i++) {
                         if (hex.label() === targetHexes[i].label()) {
                             numberHexes++;
@@ -3524,31 +3533,35 @@ const Blast = (shooterID,targetID,weaponNum) => {
                 if (roll <= numberHexes) {
                     if (!targetUnits[model.unitID]) {
                         targetUnits[model.unitID] = {
-                            hits: weapon.dice,
+                            hits: parseInt(weapon.dice),
                             ids: [id],
                         }
                     } else {
-                        targetUnits[model.unitID].hits += weapon.dice;
+                        targetUnits[model.unitID].hits += parseInt(weapon.dice);
                         targetUnits[model.unitID].ids.push(id);
                     }
                 }
             } else {
                 if (!targetUnits[model.unitID]) {
                     targetUnits[model.unitID] = {
-                        hits: weapon.dice,
+                        hits: parseInt(weapon.dice),
                         ids: [id],
                     }
                 } else {
-                    targetUnits[model.unitID].hits += weapon.dice;
+                    targetUnits[model.unitID].hits += parseInt(weapon.dice);
                     targetUnits[model.unitID].ids.push(id);
                 }
             }
         }
-    
+        let shooterTip;
+        if (shooterExceptions !== "") {
+            shooterTip = '[🎲](#" class="showtip" title="Shooters without Targets' + shooterExceptions + ')';
+        }
+
         let tip = '[🎲](#" class="showtip" title="Shooters without Targets' + shooterExceptions + ')';
         results = {
             shooterIDs: shooterIDs,
-            shooterNotes: tip,
+            shooterNotes: shooterTip,
             error: "",
             targetUnitResults: targetUnits,
             buildingHit: buildingHit,
@@ -3586,11 +3599,11 @@ const Blast = (shooterID,targetID,weaponNum) => {
                 model.hex = newHex;
                 model.hexLabel = newHexLabel;
                 model.location = newLocation;
-                let index = hexMap[oldHexLabel].tokenIDs.indexOf(tok.id);
+                let index = hexMap[oldHexLabel].modelIDs.indexOf(tok.id);
                 if (index > -1) {
-                    hexMap[oldHexLabel].tokenIDs.splice(index,1);
+                    hexMap[oldHexLabel].modelIDs.splice(index,1);
                 }
-                hexMap[newHexLabel].tokenIDs.push(tok.id);
+                hexMap[newHexLabel].modelIDs.push(tok.id);
                 if (model.large === true) {
                     model.vertices = TokenVertices(tok);
                     LargeTokens(model);
