@@ -3293,7 +3293,21 @@ log(model.name)
 
     }
 
-
+    const Garrisons = (structureID) => {
+        let structure = ModelArray[structureID];
+        let hexes = structure.largeHexList;
+        let unitIDs = [];
+        _.each(hexes,hex => {
+            let Hex = hexMap[hex.label()];
+            if (Hex.modelIDs.length > 0) {
+                _.each(Hex.modelIDs,id => {
+                    unitIDs.push(ModelArray[id].unitID);
+                });
+            }
+        });
+        unitIDs = [...new Set(unitIDs)];
+        return unitIDs;
+    }
 
 
 
@@ -3317,8 +3331,8 @@ log(model.name)
         let shooter = ModelArray[shooterID];
         let target = ModelArray[targetID];
         let shooterUnit = UnitArray[shooter.unitID];
-        let targetUnit = UnitArray[target.unitID];
-        let targetUnitStartingModels = targetUnit.modelIDs.length;
+
+        let targetUnits = []; //array of units hit, usually one unit, but may be more for barrage, blast, beam and similar
        
         SetupCard(shooterUnit.name,"Hits",shooterUnit.faction);
         //check Unit hasnt already fired
@@ -3329,15 +3343,76 @@ log(model.name)
             return;
         }
 
-        let isGarrisoned = (target.type === "Infantry" && hexMap[target.hexLabel].structureID !== "") ? true:false;
-//add in other units IF barrage and targetUnit is garrisoned - other units owuld be other units garrison in that building
+        if (target.type === "System Unit") {
+            let type = target.token.get("gmnotes").toString();
+            if (type.includes("Blast")) {
+                let radius = type.replace.replace(/\D/g,'');
+                let scatter;
+                if (radius === 5) {
+                    scatter = (randomInteger(6) + 1) * 80;
+                } else {
+                    scatter = (randomInteger(3) + 1) * 80;
+                }
+                let scatterRoll = randomInteger(3);
+                if (scatterRoll > 1) {
+                    //scatters
+                    let centre = hexMap[target.hexLabel].centre;
+                    outputCard.body.push("Blast Scatters");
+                    let theta = randomInteger(360) * Math.PI / 180;
+                    let newCentre = new Point(( Math.cos(theta) * scatter + centre.x),(Math.sin(theta) * scatter + centre.y));
+                    let newHex = pointToHex(newCentre);
+                    newCentre = hexMap[newHex.label()];
+                    target.token.set({
+                        left: newCentre.x,
+                        top: newCentre.y,
+                    });
+                    target.hex = newHex;
+                    target.location = newCentre;
+                    target.hexLabel = newHex.label();
+                }
+ 
+
+
+
+
+
+            } else if (type.includes("Beam")) {
 
 
 
 
 
 
+            } 
+            //firestorm?
 
+
+
+        } else {
+            if (shooterUnit.hasBarrage === true && (target.type === "Infantry" && hexMap[target.hexLabel].structureID !== "")) {
+                //each unit garrisoning a building takes hits
+                let unitIDs = Garrisons(hexMap[target.hexLabel].structureID);
+                _.each(unitIDs,unitID => {
+                    let info = {
+                        unitID: unitID,
+                        hitArray: [],
+                        startingModels: UnitArray[unitID].modelIDs.length,
+                    }   
+                    targetUnits.push(info);
+                })
+            } else {
+                let info = {
+                    unitID: target.unitID,
+                    hitArray: [],
+                    startingModels: UnitArray[target.unitID].modelIDs.length,
+                }   
+                targetUnits.push(info);
+            }
+        }
+
+
+
+////////////////////
 
 
 
