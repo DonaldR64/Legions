@@ -255,6 +255,20 @@ const LI = (()=> {
         "woods": {name: "Woods",height: 20,los: false,coverSave: 5,class: "Obstructing"},
     }
 
+    const bypassVoid = ["Burrowing","Bypass","Impale","Psi","Warp"];
+    const bypassInvulnerable = ["Psi","Warp"];
+    const bypassIon = ["Psi","Warp"];
+    const bypassCover = ["Psi","Warp","Firestorm","Ignores Cover"];
+    const bypassJink = ["placeholder"];
+    const antiStructure = ["Bombing Run","Bunker Buster","Demolisher","Heavy Barrage","Heavy Beam","Wrecker"]
+
+
+
+
+
+
+
+
     const simpleObj = (o) => {
         let p = JSON.parse(JSON.stringify(o));
         return p;
