@@ -3417,15 +3417,7 @@ const CreateBlast = (msg) => {
     let img = "https://s3.amazonaws.com/files.d20.io/images/105823565/P035DS5yk74ij8TxLPU8BQ/thumb.png?15826799915";
     img = getCleanImgSrc(img);
     let represents = "-NAZtEQYwkNjQqZmyabb";
-    let abilArray = findObjs({  _type: "ability", _characterid: represents});
-    //clear old abilities
-    for(let a=0;a<abilArray.length;a++) {
-        abilArray[a].remove();
-    } 
-    let abilityAction = "!CheckBlastLOS;@{selected|token_id}";
-    AddAbility("Check LOS/Range",abilityAction,represents);
-    abilityAction = "!Shooting;Blast;@{selected|token_id};@{target|token_id};No;" + weaponNum;
-    AddAbility("Fire " + weapon.name,abilityAction,represents);
+
     let newToken = createObj("graphic", {   
         left: shooter.location.x,
         top: shooter.location.y,
@@ -3440,6 +3432,16 @@ const CreateBlast = (msg) => {
         aura1_radius: radius,
     });
     toFront(newToken);
+
+    //clear old abilities
+    for(let a=0;a<abilArray.length;a++) {
+        abilArray[a].remove();
+    } 
+    let abilArray = findObjs({  _type: "ability", _characterid: represents});
+    let abilityAction = "!CheckTemplateLOS;Blast;"+ shooterID + ";" + newToken.id;
+    AddAbility("Check LOS/Range",abilityAction,represents);
+    abilityAction = "!Shooting;Blast;@{selected|token_id};" + newToken.id + ";No;" + weaponNum;
+
     let model = new Model(newToken.id,0,0);
     outputCard.body.push("Move into Place");
     outputCard.body.push("Select Fire when Done");
