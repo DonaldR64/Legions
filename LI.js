@@ -880,6 +880,7 @@ const LI = (()=> {
             
             this.eta = [];//used to track eligible targets
             this.ewa = [];//used to track eligible weapons
+            this.losPenalty = 0;
             this.closestDist = 0; //used for ranging
             this.engaged = [];//ids of other models in close combat
 
@@ -3303,7 +3304,8 @@ log(model.name)
         let targetID = Tag[2];
         let ignoreCover = (Tag[3] === "Yes") ? true:false;
         let numbers = Tag[4] || 1; //weapon numbers
-        let onlyVisible = (Tag[5] === "No") ? false:true;//place a query in weapon macro, with "Target Only Visible Models|No|Yes"
+        //let onlyVisible = (Tag[5] === "No") ? false:true;//place a query in weapon macro, with "Target Only Visible Models|No|Yes"
+        let onlyVisible = false;
 
         let bypassVoid = ["Burrowing","Bypass","Impale","Psi","Warp"];
         let bypassInvulnerable = ["Psi","Warp"];
@@ -3458,6 +3460,7 @@ log(model.name)
             shooter.eta = eta;
             shooter.closestDist = closestDist;
             shooter.ewa = ewa;
+            shooter.losPenalty = losPenalty;
             if (eta.length > 0) {
                 shooterIDArray.push(shooter.id);
             } else {
@@ -3572,9 +3575,15 @@ log(weapon.name)
                     }
                 }
 
-                if (weapon.traits.includes("Barrage") && isGarrisoned === true) {
-                    attacks = Math.round(attacks/2);
+                if (weapon.traits.includes("Barrage")) {
+                    if (isGarrisoned === true) {
+                        attacks = Math.round(attacks/2);
+                    }
                     extraTips += "<br>Barrage";
+                    if (shooter.losPenalty !== 0) {
+                        wthtip += "<br>Indirect Fire -1";
+                        wth += 1;
+                    }
                 }
 
 
@@ -3605,7 +3614,7 @@ log(weapon.name)
 
                 let hits = 0;
                 let rolls = [];
-                let needed = toHit - wth;
+                let needed = toHit + wth;
                 needed = Math.min(6,Math.max(2,needed)); 
                 //1 is auto miss, 6 = auto hit
 
@@ -3721,7 +3730,7 @@ log(weapon.name)
                 rolls.sort();
                 rolls.reverse();
                 let tip = "Rolls: " + rolls.toString() + " vs " + needed + "+";
-                tip += toHitTip + extraTips;
+                tip += toHitTip + wthtip + extraTips;
                 tip = '[🎲](#" class="showtip" title="' + tip + ')';
                 if (hits === 0) {
                     line = tip + " " + shooter.name + " misses";
