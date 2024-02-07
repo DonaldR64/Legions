@@ -3697,6 +3697,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
     let baseToHitTips = "Base: " + baseToHit + "+"
     
     let unitHitArray = [];
+    let shooter = ModelArray[shooterID];
 
     let keys = Object.keys(targetUnitsHit);
     for (let i=0;i<keys.length;i++) {
@@ -3706,6 +3707,12 @@ const Blast = (shooterID,targetID,weaponNum) => {
         let extraTips = "";
         let modelIDs = targetUnitsHit[keys[i]];
         let attacks = modelIDs.length * weapon.dice;
+
+//can this line be used/developed
+        let hits = WeaponHits(weapon,shooter,modelIDs,attacks);
+        // pull out toHit mods, roll attacks, pass back a hit array?
+
+
         let avgArmour = 0;
         _.each(modelIDs,id => {
             avgArmour += parseInt(ModelArray[id].save) || 6;
@@ -3741,7 +3748,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
         let needed = baseToHit + toHitMod;
         needed = Math.min(6,Math.max(2,needed));
         for (let a=0;a<attacks;a++) {
-            
+
 
 
 
