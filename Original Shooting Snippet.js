@@ -306,6 +306,7 @@ log(weapon.name)
                 if (weapon.traits.includes("Graviton")) {
                     if (avgArmour === undefined) {
                         if (targetUnit.type === "Structure") {
+            //moved to buildinghits
                             avgArmour = 3;
                             wth = 0;
                         } else {
@@ -404,7 +405,7 @@ log(weapon.name)
 
                     if (weapon.traits.includes("Accurate") && roll < needed) {
                         roll2 = randomInteger(6);
-                        roll = Math.max(roll,roll2);
+                        roll = Math.max(roll,roll2); --- > should be just roll2
                         if (extraTips.includes("Accurate") === false) {
                             extraTips += "<br>Accurate";
                         }

@@ -652,6 +652,7 @@ const LI = (()=> {
             let structureInfo;
             let height = 0;
             let wounds = parseInt(attributeArray.wounds) || 1;
+            let save = parseInt(attributeArray.save) || 7;
             let scale = parseInt(attributeArray.scale) || 1;
             let shields = 0;
             let ionShields = 7;
@@ -716,12 +717,12 @@ const LI = (()=> {
                 }
                 structureInfo = {
                     height: height,
-                    armourSave: as,
                     garrisonNumber: gn,
                     cafBonus: caf,
                     coverSave: save,
                 }
-
+                save = as;
+                wounds = wounds;
             }
 
             let location = new Point(token.get("left"),token.get("top"));
@@ -916,7 +917,7 @@ const LI = (()=> {
 
             this.hasIndirect = indirectWeapon;
 
-            this.save = parseInt(attributeArray.save) || 7;
+            this.save = save;
             this.caf = parseInt(attributeArray.caf) || 0;
             this.morale = parseInt(attributeArray.morale) || 0;
             this.movement = parseInt(attributeArray.movement) || 0;
@@ -3359,13 +3360,7 @@ log(model.name)
             results = Regular(shooterID,targetID,weaponNum);
         }
 
-        log(results)
-
-        PrintCard();
-        let error = results.error;
-
-        if (error) {
-            outputCard.body.push(error); //already fired, out of arc etc
+        if (results === "Error") {
             PrintCard();
             return;
         }
@@ -3482,9 +3477,6 @@ const CheckTemplateLOS = (msg) => {
 }
 
 
-    
-
-//amend below for multiple templates
 const Blast = (shooterID,targetID,weaponNum) => {
     let shooterIDs = [];
     let weapon = ModelArray[shooterID].weaponArray[weaponNum];
@@ -3512,153 +3504,175 @@ const Blast = (shooterID,targetID,weaponNum) => {
         } else {
             shooterIDs.push(id);
         }
-    })
-    if (shooterIDs.length === 0) {
-        let tip = '[😡](#" class="showtip" title="Shooters without Targets' + shooterExceptions + ')';
-        results = {
-            shooterIDs: [],
-            shooterNotes: "",
-            error: tip + " Blast Target Not Eligible",
-            targetUnitResults: [],
-            buildingHit: {},
-        }
-        return results;
-    } 
-
-    //now check for scatter
-    let target = ModelArray[targetID];
-    let traits = weapon.traits.split(",");
-    let radius;
-    _.each(traits,trait => {
-        if (trait.includes("Blast")) {
-            radius = trait;
-        }
     });
-    radius = radius.replace(/\D/g,'');
-    let scatter = (radius === 5) ? (randomInteger(6) + 1):(randomInteger(3) + 1);
-    scatter *= 80;
-    let scatterRoll = randomInteger(3);
-    if (scatterRoll > 1) {
-        //scatters
-        let centre = hexMap[target.hexLabel].centre;
-        outputCard.body.push("Blast Scatters");
-        let theta = randomInteger(360) * Math.PI / 180;
-        let newCentre = new Point(( Math.cos(theta) * scatter + centre.x),(Math.sin(theta) * scatter + centre.y));
-        let newHex = pointToHex(newCentre);
-        newCentre = hexMap[newHex.label()].centre;
-        target.token.set({
-            left: newCentre.x,
-            top: newCentre.y,
-        });
-        target.hex = newHex;
-        target.location = newCentre;
-        target.hexLabel = newHex.label();
+    if (shooterExceptions !== "") {
+        let tip = '[😡](#" class="showtip" title="Shooters without Targets' + shooterExceptions + ')';
+        if (shooterIDs.length === 0) {
+            outputCard.body.push("Error: " + tip + "Blast Target Not Eligible");
+            return "Error";
+        } else {
+            outputCard.body.push(tip + " Some Shooters were unable to Fire");
+        }
     }
-
-    //find targets and sort into units
-    let targetUnits = {};
-    let buildingHit = {};
-
-    //if NOT, ignores garrison but still hits the building and any units outside
-log(hexMap[target.hexLabel])
-
-
-
-    if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
-        //Centre of blast is on a building, hits building and those within ONLY
-        buildingHit[hexMap[target.hexLabel].structureID] = weapon.dice;
-        let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
-        _.each(garrisonUnitIDs,unitID => {
-            let unit = UnitArray[unitID];
-            let ids = [];
-            //each model in garrison generates hit 50/50 and becomes legal target
-            _.each(unit.modelIDs,id => {
-                if (randomInteger(2) === 1) {
-                    ids.push(id);
+        
+    let legrangePoints = [];
+    let targetUnitsHit = {};
+    let buildingsHit = {};
+    for (let s=0;s<shooterIDs.length;s++) {
+        let templateBuildingHits = {};
+        if (s === 0) {
+            //Check for scatter
+            let target = ModelArray[targetID];
+            let traits = weapon.traits.split(",");
+            let radius;
+            _.each(traits,trait => {
+                if (trait.includes("Blast")) {
+                    radius = trait;
                 }
             });
-            targetUnits[unit.id] = {
-                ids: ids,
-                hits: parseInt(weapon.dice) * ids.length,
-            }
-        });
-    } else {
-        //if NOT, ignores garrison but still hits the building and any units outside unless skyfire
-        let targetHexes = target.hex.radius(radius-1); //as target hex is 1;
-        let ids = [];
-        _.each(targetHexes,targetHex => {
-            let hex = hexMap[targetHex.label()];
-            _.each(hex.modelIDs,id => {
-                let model = ModelArray[id];
-                if (model.type !== "Structure" && model.type !== "System Unit") {
-                    if (weapon.traits.includes("Skyfire") && model.special.includes("Flyer")) {
-                        ids.push(id);
-                    } else if (weapon.traits.includes("Skyfire") === false && model.special.includes("Flyer") === false) {
-                        ids.push(id);
-                    }   
-                }
-            })
-            if (hex.structureID !== "") {
-                buildingHit[hex.structureID] = parseInt(weapon.dice);
-            }
-        });
-        ids = [...new Set(ids)];
-    
-        for (let m=0;m<ids.length;m++) {
-            let id = ids[m];
-            let model = ModelArray[id];
-            if (weapon.traits.includes("Skyfire") && model.special.includes("Flyer") === false) {continue};
-            if (weapon.traits.includes("Skyfire") === false && model.special.includes("Flyer")) {continue};
-            if (model.large === true) {
-                //rather than 50/50, base it on % of hexes under blast
-                let numberHexes = 0;
-                _.each(model.largeHexList,hex => {
-                    for (let i=0;i<targetHexes.length;i++) {
-                        if (hex.label() === targetHexes[i].label()) {
-                            numberHexes++;
-                            break;
-                        }
-                    }
+            radius = radius.replace(/\D/g,'');
+            let scatter = (radius === 5) ? (randomInteger(6) + 1):(randomInteger(3) + 1);
+            scatter *= 80;
+            let scatterRoll = randomInteger(3);
+            if (scatterRoll > 1) {
+                //scatters
+                let centre = hexMap[target.hexLabel].centre;
+                outputCard.body.push("Blast Scatters");
+                let theta = randomInteger(360) * Math.PI / 180;
+                let newCentre = new Point(( Math.cos(theta) * scatter + centre.x),(Math.sin(theta) * scatter + centre.y));
+                let newHex = pointToHex(newCentre);
+                newCentre = hexMap[newHex.label()].centre;
+                target.token.set({
+                    left: newCentre.x,
+                    top: newCentre.y,
                 });
-                let roll = randomInteger(model.largeHexList.length);
-                if (roll <= numberHexes) {
-                    if (!targetUnits[model.unitID]) {
-                        targetUnits[model.unitID] = {
-                            hits: parseInt(weapon.dice),
-                            ids: [id],
-                        }
-                    } else {
-                        targetUnits[model.unitID].hits += parseInt(weapon.dice);
-                        targetUnits[model.unitID].ids.push(id);
-                    }
-                }
+                target.hex = newHex;
+                target.location = newCentre;
+                target.hexLabel = newHex.label();
             } else {
-                if (!targetUnits[model.unitID]) {
-                    targetUnits[model.unitID] = {
-                        hits: parseInt(weapon.dice),
-                        ids: [id],
-                    }
-                } else {
-                    targetUnits[model.unitID].hits += parseInt(weapon.dice);
-                    targetUnits[model.unitID].ids.push(id);
-                }
+                outputCard.body.push("Blast Lands On Target");
             }
-        }
-        let shooterTip;
-        if (shooterExceptions !== "") {
-            shooterTip = '[🎲](#" class="showtip" title="Shooters without Targets' + shooterExceptions + ')';
+            if (shooterIDs.length > 1) {
+                //create lagrange points
+
+
+
+
+            }
+        } else if (s > 0) {
+            //use 'Lagrange' points to place this template, and update the points
+
+
+
+
+
+
         }
 
-        let tip = '[🎲](#" class="showtip" title="Shooters without Targets' + shooterExceptions + ')';
-        results = {
-            shooterIDs: shooterIDs,
-            shooterNotes: shooterTip,
-            error: "",
-            targetUnitResults: targetUnits,
-            buildingHit: buildingHit,
-        }
-        return results;
+        //find targets under THIS template and sort into units
+        //if center of blast is 'in' a building, hits building and those within only if NOT, ignores any garrisoned troops but still hits the building and any units outside unless skyfire
+        if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
+            //part 1 - in structure and weapon doesnt have skyfire
+            templateBuildingHits[hexMap[target.hexLabel].structureID] = 1;
+            let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
+            _.each(garrisonUnitIDs,unitID => {
+                let unit = UnitArray[unitID];
+                let ids = [];
+                //each model in garrison generates hit 50/50 and becomes valid target
+                _.each(unit.modelIDs,id => {
+                    if (randomInteger(2) === 1) {
+                        ids.push(id);
+                    }
+                });
+                targetUnitsHit[unit.id] = ids;
+            });
+        } else {
+            //part 2 - centre not in structure, or weapon has Skyfire
+            let targetHexes = target.hex.radius(radius-1); //as target hex is 1;
+            let ids = []; //as may be a multihex id, will check % and such once all done
+            _.each(targetHexes,targetHex => {
+                let hex = hexMap[targetHex.label()];
+                if (weapon.traits.includes(Skyfire)) {
+                    _.each(hex.modelIDs,id => {
+                        let model = ModelArray[id];
+                        if (model.type !== "Structure" && model.type !== "System Unit" && model.special.includes("Flyer")) {
+                            ids.push(id);
+                        }
+                    });
+                } else {
+                    if (hex.structureID === "") {
+                        _.each(hex.modelIDs,id => {
+                            let model = ModelArray[id];
+                            if (model.type !== "Structure" && model.type !== "System Unit" && model.special.includes("Flyer") === false) {
+                                ids.push(id);
+                            }
+                        });
+                    } else {
+                        templateBuildingHits[hex.structureID] = 1;
+                    }   
+                }            
+            });
+            ids = [...new Set(ids)];
+            //check to see if covered if multihex token
+            for (let m=0;m<ids.length;m++) {
+                let id = ids[m];
+                let model = ModelArray[id];
+                let add = true; //auto add here as no single hex tokens are partially under template
+                if (model.large === true) {
+                    add = false;
+                    //rather than 50/50, base it on % of hexes under blast
+                    let numberHexes = 0;
+                    _.each(model.largeHexList,hex => {
+                        for (let i=0;i<targetHexes.length;i++) {
+                            if (hex.label() === targetHexes[i].label()) {
+                                numberHexes++;
+                                break;
+                            }
+                        }
+                    });
+                    let roll = randomInteger(model.largeHexList.length);
+                    if (roll <= numberHexes) {add = true};
+                }
+                if (add === true) {
+                    if (!targetUnitsHit[model.unitID]) {
+                        targetUnitsHit[model.unitID] = [id];
+                    } else {
+                        targetUnitsHit[model.unitID].push(id);
+                    }
+                }
+            }
+        } //end of this shooter, onto next, building arrays still
+        //first, as multiple templates could hit same building, add these up
+        _.each(templateBuildingHits,buildingID => {
+            if (!buildingsHit[buildingID]) {
+                buildingsHit[buildingID] = 1;
+            } else {
+                buildingsHit[buildingID] += 1;
+            }
+        })
+    } //end of shooters
+    //targetUnitsHit will be models under template, organized into units of all templates
+    //buildingsHit will be any buildings caught in blast
+    //do buildings first
+    let buildingIDs = Object.keys(buildingsHit);
+    for (let i=0;i<buildingIDs.length;i++) {
+        let buildingID = buildingIDs[i];
+        let attacks = buildingsHits[buildingID] * weapon.dice;
+        BuildingHits(buildingID,weapon,attacks);
     }
+    //revise targetUnitsHit
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 
