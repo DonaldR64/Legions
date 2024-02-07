@@ -3669,7 +3669,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
     for (let i=0;i<buildingIDs.length;i++) {
         let buildingID = buildingIDs[i];
         let attacks = buildingsHits[buildingID] * weapon.dice;
-        buildingDown = BuildingHits(buildingID,weapon,attacks);
+        buildingDown = StructureHits(buildingID,weapon,attacks);
         
     }
     //revise targetUnitsHit if buildingDown === true - compare list to unit.modelIDs
@@ -3696,12 +3696,12 @@ const Blast = (shooterID,targetID,weaponNum) => {
     let baseToHit = parseInt(weapon.toHit);
     let baseToHitTips = "Base: " + baseToHit + "+"
     
-
-
+    let unitHitArray = [];
 
     let keys = Object.keys(targetUnitsHit);
     for (let i=0;i<keys.length;i++) {
         let unit = UnitArray[keys[i]];
+        let hitArray = [];
         let toHitMod = 0;
         let extraTips = "";
         let modelIDs = targetUnitsHit[keys[i]];
@@ -3737,7 +3737,18 @@ const Blast = (shooterID,targetID,weaponNum) => {
             toHitMod += 1;
         }
 
+        let rolls = [];
+        let needed = baseToHit + toHitMod;
+        needed = Math.min(6,Math.max(2,needed));
+        for (let a=0;a<attacks;a++) {
+            
 
+
+
+
+
+
+        }
 
 
 
@@ -3771,9 +3782,10 @@ const StructureHits = (structureID,weapon,attacks) => {
     let structureSave = parseInt(structure.save);
 
     let extraTips = "";
-    let toHit = parseInt(weapon.toHit) - 1;
+    let needed = parseInt(weapon.toHit) - 1;
+    needed = Math.min(6,Math.max(2,needed));
     if (weapon.traits.includes("Graviton")) {
-        toHit = 3;
+        needed = 3;
         extraTips += "<br>Graviton";
     }
     let rolls = [];
@@ -3787,13 +3799,13 @@ const StructureHits = (structureID,weapon,attacks) => {
             }
         }
         rolls.push(roll);
-        if (roll === 6 || roll >= toHit) {
+        if (roll >= needed) {
             hits++;
         }
     }
     rolls.sort();
     rolls.reverse();
-    shooterTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + toHit + "+" + extraTips + ')';
+    shooterTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + needed + "+" + extraTips + ')';
     let s = (hits ===1) ? "":"s";
     outputCard.body.push(shooterTip + " " + structure.name + " takes " + hits + " hit" + s + " from " + weapon.name);
 
@@ -3806,8 +3818,7 @@ const StructureHits = (structureID,weapon,attacks) => {
     }
     extraTips += "<br>Weapon AP: " + ap;
 
-
-    let needed = structureSave - ap;
+    needed = structureSave - ap;
     let wounds = 0;
     for (let i=0;i<hits;i++) {
         let roll = randomInteger(6) + randomInteger(6);
