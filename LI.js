@@ -1849,7 +1849,7 @@ const LI = (()=> {
                 shooterHexes = structureModel.largeHexList;
             }
         } 
-        if (model2.large === true || (model2.type === "Infantry" && model2Hex.structureID.length > 0)) {
+        if (model2.large === true || ((model2.type === "Infantry" && model2.type === "System Unit") && model2Hex.structureID.length > 0)) {
             //finds the hexes closest to shooter hex
             let targetHexLabels = [];
             let sorted = (model2.large === true) ? model2.largeHexList:ModelArray[model2Hex.structureID].largeHexList;
