@@ -310,6 +310,7 @@ log(weapon.name)
                             avgArmour = 3;
                             wth = 0;
                         } else {
+                            avgArmour = 0;
                             _.each(targetIDArray,id => {
                                 avgArmour += parseInt(ModelArray[id].save) || 6;
                             });

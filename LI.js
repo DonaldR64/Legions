@@ -254,13 +254,13 @@ const LI = (()=> {
         "#980000": {name: "Ruins",height: 10,los: false,coverSave: 5,class: "Obstructing"},
 
 
-
     };
 
     //generally obstacles and such, maybe look at being able to burn woods
     const MapTokenInfo = {
         "wall": {name: "Wall",height: 0,los: true,coverSave: 7,class: "Obstacle"},
         "woods": {name: "Woods",height: 20,los: false,coverSave: 5,class: "Obstructing"},
+        "rubble": {name: "Rubble",height: 0,los: false,coverSave: 6,class: "Difficult"},
     }
 
     const bypassVoid = ["Burrowing","Bypass","Impale","Psi","Warp"];
@@ -2611,11 +2611,11 @@ const LI = (()=> {
             _pageid: Campaign().get("playerpageid"),
             _type: "graphic",
             _subtype: "token",
-            layer: "objects",
         });
         for (let i=0;i<tokens.length;i++) {
             let token = tokens[i];
             let char = getObj("character", token.get("represents"));
+            if (!char) {continue};
             let name = char.get("name").split(" ");
             if (name[0] === "Objective") {
                 let sides = [];     
@@ -2662,6 +2662,7 @@ const LI = (()=> {
                     bar1_max: structureModel.wounds,
                     lockMovement: true,
                     name: structureModel.name,
+                    layer: "objects",
                 });
                 toBack(token);
                 AddStructure(structureModel); //adds to map
@@ -2730,8 +2731,9 @@ const LI = (()=> {
         let cover = model.structureInfo.coverSave || 7;
         let height = parseInt(model.height);
         let name = model.name;
+//fix this re rubble
         if (side > 0) {
-            name = "Ruins";
+            name = "Rubble";
             cover = 5;
             height = 10;
         } 
@@ -3479,12 +3481,20 @@ const CheckTemplateLOS = (msg) => {
 
 const Blast = (shooterID,targetID,weaponNum) => {
     let shooterIDs = [];
-    let weapon = ModelArray[shooterID].weaponArray[weaponNum];
+    let weapon = DeepCopy(ModelArray[shooterID].weaponArray[weaponNum]);
     let shooterUnit = UnitArray[ModelArray[shooterID].unitID];
     let shooterExceptions = "";
     //Range, Arc, LOS to the blast target
-    _.each(shooterUnit.modelIDs,id => {
+    for (let q=0;q<shooterUnit.modelIDs.length;q++) {
+        let id = shooterUnit.modelIDs[q]
         let shooter = ModelArray[id];
+        let sweapon = DeepCopy(shooter.weaponArray[weaponNum]);
+        if (shooter.token.get(SM.shocked) === true && weaponNum > 0) {
+            continue;
+        }
+        if (shooter.token.get(SM.moved) === false && sweapon.traits.includes("Siege Weapon") === true) {
+            sweapon.maxRange *= 2;
+        }
         let losResult = LOS(id,targetID,"Blast");
         let exception;
         if (shooter.weaponsFired.includes(weaponNum)) {
@@ -3493,10 +3503,10 @@ const Blast = (shooterID,targetID,weaponNum) => {
         if (losResult.los === false) {
             exception = "<br>" + shooter.name + ": No LOS to Target";
         }
-        if (losResult.distance < weapon.minRange || losResult.distance > weapon.maxRange) {
+        if (losResult.distance < sweapon.minRange || losResult.distance > sweapon.maxRange) {
             exception = "<br>" + shooter.name + ": No Range to Target";
         }
-        if ((weapon.arc === "Front" && losResult.arc !== "Front") || (weapon.arc === "Rear" && losResult.arc !== "Rear")) {
+        if ((sweapon.arc === "Front" && losResult.arc !== "Front") || (sweapon.arc === "Rear" && losResult.arc !== "Rear")) {
             exception = "<br>" + shooter.name + ": Target Out of Arc";
         };
         if (exception) {
@@ -3504,7 +3514,7 @@ const Blast = (shooterID,targetID,weaponNum) => {
         } else {
             shooterIDs.push(id);
         }
-    });
+    };
     if (shooterExceptions !== "") {
         let tip = '[😡](#" class="showtip" title="Shooters without Targets' + shooterExceptions + ')';
         if (shooterIDs.length === 0) {
@@ -3655,12 +3665,92 @@ const Blast = (shooterID,targetID,weaponNum) => {
     //buildingsHit will be any buildings caught in blast
     //do buildings first
     let buildingIDs = Object.keys(buildingsHit);
+    let buildingDown = false;
     for (let i=0;i<buildingIDs.length;i++) {
         let buildingID = buildingIDs[i];
         let attacks = buildingsHits[buildingID] * weapon.dice;
-        BuildingHits(buildingID,weapon,attacks);
+        buildingDown = BuildingHits(buildingID,weapon,attacks);
+        
     }
-    //revise targetUnitsHit
+    //revise targetUnitsHit if buildingDown === true - compare list to unit.modelIDs
+    if (buildingDown === true) {
+        let keys = Object.keys(targetUnitsHit);
+        for (let i=0;i<keys.length;i++) {
+            let unit = UnitArray[keys[i]];
+            let originalIDs = targetUnitsHit[keys[i]];
+            let newIDs = []
+            _.each(originalIDs,id => {
+                if (unit.modelIDs.includes(id)) {
+                    newIDs.push(id);
+                }
+            });
+            newIDs = [...new Set(newIDs)];
+            if (newIDs.length > 0) {
+                targetUnitsHit[keys[i]] = newIDs;
+            } else {
+                delete targetUnitsHit[keys[i]];
+            }
+        }
+    }
+    //now each unit takes attacks equal to # of models * weapon.dice
+    let baseToHit = parseInt(weapon.toHit);
+    let baseToHitTips = "Base: " + baseToHit + "+"
+    
+
+
+
+    let keys = Object.keys(targetUnitsHit);
+    for (let i=0;i<keys.length;i++) {
+        let unit = UnitArray[keys[i]];
+        let toHitMod = 0;
+        let extraTips = "";
+        let modelIDs = targetUnitsHit[keys[i]];
+        let attacks = modelIDs.length * weapon.dice;
+        let avgArmour = 0;
+        _.each(modelIDs,id => {
+            avgArmour += parseInt(ModelArray[id].save) || 6;
+            let hex = hexMap[ModelArray[id].hexLabel];
+            if (weapon.traits.includes("Ignores Cover") === false) {
+                if (hex.hitLevel === 4) {
+                    toHitMod = Math.max(2,toHitMod);
+                } else if (hex.hitLevel === 3) {
+                    toHitMod = Math.max(1,toHitMod);
+                } else if (hex.hitLevel === 2 && ModelArray[id].scale < 5) {
+                    toHitMod = Math.max(1,toHitMod);
+                } else if (hex.hitLevel === 1 && ModelArray[id].scale < 3) {
+                    toHitMod = Math.max(1,toHitMod);
+                }
+            }
+        });
+        if (toHitMod === 1) {
+            extraTips = "<br>Terrain -1";
+        } else if (toHitMod === 2) {
+            extraTips = "<br>Structure -2";
+        }
+        avgArmour = Math.floor(avgArmour/modelIDs.length);
+        if (weapon.traits.includes("Graviton")) {
+            baseToHit = avgArmour;
+            baseToHitTips = "Graviton: " + baseToHit +"+";
+        }
+        if (ModelArray[shooterUnit.modelIDs[0]].token.get(SM.quake) === true) {
+            extraTips += "<br>Quake -1";
+            toHitMod += 1;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+
 
 
 
@@ -3675,8 +3765,122 @@ const Blast = (shooterID,targetID,weaponNum) => {
 
 }
 
+const StructureHits = (structureID,weapon,attacks) => {
+    let structure = ModelArray[structureID];
+    let structureWounds = parseInt(structure.token.get("bar1_value"));
+    let structureSave = parseInt(structure.save);
+
+    let extraTips = "";
+    let toHit = parseInt(weapon.toHit) - 1;
+    if (weapon.traits.includes("Graviton")) {
+        toHit = 3;
+        extraTips += "<br>Graviton";
+    }
+    let rolls = [];
+    let hits = 0;
+    for (let i=0;i<attacks;i++) {
+        let roll = randomInteger(6);
+        if (weapon.traits.includes("Accurate") && roll < needed) {
+            roll = randomInteger(6);
+            if (extraTips.includes("Accurate") === false) {
+                extraTips += "<br>Accurate Used"
+            }
+        }
+        rolls.push(roll);
+        if (roll === 6 || roll >= toHit) {
+            hits++;
+        }
+    }
+    rolls.sort();
+    rolls.reverse();
+    shooterTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + toHit + "+" + extraTips + ')';
+    let s = (hits ===1) ? "":"s";
+    outputCard.body.push(shooterTip + " " + structure.name + " takes " + hits + " hit" + s + " from " + weapon.name);
+
+    rolls = [];
+    let ap = parseInt(weapon.ap);
+    extraTips = "Base: " + structureSave;
+    if (weapon.traits.includes("Bunker Buster")) {
+        ap *=2;
+        extraTips += "<br>Bunker Buster Weapon";
+    }
+    extraTips += "<br>Weapon AP: " + ap;
 
 
+    let needed = structureSave - ap;
+    let wounds = 0;
+    for (let i=0;i<hits;i++) {
+        let roll = randomInteger(6) + randomInteger(6);
+        rolls.push(roll);
+        if (roll < needed) {
+            if (weapon.traits.includes("Graviton")) {
+                gw = randomInteger(3) + 1;
+                wounds += gw;
+                extraTips += "Graviton Causes " + gw + " Damage";
+            } else {
+                wounds++;
+            }
+        }
+    }
+    rolls.sort();
+    rolls.reverse();
+    saveTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + needed + "+" + extraTips + ')';
+    if (wounds === 0) {
+        outputCard.body.push(saveTip + " No Damage was done!");
+    } else {
+        outputCard.body.push(saveTip + " It takes " + wounds + "  Damage");
+    }
+    
+    structureWounds -= wounds;
+
+    if (structureWounds > 0) {
+        structure.token.set("bar1_value",structureWounds);
+        return false;
+    } else {
+        outputCard.body.push("The Structure collapses into Rubble");
+        let sides = structure.token.get("sides").split("|");
+        if (sides[1] !== "") {
+            img = tokenImage(sides[1]);
+            if (img) {
+                structure.token.set({
+                    currentSide: 0,
+                    imgsrc: img,
+                    layer: "map",
+                    name: "Rubble"
+                });
+                toFront(structure.token);
+            }
+        }
+        
+        _.each(structure.largeHexList,hex => {
+            hexMap[hex.label()].terrain = hexMap[hex].terrain.replace(structure.name,"Rubble");
+            hexMap[hex.label()].structureID = "";
+            hexMap[hex.label()].cover = 6;
+            hexMap[hex.label()].los = true;
+            hexMap[hex.label()].hitLevel = 2;
+            hexMap[hex.label()].nonHillHeight = hexMap[hex.label()].elevation;
+            hexMap[hex.label()].height = hexMap[hex.label()].elevation;
+        })
+        
+        let garrisonUnitIDs = Garrisons(structure.id);
+
+        _.each(garrisonUnitIDs,unitID => {
+            let unit = UnitArray[unitID];
+            outputCard.body.push(unit.name);
+            let bc = {
+                name: "Structure Collapse",
+                ap: -1,
+                traits: " ",
+                sound: "Collapse",
+            }
+            _.each(unit.modelIDs,id => {
+                ModelSave(id,bc);
+            })
+        })
+        delete ModelArray[structure.id];
+        return true;
+    }
+}
 
 
 
