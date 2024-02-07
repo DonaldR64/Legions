@@ -3434,13 +3434,14 @@ const CreateBlast = (msg) => {
     toFront(newToken);
 
     //clear old abilities
+    let abilArray = findObjs({  _type: "ability", _characterid: represents});
     for(let a=0;a<abilArray.length;a++) {
         abilArray[a].remove();
     } 
-    let abilArray = findObjs({  _type: "ability", _characterid: represents});
-    let abilityAction = "!CheckTemplateLOS;Blast;"+ shooterID + ";" + newToken.id;
+    let abilityAction = "!CheckTemplateLOS;Blast;"+ shooterID + ";" + newToken.id + ";" + weaponNum;
     AddAbility("Check LOS/Range",abilityAction,represents);
-    abilityAction = "!Shooting;Blast;@{selected|token_id};" + newToken.id + ";No;" + weaponNum;
+    abilityAction = "!Shooting;Blast;" + shooterID + ";" + newToken.id + ";No;" + weaponNum;
+    AddAbility("Fire " + weapon.name,abilityAction,represents);
 
     let model = new Model(newToken.id,0,0);
     outputCard.body.push("Move into Place");
@@ -3448,7 +3449,37 @@ const CreateBlast = (msg) => {
     PrintCard();
 }
 
+const CheckTemplateLOS = (msg) => {
+    let Tag = msg.content.split(";");
+    let type = Tag[1];
+    let shooterID = Tag[2];
+    let targetID = Tag[3];
+    let weaponNum = Tag[4];
+    let shooter = ModelArray[shooterID];
+    let weapon = shooter.weaponArray[weaponNum];
+    SetupCard("Check LOS","",ModelArray[shooterID].faction);
 
+
+
+    if (type === "Blast") {
+        let losResult = LOS(shooterID,targetID,"Blast");
+        if (losResult.los === false) {
+            outputCard.body.push("No LOS");
+        } else if (losResult.distance > weapon.maxRange || losResult.distance < weapon.minRange) {
+            outputCard.body.push("Out of Range");
+        } else if (weapon.arc === "Front" && losResult.arc !== "Front" || weapon.arc === "Rear" && losResult.arc !== "Rear") {
+            outputCard.body.push("Out of Arc");
+        } else {
+            outputCard.body.push("In LOS, Range and Arc");
+        }
+    }
+
+
+
+
+
+    PrintCard();
+}
 
 
     
@@ -3559,10 +3590,12 @@ log(hexMap[target.hexLabel])
             let hex = hexMap[targetHex.label()];
             _.each(hex.modelIDs,id => {
                 let model = ModelArray[id];
-                if (weapon.traits.includes("Skyfire") && model.special.includes("Flyer")) {
-                    ids.push(id);
-                } else if (weapon.traits.includes("Skyfire") === false && model.special.includes("Flyer") === false) {
-                    ids.push(id);
+                if (model.type !== "Structure" && model.type !== "System Unit") {
+                    if (weapon.traits.includes("Skyfire") && model.special.includes("Flyer")) {
+                        ids.push(id);
+                    } else if (weapon.traits.includes("Skyfire") === false && model.special.includes("Flyer") === false) {
+                        ids.push(id);
+                    }   
                 }
             })
             if (hex.structureID !== "") {
@@ -3587,7 +3620,7 @@ log(hexMap[target.hexLabel])
                         }
                     }
                 });
-                let roll = randomInteger(model.largehexList.length);
+                let roll = randomInteger(model.largeHexList.length);
                 if (roll <= numberHexes) {
                     if (!targetUnits[model.unitID]) {
                         targetUnits[model.unitID] = {
@@ -3742,7 +3775,9 @@ log(hexMap[target.hexLabel])
             case '!CreateBlast':
                 CreateBlast(msg);
                 break;
-
+            case '!CheckTemplateLOS':
+                CheckTemplateLOS(msg);
+                break
 
         }
     };
