@@ -1349,8 +1349,8 @@ const LI = (()=> {
         ClearLarge(model);
         //adds tokenID to hexMap for LOS purposes
         let finalHexes = [model.hex];
-        if (hexMap[model.hex].modelIDs.includes(model.id) === false) {
-            hexMap[model.hex].modelIDs.push(model.id);
+        if (hexMap[model.hexLabel].modelIDs.includes(model.id) === false) {
+            hexMap[model.hexLabel].modelIDs.push(model.id);
         }
         let radiusHexes = model.hex.radius(model.radius);
         for (let i=0;i<radiusHexes.length;i++) {
@@ -1878,20 +1878,15 @@ const LI = (()=> {
             }
         } 
 
-log(model2)
-log(model2Hex)
-
 
         if (model2.large === true || ((model2.type === "Infantry" || model2.type === "System Unit") && model2Hex.structureID !== "")) {
             //finds the hexes closest to shooter hex
-log("Appropriate")
             let targetHexLabels = [];
             if (model2.large === true) {
                 sorted = model2.largeHexList;
             } else {
                 sorted = ModelArray[model2Hex.structureID].largeHexList;
             }
-log(sorted)
             sorted = sorted.sort(function (a,b) {
                 let aDist = a.distance(model1.hex);
                 let bDist = b.distance(model1.hex);
@@ -2771,14 +2766,11 @@ log(targetHexes)
         let cover = model.structureInfo.coverSave || 7;
         let height = parseInt(model.height);
         let name = model.name;
-//fix this re rubble
-        if (side > 0) {
-            name = "Rubble";
-            cover = 5;
-            height = 10;
-        } 
-    
         _.each(hexes,hex => {
+            let index = hexMap[hex.label()].terrain.indexOf("Open Ground");
+            if (index > -1) {
+                hexMap[hex.label()].terrain.splice(index,1);
+            }
             if (hexMap[hex.label()].terrain.includes(name) === false) {
                 hexMap[hex.label()].terrain.push(model.name);
                 hexMap[hex.label()].structureID = model.id;
@@ -2787,7 +2779,6 @@ log(targetHexes)
                 hexMap[hex.label()].hitLevel = 4;
                 hexMap[hex.label()].nonHillHeight = Math.max(hexMap[hex.label()].nonHillHeight,height);
                 hexMap[hex.label()].height = Math.max(hexMap[hex.label()].height,(hexMap[hex.label()].elevation + hexMap[hex.label()].nonHillHeight));
-        
             }
         })
     }
@@ -4015,13 +4006,15 @@ scatterRoll = 1
 
         let structureWounds = parseInt(structure.token.get("bar1_value"));
         let structureSave = parseInt(structure.save);
-
-        let extraTips = "";
-        let needed = parseInt(weapon.toHit) - 1;
+        let needed = parseInt(weapon.toHit);
+        let extraTips = "<br>" + weapon.name + ": " + needed + "+";
+        needed -= 1;
+        extraTips += "<br>Building +1";
+        
         needed = Math.min(6,Math.max(2,needed));
         if (weapon.traits.includes("Graviton")) {
             needed = 3;
-            extraTips += "<br>Graviton";
+            extraTips = "<br>" + weapon.name + ": 3+";
         }
         let rolls = [];
         let hits = 0;
