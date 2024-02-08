@@ -706,7 +706,7 @@ const LI = (()=> {
                 };
             } else if (type === "Structure") {
                 height = char.get("name").replace(/\D/g,'') * 10;
-                let as,gn,w,caf,save;
+                let as,gn,caf;
                 if (name.includes("Militas")) {
                     name = "Militas Imperialis";
                     as = 3;
@@ -1871,10 +1871,21 @@ const LI = (()=> {
                 shooterHexes = structureModel.largeHexList;
             }
         } 
-        if (model2.large === true || ((model2.type === "Infantry" && model2.type === "System Unit") && model2Hex.structureID.length > 0)) {
+
+log(model2)
+log(model2Hex)
+
+
+        if (model2.large === true || ((model2.type === "Infantry" || model2.type === "System Unit") && model2Hex.structureID !== "")) {
             //finds the hexes closest to shooter hex
+log("Appropriate")
             let targetHexLabels = [];
-            let sorted = (model2.large === true) ? model2.largeHexList:ModelArray[model2Hex.structureID].largeHexList;
+            if (model2.large === true) {
+                sorted = model2.largeHexList;
+            } else {
+                sorted = ModelArray[model2Hex.structureID].largeHexList;
+            }
+log(sorted)
             sorted = sorted.sort(function (a,b) {
                 let aDist = a.distance(model1.hex);
                 let bDist = b.distance(model1.hex);
@@ -1896,7 +1907,9 @@ const LI = (()=> {
         } else {
             targetHexes = [model2.hex];
         }
-    
+log(targetHexes)
+
+
         let finalLOS = false;
         let losReason;
         let finalCoverSave = model2Hex.coverSave;
@@ -3420,7 +3433,7 @@ log(model.name)
         let shooterID = Tag[1];
         let weaponNum = parseInt(Tag[2]);
         let shooter = ModelArray[shooterID];
-        let weapon = DeepCopy(shooter.weaponArray[weaponNum]);
+        let weapon = shooter.weaponArray[weaponNum];
         SetupCard(shooter.name,"Blast",shooter.faction);
         if (shooter.weaponsFired.includes(weaponNum)) {
             outputCard.body.push("Already Fired this Weapon this Turn");
@@ -3557,7 +3570,7 @@ log(model.name)
         let radius;
         for (let s=0;s<shooterIDs.length;s++) {
             let target;
-            let templateStructureHits = {};
+            let structureID = [];
             if (s === 0) {
                 //Check for scatter
                 target = ModelArray[targetID];
@@ -3571,6 +3584,7 @@ log(model.name)
                 let scatter = (radius === 5) ? (randomInteger(6) + 1):(randomInteger(3) + 1);
                 scatter *= 80;
                 let scatterRoll = randomInteger(3);
+scatterRoll = 1
                 if (scatterRoll > 1) {
                     //scatters
                     let centre = hexMap[target.hexLabel].centre;
@@ -3589,7 +3603,6 @@ log(model.name)
                 } else {
                     outputCard.body.push("Blast Lands On Target");
                 }
-                target.token.set("layer","map");
                 initialHexHit = target.hex;
                 if (shooterIDs.length > 1) {
                     //create lagrange points
@@ -3628,7 +3641,7 @@ log(model.name)
                     name: "Blast Target",
                     pageid: Campaign().get("playerpageid"),
                     imgsrc: img,
-                    layer: "map",
+                    layer: "objects",
                     aura1_color: "#FF0000",
                     aura1_radius: radius,
                 });
@@ -3649,7 +3662,7 @@ log(model.name)
             //find targets under THIS template and sort into units
             if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
                 //Add in Garrison if center of blast over building
-                templateStructureHits[hexMap[target.hexLabel].structureID] = 1;
+                structureID = hexMap[target.hexLabel].structureID
                 let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
                 _.each(garrisonUnitIDs,unitID => {
                     let unit = UnitArray[unitID];
@@ -3667,7 +3680,7 @@ log(model.name)
             let ids = []; //as may be a multihex id, will check % and such once all done
             _.each(targetHexes,targetHex => {
                 let hex = hexMap[targetHex.label()];
-                if (weapon.traits.includes(Skyfire)) {
+                if (weapon.traits.includes("Skyfire")) {
                     _.each(hex.modelIDs,id => {
                         let model = ModelArray[id];
                         if (model.type !== "Structure" && model.type !== "System Unit" && model.special.includes("Flyer")) {
@@ -3683,7 +3696,7 @@ log(model.name)
                             }
                         });
                     } else {
-                        templateStructureHits[hex.structureID] = 1;
+                        structureID = hex.structureID;
                     }   
                 }            
             });
@@ -3718,13 +3731,11 @@ log(model.name)
             }
             //first, as multiple templates could hit same structure, add these up
             //otherwise only 1 hit from a template
-            _.each(templateStructureHits,structureID => {
-                if (!structuresHit[structureID]) {
-                    structuresHit[structureID] = 1;
-                } else {
-                    structuresHit[structureID] += 1;
-                }
-            })
+            if (!structuresHit[structureID]) {
+                structuresHit[structureID] = 1;
+            } else {
+                structuresHit[structureID] += 1;
+            }
         } //end of shooters
         //targetUnitsHit will be models under template, organized into units of all templates
         //structuresHit will be any structures caught in blast
@@ -3733,7 +3744,7 @@ log(model.name)
         let structureDown = false;
         for (let i=0;i<structureIDs.length;i++) {
             let structureID = structureIDs[i];
-            let attacks = structuresHits[structureID] * weapon.dice;
+            let attacks = structuresHit[structureID] * weapon.dice;
             structureDown = StructureHits(structureID,weapon,attacks);
             
         }
@@ -3768,7 +3779,13 @@ log(model.name)
             unitHitArray[keys[i]] = hitArray;
         }
         PrintCard();
+
+
+
         //saves, by unit
+/*
+
+
         SetupCard(UnitArray[keys[0]].faction,"Saves",UnitArray[keys[0]].faction)
         for (let i=0;i<keys.length;i++) {
             let unit = UnitArray[keys[i]];
@@ -3799,10 +3816,9 @@ log(model.name)
 
 
 
-
         }
 
-
+*/
 
 
 
@@ -3824,7 +3840,7 @@ log(model.name)
         let testTarget = ModelArray[modelIDs[0]];
         let baseToHit = parseInt(weapon.toHit);
         if (!indirect) {indirect = false};
-        let hitTips = "Base: " + baseToHit + "+";
+        let hitTips = "<br>" + weapon.name + ": " + baseToHit + "+";
         let toHitMod = 0;
         let hitArray = [];
         let avgArmour = 0;
@@ -3846,13 +3862,13 @@ log(model.name)
         avgArmour = Math.floor(avgArmour/modelIDs.length);
         if (weapon.traits.includes("Graviton")) {
             baseToHit = avgArmour;
-            hitTips = "Graviton: " + baseToHit +"+";
+            hitTips = "<br>" + weapon.name + ": " + baseToHit +"+";
         }
 
         if (toHitMod === 1) {
-            hitTips = "<br>Terrain -1";
+            hitTips += "<br>Terrain -1";
         } else if (toHitMod === 2) {
-            hitTips = "<br>Structure -2";
+            hitTips += "<br>Structure -2";
         }
         if (shooter.token.get(SM.quake) === true) {
             hitTips += "<br>Quake -1";
@@ -3880,6 +3896,7 @@ log(model.name)
         let needed= baseToHit + toHitMod;
         needed = Math.min(6,Math.max(2,needed));
         let rolls = [];
+        let hits = 0;
         for (let j=0;j<attacks;j++) {
             let roll = randomInteger(6);
             rollText = roll.toString();
@@ -3947,7 +3964,7 @@ log(model.name)
                     }
                     hits++;
                     let hitInfo = {
-                        shooterID: shooterID,
+                        shooterID: shooter.id,
                         weapon: weapon,
                         roll: roll,
                         needed: needed,
@@ -3958,7 +3975,7 @@ log(model.name)
 
                 hits++;
                 let hitInfo = {
-                    shooterID: shooterID,
+                    shooterID: shooter.id,
                     weapon: weapon,
                     roll: roll,
                     needed: needed,
@@ -3969,8 +3986,8 @@ log(model.name)
 
         rolls.sort();
         rolls.reverse();
-        let tip = "Rolls: " + rolls.toString() + " vs " + needed + "+";
-        tip = '[🎲](#" class="showtip" title="' + hitTips + ')';
+        let tip = "Rolls: " + rolls.toString() + " vs " + needed + "+" + hitTips;
+        tip = '[🎲](#" class="showtip" title="' + tip + ')';
         if (hits === 0) {
             line = tip + " " + shooter.name + " misses";
         } else {
@@ -3989,6 +4006,7 @@ log(model.name)
 
     const StructureHits = (structureID,weapon,attacks) => {
         let structure = ModelArray[structureID];
+
         let structureWounds = parseInt(structure.token.get("bar1_value"));
         let structureSave = parseInt(structure.save);
 
@@ -4022,23 +4040,26 @@ log(model.name)
 
         rolls = [];
         let ap = parseInt(weapon.ap);
-        extraTips = "Base: " + structureSave;
+        extraTips = "<br>Structure Save: " + structureSave + "+";
+        extraTips += "<br>Weapon AP: " + ap;
+
         if (weapon.traits.includes("Bunker Buster")) {
             ap *=2;
-            extraTips += "<br>Bunker Buster Weapon";
+            extraTips += "<br>Bunker Buster Weapon (2xAP)";
         }
-        extraTips += "<br>Weapon AP: " + ap;
 
         needed = structureSave - ap;
         let wounds = 0;
         for (let i=0;i<hits;i++) {
-            let roll = randomInteger(6) + randomInteger(6);
-            rolls.push(roll);
+            let roll1 = randomInteger(6);
+            let roll2 = randomInteger(6);
+            let roll = roll1 + roll2;
+            rolls.push(roll1 + "+" + roll2);
             if (roll < needed) {
                 if (weapon.traits.includes("Graviton")) {
                     gw = randomInteger(3) + 1;
                     wounds += gw;
-                    extraTips += "Graviton Causes " + gw + " Damage";
+                    extraTips += "<br>Graviton Causes " + gw + " Damage";
                 } else {
                     wounds++;
                 }
@@ -4075,7 +4096,11 @@ log(model.name)
             }
             
             _.each(structure.largeHexList,hex => {
-                hexMap[hex.label()].terrain = hexMap[hex].terrain.replace(structure.name,"Rubble");
+                let index = hexMap[hex.label()].terrain.indexOf(structure.name);
+                if (index > -1) {
+                    hexMap[hex.label()].terrain.splice(index,1);
+                }
+                hexMap[hex.label()].terrain.push("Rubble");
                 hexMap[hex.label()].structureID = "";
                 hexMap[hex.label()].cover = 6;
                 hexMap[hex.label()].los = true;
@@ -4086,6 +4111,7 @@ log(model.name)
             
             let garrisonUnitIDs = Garrisons(structure.id);
 
+            /*
             _.each(garrisonUnitIDs,unitID => {
                 let unit = UnitArray[unitID];
                 outputCard.body.push(unit.name);
@@ -4099,6 +4125,7 @@ log(model.name)
                     ModelSave(id,bc);
                 })
             })
+            */
             delete ModelArray[structure.id];
             return true;
         }
@@ -4139,7 +4166,7 @@ log(model.name)
                     model.vertices = TokenVertices(tok);
                     LargeTokens(model);
                 }
-                if (state.LI.turn > 0 && newHex !== oldHex) {
+                if (state.LI.turn > 0 && newHex !== oldHex && model.type !== "System Unit" && model.type !== "Structure") {
                     tok.set(SM.moved, true);
                 }
             };
