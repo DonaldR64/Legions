@@ -3379,6 +3379,10 @@ log(model.name)
             results = Beam(shooterID,targetID,weaponNum);
         } else if (weaponType === "Firestorm") {
             results = Firestorm(shooterID,targetID,weaponNum);
+        } else if (weaponType === "Bombing Run") {
+            results = BombingRun(shooterID,targetID,weaponNum);
+        } else if (weaponType === "Barrage") {
+            results = Barrage(shooterID,targetID,weaponNum);
         } else {
             results = Regular(shooterID,targetID,weaponNum);
         }
@@ -3548,12 +3552,12 @@ log(model.name)
             
         let legrangePoints = [];
         let targetUnitsHit = {};
-        let buildingsHit = {};
+        let structuresHit = {};
         let initialHexHit;
         let radius;
         for (let s=0;s<shooterIDs.length;s++) {
             let target;
-            let templateBuildingHits = {};
+            let templateStructureHits = {};
             if (s === 0) {
                 //Check for scatter
                 target = ModelArray[targetID];
@@ -3643,10 +3647,10 @@ log(model.name)
             }
 
             //find targets under THIS template and sort into units
-            //if center of blast is 'in' a building, hits building and those within only if NOT, ignores any garrisoned troops but still hits the building and any units outside unless skyfire
+            //if center of blast is 'in' a structure, hits structure and those within only if NOT, ignores any garrisoned troops but still hits the structure and any units outside unless skyfire
             if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
                 //part 1 - in structure and weapon doesnt have skyfire
-                templateBuildingHits[hexMap[target.hexLabel].structureID] = 1;
+                templateStructureHits[hexMap[target.hexLabel].structureID] = 1;
                 let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
                 _.each(garrisonUnitIDs,unitID => {
                     let unit = UnitArray[unitID];
@@ -3681,7 +3685,7 @@ log(model.name)
                                 }
                             });
                         } else {
-                            templateBuildingHits[hex.structureID] = 1;
+                            templateStructureHits[hex.structureID] = 1;
                         }   
                     }            
                 });
@@ -3714,29 +3718,29 @@ log(model.name)
                         }
                     }
                 }
-            } //end of this shooter, onto next, building arrays still
-            //first, as multiple templates could hit same building, add these up
-            _.each(templateBuildingHits,buildingID => {
-                if (!buildingsHit[buildingID]) {
-                    buildingsHit[buildingID] = 1;
+            } //end of this shooter, onto next, structure arrays still
+            //first, as multiple templates could hit same structure, add these up
+            _.each(templateStructureHits,structureID => {
+                if (!structuresHit[structureID]) {
+                    structuresHit[structureID] = 1;
                 } else {
-                    buildingsHit[buildingID] += 1;
+                    structuresHit[structureID] += 1;
                 }
             })
         } //end of shooters
         //targetUnitsHit will be models under template, organized into units of all templates
-        //buildingsHit will be any buildings caught in blast
-        //do buildings first
-        let buildingIDs = Object.keys(buildingsHit);
-        let buildingDown = false;
-        for (let i=0;i<buildingIDs.length;i++) {
-            let buildingID = buildingIDs[i];
-            let attacks = buildingsHits[buildingID] * weapon.dice;
-            buildingDown = StructureHits(buildingID,weapon,attacks);
+        //structuresHit will be any structures caught in blast
+        //do structures first
+        let structureIDs = Object.keys(structuresHit);
+        let structureDown = false;
+        for (let i=0;i<structureIDs.length;i++) {
+            let structureID = structureIDs[i];
+            let attacks = structuresHits[structureID] * weapon.dice;
+            structureDown = StructureHits(structureID,weapon,attacks);
             
         }
-        //revise targetUnitsHit if buildingDown === true - compare list to unit.modelIDs
-        if (buildingDown === true) {
+        //revise targetUnitsHit if structureDown === true - compare list to unit.modelIDs
+        if (structureDown === true) {
             let keys = Object.keys(targetUnitsHit);
             for (let i=0;i<keys.length;i++) {
                 let unit = UnitArray[keys[i]];
@@ -3931,7 +3935,7 @@ log(model.name)
             if (testTarget.type === "Structure" && SearchSpecials(weapon.traits,antiStructure) === false) {
                 roll = 0;
                 rollText = 0;
-                hitTips += "<br>Weapon's Fire takes some chunks out of the Building but is unable to Damage";
+                hitTips += "<br>Weapon's Fire takes some chunks out of the Structure but is unable to Damage";
             }
 
             rolls.push(rollText);
