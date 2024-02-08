@@ -5,12 +5,12 @@
 	"notes": [""],
 	"sections": [
 		{"name": "Detachments", "formations": [
-			{"id": 501, "name": "HQ","units": "Command Squad","pts": 25,"upgrades": [1,2,3]},
-			{"id": 502, "name": "Core (max 3)","units": "4 Tactical Squads","pts": 35,"upgrades": [10,11,12,13,14,1,2,3]},
-            {"id": 503, "name": "Support (max 3)","pts": 0,"upgrades": [20,21,22,23,24,25,26,27,28,29,30,31,35,36,37,38,40,41,42,43,44,45,1,2,3]},
-            {"id": 504, "name": "Bastion (max 1)","pts": 0,"upgrades": []},
-			{"id": 505, "name": "Transport (max 2)","pts": 0,"upgrades": []},
-            {"id": 506, "name": "Vanguard (max 1)","pts": 0,"upgrades": []}
+			{"id": 501, "name": "HQ Squad","units": "Command Squad","pts": 25,"upgrades": [1,2,3]},
+			{"id": 502, "name": "Core Detachment (max 3)","units": "4 Tactical Squads","pts": 35,"upgrades": [10,11,12,13,14,1,2,3]},
+            {"id": 503, "name": "Support Detachment (max 3)","pts": 0,"upgrades": [20,21,22,23,24,25,26,27,28,29,30,31,35,36,37,38,40,41,42,43,44,45,1,2,3]},
+            {"id": 504, "name": "Bastion Detachment (max 1)","pts": 0,"upgrades": []},
+			{"id": 505, "name": "Transport Detachment (max 2)","pts": 0,"upgrades": []},
+            {"id": 506, "name": "Vanguard Detachment (max 1)","pts": 0,"upgrades": []}
 		]},
 
 	    {"name": "Additional Detachments (1 of)","formations":[
@@ -31,11 +31,11 @@
       	{"id": 2, "name": "Rhino w/ Havoc Launcher (max 1/Infantry Squad)", "pts": 8},
       	{"id": 3, "name": "Rhino w/ Multi-Melta (max 1/Infantry  Squad)", "pts": 10},
 
-		{"id": 10, "name": "2 Tactical Squads", "pts": 12},
-		{"id": 11, "name": "2 Plasma Squads", "pts": 15},
-		{"id": 12, "name": "2 Missile Launcher Squads", "pts": 15},
-		{"id": 13, "name": "2 Terminator Squads", "pts": 15},
-		{"id": 14, "name": "2 Assault Squads", "pts": 12},
+		{"id": 10, "name": "add 2 Tactical Squads", "pts": 12},
+		{"id": 11, "name": "add 2 Plasma Squads", "pts": 15},
+		{"id": 12, "name": "add 2 Missile Launcher Squads", "pts": 15},
+		{"id": 13, "name": "add 2 Terminator Squads", "pts": 15},
+		{"id": 14, "name": "add 2 Assault Squads", "pts": 12},
 
 		{"id": 20, "name": "4 Plasma Squads", "pts": 35},
 		{"id": 21, "name": "6 Plasma Squads", "pts": 50},
