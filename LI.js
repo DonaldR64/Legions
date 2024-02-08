@@ -605,6 +605,27 @@ const LI = (()=> {
             }
             return results;
         }
+
+        ring(rad) {
+            //returns array of hexes at radius rad ie a ring
+            //Not only is x + y + z = 0, but the absolute values of x, y and z are equal to twice the radius of the ring
+            let results = [];
+            let h;
+            let i = rad;
+            for (let j=-i;j<=i;j++) {
+                for (let k=-i;k<=i;k++) {
+                    for (let l=-i;l<=i;l++) {
+                        if((Math.abs(j) + Math.abs(k) + Math.abs(l) === i*2) && (j + k + l === 0)) {
+                            h = new Hex(j,k,l);
+                            results.push(this.add(h));
+                        }
+                    }
+                }
+            }
+            return results;
+        }
+
+
         angle(b) {
             //angle between 2 hexes
             let origin = hexToPoint(this);
@@ -3528,13 +3549,15 @@ log(model.name)
         let legrangePoints = [];
         let targetUnitsHit = {};
         let buildingsHit = {};
+        let initialHexHit;
+        let radius;
         for (let s=0;s<shooterIDs.length;s++) {
+            let target;
             let templateBuildingHits = {};
             if (s === 0) {
                 //Check for scatter
-                let target = ModelArray[targetID];
+                target = ModelArray[targetID];
                 let traits = weapon.traits.split(",");
-                let radius;
                 _.each(traits,trait => {
                     if (trait.includes("Blast")) {
                         radius = trait;
@@ -3562,21 +3585,61 @@ log(model.name)
                 } else {
                     outputCard.body.push("Blast Lands On Target");
                 }
+                target.token.set("layer","map");
+                initialHexHit = target.hex;
                 if (shooterIDs.length > 1) {
                     //create lagrange points
-
-
-
-
+                    let d = (radius - 1) * 2 + 1;
+                    legrangePoints = initialHexHit.ring(d);
                 }
             } else if (s > 0) {
                 //use 'Lagrange' points to place this template, and update the points
-
-
-
-
-
-
+                //run through remaining points, see which gets most models hit, pick that one, then remove it and those within its radius from legrange points
+                
+                let finalHex;
+                let bestNumber = 0;
+                
+                for (let i=0;i<legrangePoints.length;i++) {
+                    let hex = legrangePoints[i];
+                    let number = 0;
+                    let radiusHexes = hex.radius(radius);
+                    _.each(radiusHexes,hex=> {
+                        number += hexMap[hex.label()].modelIDs.length;
+                    })
+                    if (number > bestNumber) {
+                        finalHex = hex;
+                        bestNumber = number;
+                    }
+                }
+                //place a new template on finalHex
+                let img = "https://s3.amazonaws.com/files.d20.io/images/105823565/P035DS5yk74ij8TxLPU8BQ/thumb.png?15826799915";
+                img = getCleanImgSrc(img);
+                let represents = "-NAZtEQYwkNjQqZmyabb";
+                let newToken = createObj("graphic", {   
+                    left: hexMap[finalHex.label()].centre.x,
+                    top: hexMap[finalHex.label()].centre.y,
+                    width: 70, 
+                    height: 70,  
+                    represents: represents,
+                    name: "Blast Target",
+                    pageid: Campaign().get("playerpageid"),
+                    imgsrc: img,
+                    layer: "map",
+                    aura1_color: "#FF0000",
+                    aura1_radius: radius,
+                });
+                toFront(newToken);
+                target = new Model(newToken.id,0,0);
+                //remove from legrange points this and nearby hexes
+                newLP = [];
+                for (let i=0;i<legrangePoints.length;i++) {
+                    let hex = legrangePoints[i];
+                    if (hex.label() === finalHex.label() || hex.distance(finalHex) < ((radius - 1) * 2 + 1)) {
+                        continue;
+                    }
+                    newLP.push(hex);
+                }
+                legrangePoints = newLP;
             }
 
             //find targets under THIS template and sort into units
