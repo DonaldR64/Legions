@@ -3550,7 +3550,7 @@ log(model.name)
             }
         }
             
-        let legrangePoints = [];
+        let lagrangePoints = [];
         let targetUnitsHit = {};
         let structuresHit = {};
         let initialHexHit;
@@ -3594,17 +3594,17 @@ log(model.name)
                 if (shooterIDs.length > 1) {
                     //create lagrange points
                     let d = (radius - 1) * 2 + 1;
-                    legrangePoints = initialHexHit.ring(d);
+                    lagrangePoints = initialHexHit.ring(d);
                 }
             } else if (s > 0) {
                 //use 'Lagrange' points to place this template, and update the points
-                //run through remaining points, see which gets most models hit, pick that one, then remove it and those within its radius from legrange points
+                //run through remaining points, see which gets most models hit, pick that one, then remove it and those within its radius from lagrange points
                 
                 let finalHex;
                 let bestNumber = 0;
                 
-                for (let i=0;i<legrangePoints.length;i++) {
-                    let hex = legrangePoints[i];
+                for (let i=0;i<lagrangePoints.length;i++) {
+                    let hex = lagrangePoints[i];
                     let number = 0;
                     let radiusHexes = hex.radius(radius);
                     _.each(radiusHexes,hex=> {
@@ -3634,22 +3634,21 @@ log(model.name)
                 });
                 toFront(newToken);
                 target = new Model(newToken.id,0,0);
-                //remove from legrange points this and nearby hexes
+                //remove from lagrange points this and nearby hexes
                 newLP = [];
-                for (let i=0;i<legrangePoints.length;i++) {
-                    let hex = legrangePoints[i];
+                for (let i=0;i<lagrangePoints.length;i++) {
+                    let hex = lagrangePoints[i];
                     if (hex.label() === finalHex.label() || hex.distance(finalHex) < ((radius - 1) * 2 + 1)) {
                         continue;
                     }
                     newLP.push(hex);
                 }
-                legrangePoints = newLP;
+                lagrangePoints = newLP;
             }
 
             //find targets under THIS template and sort into units
-            //if center of blast is 'in' a structure, hits structure and those within only if NOT, ignores any garrisoned troops but still hits the structure and any units outside unless skyfire
             if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
-                //part 1 - in structure and weapon doesnt have skyfire
+                //Add in Garrison if center of blast over building
                 templateStructureHits[hexMap[target.hexLabel].structureID] = 1;
                 let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
                 _.each(garrisonUnitIDs,unitID => {
@@ -3663,63 +3662,62 @@ log(model.name)
                     });
                     targetUnitsHit[unit.id] = ids;
                 });
-            } else {
-                //part 2 - centre not in structure, or weapon has Skyfire
-                let targetHexes = target.hex.radius(radius-1); //as target hex is 1;
-                let ids = []; //as may be a multihex id, will check % and such once all done
-                _.each(targetHexes,targetHex => {
-                    let hex = hexMap[targetHex.label()];
-                    if (weapon.traits.includes(Skyfire)) {
+            }
+            let targetHexes = target.hex.radius(radius-1); //as target hex is 1;
+            let ids = []; //as may be a multihex id, will check % and such once all done
+            _.each(targetHexes,targetHex => {
+                let hex = hexMap[targetHex.label()];
+                if (weapon.traits.includes(Skyfire)) {
+                    _.each(hex.modelIDs,id => {
+                        let model = ModelArray[id];
+                        if (model.type !== "Structure" && model.type !== "System Unit" && model.special.includes("Flyer")) {
+                            ids.push(id);
+                        }
+                    });
+                } else {
+                    if (hex.structureID === "") {
                         _.each(hex.modelIDs,id => {
                             let model = ModelArray[id];
-                            if (model.type !== "Structure" && model.type !== "System Unit" && model.special.includes("Flyer")) {
+                            if (model.type !== "Structure" && model.type !== "System Unit" && model.special.includes("Flyer") === false) {
                                 ids.push(id);
                             }
                         });
                     } else {
-                        if (hex.structureID === "") {
-                            _.each(hex.modelIDs,id => {
-                                let model = ModelArray[id];
-                                if (model.type !== "Structure" && model.type !== "System Unit" && model.special.includes("Flyer") === false) {
-                                    ids.push(id);
-                                }
-                            });
-                        } else {
-                            templateStructureHits[hex.structureID] = 1;
-                        }   
-                    }            
-                });
-                ids = [...new Set(ids)];
-                //check to see if covered if multihex token
-                for (let m=0;m<ids.length;m++) {
-                    let id = ids[m];
-                    let model = ModelArray[id];
-                    let add = true; //auto add here as no single hex tokens are partially under template
-                    if (model.large === true) {
-                        add = false;
-                        //rather than 50/50, base it on % of hexes under blast
-                        let numberHexes = 0;
-                        _.each(model.largeHexList,hex => {
-                            for (let i=0;i<targetHexes.length;i++) {
-                                if (hex.label() === targetHexes[i].label()) {
-                                    numberHexes++;
-                                    break;
-                                }
+                        templateStructureHits[hex.structureID] = 1;
+                    }   
+                }            
+            });
+            ids = [...new Set(ids)];
+            //check to see if covered if multihex token
+            for (let m=0;m<ids.length;m++) {
+                let id = ids[m];
+                let model = ModelArray[id];
+                let add = true; //auto add here as no single hex tokens are partially under template
+                if (model.large === true) {
+                    add = false;
+                    //rather than 50/50, base it on % of hexes under blast
+                    let numberHexes = 0;
+                    _.each(model.largeHexList,hex => {
+                        for (let i=0;i<targetHexes.length;i++) {
+                            if (hex.label() === targetHexes[i].label()) {
+                                numberHexes++;
+                                break;
                             }
-                        });
-                        let roll = randomInteger(model.largeHexList.length);
-                        if (roll <= numberHexes) {add = true};
-                    }
-                    if (add === true) {
-                        if (!targetUnitsHit[model.unitID]) {
-                            targetUnitsHit[model.unitID] = [id];
-                        } else {
-                            targetUnitsHit[model.unitID].push(id);
                         }
-                    }
+                    });
+                    let roll = randomInteger(model.largeHexList.length);
+                    if (roll <= numberHexes) {add = true};
                 }
-            } //end of this shooter, onto next, structure arrays still
+                if (add === true) {
+                    if (!targetUnitsHit[model.unitID]) {
+                        targetUnitsHit[model.unitID] = [id];
+                    } else {
+                        targetUnitsHit[model.unitID].push(id);
+                    }
+                } 
+            }
             //first, as multiple templates could hit same structure, add these up
+            //otherwise only 1 hit from a template
             _.each(templateStructureHits,structureID => {
                 if (!structuresHit[structureID]) {
                     structuresHit[structureID] = 1;
@@ -3774,6 +3772,8 @@ log(model.name)
         SetupCard(UnitArray[keys[0]].faction,"Saves",UnitArray[keys[0]].faction)
         for (let i=0;i<keys.length;i++) {
             let unit = UnitArray[keys[i]];
+
+//////////////////////////            
 //need models in unit that are hit, and find the middle/order of the unit
 
 
