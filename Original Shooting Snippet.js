@@ -324,6 +324,11 @@ log(weapon.name)
                 let extraTips = "";
 
                 let attacks = weapon.dice;
+
+
+///put these in relevant areas before go to weapon hits
+
+
                 if (weapon.traits.includes("Assault") && shooter.closestDist <= (weapon.maxRange/2)) {
                     attacks *= 2;
                     if (extraTips.includes("Assault") === false) {
@@ -359,7 +364,7 @@ log(weapon.name)
                         extraTips += "<br>Power Capacitor";
                     }
                 }
-
+//////
 
                 if (weapon.traits.includes("Ignores Cover")) {
                     if (wthtip.includes("Terrain -1")) {

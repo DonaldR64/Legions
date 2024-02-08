@@ -3713,6 +3713,10 @@ const Blast = (shooterID,targetID,weaponNum) => {
         // pull out toHit mods, roll attacks, pass back a hit array?
 
 
+
+
+        
+
         let avgArmour = 0;
         _.each(modelIDs,id => {
             avgArmour += parseInt(ModelArray[id].save) || 6;
