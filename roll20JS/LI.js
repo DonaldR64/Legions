@@ -1348,6 +1348,10 @@ const LI = (()=> {
     const LargeTokens = (model) => {
         ClearLarge(model);
         //adds tokenID to hexMap for LOS purposes
+        let finalHexes = [model.hex];
+        if (hexMap[model.hex].modelIDs.includes(model.id) === false) {
+            hexMap[model.hex].modelIDs.push(model.id);
+        }
         let radiusHexes = model.hex.radius(model.radius);
         for (let i=0;i<radiusHexes.length;i++) {
             let radiusHex = radiusHexes[i];
@@ -1368,8 +1372,10 @@ const LI = (()=> {
                 if (hexMap[radiusHexLabel].modelIDs.includes(model.id) === false) {
                     hexMap[radiusHexLabel].modelIDs.push(model.id);
                 }
-                model.largeHexList.push(radiusHex);
+                finalHexes.push(radiusHex);
             }
+            finalHexes = [...new Set(finalHexes)];
+            model.largeHexList = finalHexes;
         }
     }
 
