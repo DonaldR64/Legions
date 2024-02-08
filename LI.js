@@ -3770,7 +3770,8 @@ log(model.name)
         SetupCard(UnitArray[keys[0]].faction,"Saves",UnitArray[keys[0]].faction)
         for (let i=0;i<keys.length;i++) {
             let unit = UnitArray[keys[i]];
-//need models in unit that are hit, and find the middle/order
+//need models in unit that are hit, and find the middle/order of the unit
+
 
 
 
