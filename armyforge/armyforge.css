@@ -39,7 +39,7 @@ table {
 	text-decoration:none;
 	font-family: Helvetica, Arial, sans-serif;
 	font-weight: bold;
-	font-size: 150%;
+	font-size: 138.5%;
 	border: 1px solid #659635;
 	color:white;
 	text-shadow:-1px -1px 2px #777777;
@@ -55,7 +55,7 @@ a.xx {
 img.icon {
 	margin-left:0;
 	margin-right:0.5em;
-	height:2em;	
+	height:1.2em;	
 	vertical-align:middle;
 	border:none;
 }
@@ -91,7 +91,7 @@ img.icon {
 h1 {
 	font-family: Helvetica, Arial, sans-serif;
 	font-weight: bold;
-	font-size: 150%;
+	font-size: 138.5%;
 	color:white;
 	text-shadow: -1px -1px 2px #777777;
 }
