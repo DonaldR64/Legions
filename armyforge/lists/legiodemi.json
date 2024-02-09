@@ -4,8 +4,8 @@
 	"by": "DR",
 	"notes": [""],
 	"sections": [
-		{"name": "HQ", "formations": [
-	    	{"id": 501, "name": "HQ","units": "Command Squad","pts": 0,"upgrades": [1,2,3]}
+		{"name": "HQ (can attach)", "formations": [
+	    	{"id": 501, "name": "HQ","units": "Command Squad","pts": 25,"upgrades": [1,2,3]}
 		]},
 		{"name": "Core Detachments (max 3)", "formations": [
 	    	{"id": 502, "name": "Tactical Detachment","pts": 11,"upgrades": [4,5,6,7,8]},
