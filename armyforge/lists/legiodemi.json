@@ -33,10 +33,10 @@
 
 		]},
 		{"name": "Company Detachment (max 1)", "formations": [
-			{"id": 530, "name": "","pts": 5,"upgrades": [22,23]}
-
-
-
+			{"id": 530, "name": "Xiphon Interceptor Squadron","pts": 0,"upgrades": [30,31,32,33]},
+			{"id": 531, "name": "Storm Eagle Squadron","pts": 0,"upgrades": [35,36,37]},
+			{"id": 532, "name": "Fire Raptor Squadron","pts": 0,"upgrades": [40,41,42]},
+			{"id": 533, "name": "Thunderhawk Gunships","pts": 0,"upgrades": [45,46,47]}
 		]},
 		{"name": "Armour Detachment (max 1)", "formations": [
 			{"id": 550, "name": "Predator Tank Squadron","pts": 0,"upgrades": [50,51,52,53,54,55,56]},
@@ -73,6 +73,23 @@
 
 		{"id": 22, "name": "2 Deredeo Dreadnoughts w/ Plasma Cannonade", "pts": 40},
 		{"id": 23, "name": "2 Deredeo Dreadnoughts w/ Autocannons", "pts": 40},
+
+		{"id": 30, "name": "Xiphon Interceptor", "pts": 95},
+		{"id": 31, "name": "2 Xiphon Interceptors", "pts": 180},
+		{"id": 32, "name": "3 Xiphon Interceptors", "pts": 255},
+		{"id": 33, "name": "4 Xiphon Interceptors", "pts": 310},
+
+		{"id": 35, "name": "Storm Eagle", "pts": 100},
+		{"id": 36, "name": "2 Storm Eagles", "pts": 200},
+		{"id": 37, "name": "3 Storm Eagles", "pts": 290},
+
+		{"id": 40, "name": "Fire Raptor", "pts": 100},
+		{"id": 41, "name": "2 Fire Raptors", "pts": 200},
+		{"id": 42, "name": "3 SFire Raptors", "pts": 290},
+
+		{"id": 45, "name": "Thunderhawk Gunship", "pts": 150},
+		{"id": 46, "name": "2 Thunderhawk Gunships", "pts": 300},
+		{"id": 47, "name": "3 Thunderhawk Gunships", "pts": 430},
 
 		{"id": 50, "name": "3 Predator Tanks (pick armament)", "pts": 115},
 		{"id": 51, "name": "4 Predator Tanks (pick armament)", "pts": 150},
@@ -111,17 +128,19 @@
 
     	{"max": 1, "min": 0, "from": [525,526]},
 
+    	{"max": 1, "min": 0, "from": [530,531,532,533]},
+
     	{"max": 1, "min": 0, "from": [550,551,552]}
     ],
 
 
 
    "upgradeConstraints": [      
-   	    {"max": 1, "min": 1, "from": [1,2,3], "appliesTo": [501],"name":"Dedicated Transport"},
+   	    {"max": 1, "min": 1, "from": [1,2,3], "appliesTo": [501]},
 		{"max": 6, "min": 2, "from": [4], "appliesTo": [502]},
 		{"max": 4, "min": 0, "from": [5,6,7,8], "appliesTo": [502]},
-		{"max": 6, "min": 0, "from": [4,5,6,7,8], "appliesTo": [502],"name": "Additional Squads"},
-		{"max": 6, "min": 1, "from": [1,2,3], "appliesTo": [503],"name": "Dedicated Transport"},
+		{"max": 6, "min": 0, "from": [4,5,6,7,8], "appliesTo": [502]},
+		{"max": 6, "min": 1, "from": [1,2,3], "appliesTo": [503]},
 		{"max": 4, "min": 2, "from": [5], "appliesTo": [505]},
 		{"max": 4, "min": 2, "from": [6], "appliesTo": [506]},
 		{"max": 4, "min": 2, "from": [7], "appliesTo": [507]},
@@ -132,8 +151,13 @@
 		{"max": 3, "min": 0, "from": [11,12], "appliesTo": [511]},
 		{"max": 5, "min": 0, "from": [11,12,13,14], "appliesTo": [511]},
 		{"max": 4, "min": 1, "from": [1,2,3], "appliesTo": [515]},
+		{"max": 8, "min": 1, "from": [1,2,3], "appliesTo": [520]},
 		{"max": 4, "min": 2, "from": [20,21], "appliesTo": [525]},
 		{"max": 4, "min": 2, "from": [22,23], "appliesTo": [526]},
+		{"max": 1, "min": 1, "from": [30,31,32,33], "appliesTo": [530]},
+		{"max": 1, "min": 1, "from": [35,36,37], "appliesTo": [531]},
+		{"max": 1, "min": 1, "from": [40,41,42], "appliesTo": [532]},
+		{"max": 1, "min": 1, "from": [45,46,47], "appliesTo": [533]},
 		{"max": 1, "min": 1, "from": [50,51,52,53,54,55,56], "appliesTo": [550]},
 		{"max": 1, "min": 1, "from": [60,61,62,63,64], "appliesTo": [551]},
 		{"max": 1, "min": 1, "from": [70,71,72,73,74], "appliesTo": [552]}
