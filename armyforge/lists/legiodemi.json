@@ -12,7 +12,7 @@
 			{"id": 503, "name": "Dedicated Transport Detachment (1 Rhino per 2 Tactical/Plasma/Missile Squads)","pts": 0,"upgrades": [1,2,3]}
 		]},
 		{"name": "Support Detachments (max 3)", "formations": [
-
+	    	{"id": 505, "name": "Plasma Gun Detachment","pts": 5,"upgrades": [5]}
 
 
 
@@ -106,7 +106,8 @@
 		{"max": 6, "min": 2, "from": [4], "appliesTo": [502]},
 		{"max": 4, "min": 0, "from": [5,6,7,8], "appliesTo": [502]},
 		{"max": 6, "min": 0, "from": [4,5,6,7,8], "appliesTo": [502],"name": "Additional Squads"},
-		{"max": 6, "min": 0, "from": [1,2,3], "appliesTo": [503],"name": "Dedicated Transport"}
+		{"max": 6, "min": 0, "from": [1,2,3], "appliesTo": [503],"name": "Dedicated Transport"},
+		{"max": 4, "min": 2, "from": [5], "appliesTo": [505]}
 
 
    ]
