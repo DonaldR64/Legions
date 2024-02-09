@@ -92,7 +92,7 @@
 		{"max": 6, "min": 0, "from": [1,2,3], "appliesTo": [503],"name": "Dedicated Transport"},
 		{"max": 4, "min": 2, "from": [5], "appliesTo": [505]},
 		{"max": 4, "min": 2, "from": [10], "appliesTo": [506]},
-		{"max": 4, "min": 2, "from": [11,12], "appliesTo": [506]}
+		{"max": 1, "min": 1, "from": [11,12], "appliesTo": [10]}
 
 
    ]
