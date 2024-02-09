@@ -52,11 +52,11 @@
       	{"id": 2, "name": "Rhino w/ Havoc Launcher", "pts": 12},
       	{"id": 3, "name": "Rhino w/ Multi-Melta", "pts": 14},
 
-		{"id": 4, "name": "Tactical Squads x 2", "pts": 12},
-		{"id": 5, "name": "Plasma Squads x 2", "pts": 15},
-		{"id": 6, "name": "Missile Launcher Squads x 2", "pts": 15},
-		{"id": 7, "name": "Terminator Squads x 2", "pts": 15},
-		{"id": 8, "name": "Assault Squads x 2", "pts": 12},
+		{"id": 4, "name": "2x Tactical Squads", "pts": 12},
+		{"id": 5, "name": "2x Plasma Squads", "pts": 15},
+		{"id": 6, "name": "2x Missile Launcher Squads", "pts": 15},
+		{"id": 7, "name": "2x Terminator Squads", "pts": 15},
+		{"id": 8, "name": "2x Assault Squads", "pts": 12},
 
 		{"id": 20, "name": "4 Plasma Squads", "pts": 35},
 		{"id": 21, "name": "6 Plasma Squads", "pts": 50},
@@ -103,7 +103,7 @@
 
    "upgradeConstraints": [      
    	    {"max": 1, "min": 0, "from": [1,2,3], "appliesTo": [501]},
-		{"max": 6, "min": 2, "from": [4], "appliesTo": [502]},
+		{"max": 2, "min": 2, "from": [4], "appliesTo": [502]},
 		{"max": 4, "min": 0, "from": [4,5,6,7,8], "appliesTo": [502]},
 		{"max": 6, "min": 0, "from": [1,2,3], "appliesTo": [503]}
 
