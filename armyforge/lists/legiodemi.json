@@ -12,13 +12,14 @@
 			{"id": 503, "name": "Dedicated Transport Detachment (1 Rhino per 2 Tactical/Plasma/Missile Squads)","pts": 0,"upgrades": [1,2,3]}
 		]},
 		{"name": "Support Detachments (max 3 excl. Dedicated Transports)", "formations": [
-	    	{"id": 505, "name": "Plasma Gun Detachment","pts": 5,"upgrades": [5]}
+	    	{"id": 505, "name": "Plasma Gun Detachment","pts": 5,"upgrades": [5]},
+	    	{"id": 506, "name": "Leviathan Siege Dreadnought Detachment","pts": 5,"upgrades": [10]}
 
 
 
 		]},
 		{"name": "Independent Transport Detachments (max 2)", "formations": [
-	    	{"id": 520, "name": "Rhino","pts": 0,"upgrades": [1,2,3]}
+	    	{"id": 520, "name": "Rhino Detachment","pts": 0,"upgrades": [1,2,3]}
 		]},
 		{"name": "Bastion Detachment (max 1)", "formations": [
 
@@ -58,9 +59,10 @@
 		{"id": 7, "name": "2 Terminator Squads", "pts": 15},
 		{"id": 8, "name": "2 Assault Squads", "pts": 12},
 
-		{"id": 10, "name": "2 Rapiers", "pts": 30},
-		
-		{"id": 15, "name": "2 Leviathan Siege Dreadnoughts", "pts": 35}
+		{"id": 10, "name": "2 Leviathan Siege Dreadnoughts", "pts": 35},
+		{"id": 11, "name": "Armed with Storm Cannons", "pts": 0},
+		{"id": 12, "name": "Armed with Melta Lances", "pts": 0}
+
 
 
 
@@ -73,7 +75,10 @@
     	{"max": 1, "min": 1, "from": [501]},
     	{"max": 3, "min": 2, "from": [502]},
     	{"max": 1, "min": 0, "from": [503],"forEach":[502],"name": "Dedicated Transport","name2":"Tactical Detachment"},
-		{"max": 3, "min": 0, "from": [505]}
+		{"max": 3, "min": 0, "from": [505,506]}
+
+
+
 
     ],
 
@@ -85,7 +90,9 @@
 		{"max": 4, "min": 0, "from": [5,6,7,8], "appliesTo": [502]},
 		{"max": 6, "min": 0, "from": [4,5,6,7,8], "appliesTo": [502],"name": "Additional Squads"},
 		{"max": 6, "min": 0, "from": [1,2,3], "appliesTo": [503],"name": "Dedicated Transport"},
-		{"max": 4, "min": 2, "from": [5], "appliesTo": [505]}
+		{"max": 4, "min": 2, "from": [5], "appliesTo": [505]},
+		{"max": 4, "min": 2, "from": [5], "appliesTo": [510]},
+		{"max": 4, "min": 2, "from": [11,12], "appliesTo": [506]}
 
 
    ]
