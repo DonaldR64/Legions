@@ -52,11 +52,11 @@
       	{"id": 2, "name": "Rhino w/ Havoc Launcher", "pts": 12},
       	{"id": 3, "name": "Rhino w/ Multi-Melta", "pts": 14},
 
-		{"id": 4, "name": "2x Tactical Squads", "pts": 12},
-		{"id": 5, "name": "2x Plasma Squads", "pts": 15},
-		{"id": 6, "name": "2x Missile Launcher Squads", "pts": 15},
-		{"id": 7, "name": "2x Terminator Squads", "pts": 15},
-		{"id": 8, "name": "2x Assault Squads", "pts": 12},
+		{"id": 4, "name": "2 Tactical Squads", "pts": 12},
+		{"id": 5, "name": "2 Plasma Squads", "pts": 15},
+		{"id": 6, "name": "2 Missile Launcher Squads", "pts": 15},
+		{"id": 7, "name": "2 Terminator Squads", "pts": 15},
+		{"id": 8, "name": "2 Assault Squads", "pts": 12},
 
 		{"id": 20, "name": "4 Plasma Squads", "pts": 35},
 		{"id": 21, "name": "6 Plasma Squads", "pts": 50},
