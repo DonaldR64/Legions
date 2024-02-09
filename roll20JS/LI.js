@@ -1736,7 +1736,7 @@ const LI = (()=> {
                 los: t.los,
                 linear: false,
             };
-            TerrainArray[id] = info;
+            TerrainArray[token.id] = info;
         });
     };
 
@@ -3421,7 +3421,6 @@ log(model.name)
     
     
     
-        PrintCard();
     
     }
 
@@ -3567,7 +3566,7 @@ log(model.name)
         let radius;
         for (let s=0;s<shooterIDs.length;s++) {
             let target;
-            let structureID = [];
+            let structureID = "";
             if (s === 0) {
                 //Check for scatter
                 target = ModelArray[targetID];
@@ -3728,10 +3727,12 @@ scatterRoll = 1
             }
             //first, as multiple templates could hit same structure, add these up
             //otherwise only 1 hit from a template
-            if (!structuresHit[structureID]) {
-                structuresHit[structureID] = 1;
-            } else {
-                structuresHit[structureID] += 1;
+            if (structureID !== "") {
+                if (!structuresHit[structureID]) {
+                    structuresHit[structureID] = 1;
+                } else {
+                    structuresHit[structureID] += 1;
+                }
             }
         } //end of shooters
         //targetUnitsHit will be models under template, organized into units of all templates
@@ -3983,7 +3984,7 @@ scatterRoll = 1
 
         rolls.sort();
         rolls.reverse();
-        let tip = "Rolls: " + rolls.toString() + " vs " + needed + "+" + hitTips;
+        let tip = "Rolls: " + rolls.toString() + " vs " + needed + "+"+ "<br>----------" + hitTips;
         tip = '[🎲](#" class="showtip" title="' + tip + ')';
         if (hits === 0) {
             line = tip + " " + shooter.name + " misses";
@@ -4033,7 +4034,7 @@ scatterRoll = 1
         }
         rolls.sort();
         rolls.reverse();
-        shooterTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + needed + "+" + extraTips + ')';
+        shooterTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + needed + "+" + "<br>----------" + extraTips + ')';
         let s = (hits ===1) ? "":"s";
         outputCard.body.push(shooterTip + " " + structure.name + " takes " + hits + " hit" + s + " from " + weapon.name);
 
@@ -4066,7 +4067,7 @@ scatterRoll = 1
         }
         rolls.sort();
         rolls.reverse();
-        saveTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + needed + "+" + extraTips + ')';
+        saveTip = '[🎲](#" class="showtip" title="Rolls: ' + rolls + " vs. " + needed + "+" + "<br>----------" + extraTips + ')';
         if (wounds === 0) {
             outputCard.body.push(saveTip + " No Damage was done!");
         } else {
