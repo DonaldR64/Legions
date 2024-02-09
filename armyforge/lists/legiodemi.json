@@ -7,11 +7,11 @@
 		{"name": "HQ (can attach)", "formations": [
 	    	{"id": 501, "name": "HQ","units": "Command Squad","pts": 25,"upgrades": [1,2,3]}
 		]},
-		{"name": "Core Detachments (max 3)", "formations": [
+		{"name": "Core Detachments (max 3 excl. Dedicated Transports)", "formations": [
 	    	{"id": 502, "name": "Tactical Detachment","pts": 11,"upgrades": [4,5,6,7,8]},
 			{"id": 503, "name": "Dedicated Transport Detachment (1 Rhino per 2 Tactical/Plasma/Missile Squads)","pts": 0,"upgrades": [1,2,3]}
 		]},
-		{"name": "Support Detachments (max 3)", "formations": [
+		{"name": "Support Detachments (max 3 excl. Dedicated Transports)", "formations": [
 	    	{"id": 505, "name": "Plasma Gun Detachment","pts": 5,"upgrades": [5]}
 
 
@@ -58,34 +58,11 @@
 		{"id": 7, "name": "2 Terminator Squads", "pts": 15},
 		{"id": 8, "name": "2 Assault Squads", "pts": 12},
 
-		{"id": 20, "name": "4 Plasma Squads", "pts": 35},
-		{"id": 21, "name": "6 Plasma Squads", "pts": 50},
-		{"id": 22, "name": "8 Plasma Squads", "pts": 65},
+		{"id": 10, "name": "2 Rapiers", "pts": 30},
+		
+		{"id": 15, "name": "2 Leviathan Siege Dreadnoughts", "pts": 35}
 
-		{"id": 23, "name": "4 Missile Launcher Squads", "pts": 40},
-		{"id": 24, "name": "6 Missile Launcher Squads", "pts": 55},
-		{"id": 25, "name": "8 Missile Launcher Squads", "pts": 70},
 
-		{"id": 26, "name": "4 Assault Squads", "pts": 30},
-		{"id": 27, "name": "6 Assault Squads", "pts": 42},
-		{"id": 28, "name": "8 Assault Squads", "pts": 54},
-
-		{"id": 29, "name": "4 Terminator Squads", "pts": 50},
-		{"id": 30, "name": "6 Terminator Squads", "pts": 65},
-		{"id": 31, "name": "8 Terminator Squads", "pts": 80},
-
-		{"id": 35, "name": "2 Rapiers", "pts": 40},
-		{"id": 36, "name": "4 Rapiers", "pts": 70},
-		{"id": 37, "name": "6 Rapiers", "pts": 100},
-		{"id": 38, "name": "8 Rapiers", "pts": 130},
-
-		{"id": 40, "name": "4 Leviathan Siege Dreadnoughts with Storm Cannons", "pts": 75},
-		{"id": 41, "name": "6 Leviathan Siege Dreadnoughts with Storm Cannons", "pts": 110},
-		{"id": 42, "name": "8 Leviathan Siege Dreadnoughts with Storm Cannons", "pts": 145},
-
-		{"id": 43, "name": "4 Leviathan Siege Dreadnoughts with Melta Lances", "pts": 75},
-		{"id": 44, "name": "6 Leviathan Siege Dreadnoughts with Melta Lances", "pts": 110},
-		{"id": 45, "name": "8 Leviathan Siege Dreadnoughts with Melta Lances", "pts": 145}
 
 
 
