@@ -3393,8 +3393,12 @@ log(model.name)
             results = BombingRun(shooterID,targetID,weaponNum);
         } else if (weaponType === "Barrage") {
             results = Barrage(shooterID,targetID,weaponNum,targetOnlyVisible);
+        } else if (weaponType === "Impale") {
+            results = Impale(shooterID,targetID,weaponNum);
+        } else if (weaponType === "Singularity") {
+            results = Singularity(shooterID,targetID,weaponNum,ignoreCover);
         } else {
-            results = Regular(shooterID,targetID,weaponNum,ignoreCover,targetOnlyVisible);
+            results = Regular(shooterID,targetID,weaponNum,ignoreCover);
         }
 
         if (results === "Error") {
