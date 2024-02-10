@@ -3948,7 +3948,7 @@ scatterRoll = 1
         });
         structuresHit = [...new Set(structuresHit)];
 
-        //do structures first, if eligible weapon (?Later)
+        //do structures first, if eligible weapon (currently no beam weapons with anti-structure)
 
         //units each take dice hits, and the ids of eligible models are in unitsHit array
         let attacks = sweapon.dice;
