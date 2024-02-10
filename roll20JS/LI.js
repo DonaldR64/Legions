@@ -1909,6 +1909,7 @@ const LI = (()=> {
             targetHexes = [model2.hex];
         }
 
+        let endHex = model2.hex;
         let finalLOS = false;
         let losReason;
         let finalCoverSave = model2Hex.coverSave;
@@ -2001,7 +2002,6 @@ const LI = (()=> {
                 let denom = interHexes.length - 1;
                 let lastElevation = model1Height - level; //track hill height as go
                 let highestElevation = 0;
-                let endHex;
 
                 interHexLoop:
                 for (let i=1;i<interHexes.length;i++) {
@@ -2495,15 +2495,11 @@ const LI = (()=> {
         }
     }
 
-    const DrawLine = (id1,id2,w,layer) => {
-        let ColourCodes = ["#00ff00","#ffff00","#ff0000","#00ffff","#000000"];
-        let colour = ColourCodes[w];
-
-
-        let x1 = hexMap[ModelArray[id1].hexLabel].centre.x + w*15;
-        let x2 = hexMap[ModelArray[id2].hexLabel].centre.x + w*15;
-        let y1 = hexMap[ModelArray[id1].hexLabel].centre.y + w*15;
-        let y2 = hexMap[ModelArray[id2].hexLabel].centre.y + w*15;
+    const DrawLine = (id1,id2,layer) => {
+        let x1 = hexMap[ModelArray[id1].hexLabel].centre.x;
+        let x2 = hexMap[ModelArray[id2].hexLabel].centre.x;
+        let y1 = hexMap[ModelArray[id1].hexLabel].centre.y;
+        let y2 = hexMap[ModelArray[id2].hexLabel].centre.y;
 
         let width = (x1 - x2);
         let height = (y1 - y2);
@@ -2517,8 +2513,8 @@ const LI = (()=> {
             _pageid: Campaign().get("playerpageid"),
             _path: path,
             layer: layer,
-            fill: colour,
-            stroke: colour,
+            fill: "#000000",
+            stroke: "#000000",
             stroke_width: 5,    
             left: left,
             top: top,
@@ -3527,7 +3523,7 @@ log(model.name)
                 type = "Heavy Beam";
             }
             let losResult = LOS(shooterID,targetID,type);
-            if (losResult === false) {
+            if (losResult.los === false) {
                 let endHex = losResult.endHex;
                 let newCentre = hexToPoint(endHex);
                 target.token.set({
@@ -3538,7 +3534,7 @@ log(model.name)
                 target.hexLabel = endHex.label();
                 target.location = newCentre;
             }
-            let lineID = DrawLine(shooterID,targetID,2,"objects");
+            let lineID = DrawLine(shooterID,targetID,"objects");
             state.LI.lineArray = [lineID];
             outputCard.body.push("Beam will stop at Target Location");
         }
