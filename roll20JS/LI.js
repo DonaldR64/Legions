@@ -1879,7 +1879,7 @@ const LI = (()=> {
         } 
 
 
-        if (model2.large === true || ((model2.type === "Infantry" || model2.type === "System Unit") && model2Hex.structureID !== "")) {
+        if (special.includes("Beam") === false && (model2.large === true || ((model2.type === "Infantry" || model2.type === "System Unit") && model2Hex.structureID !== ""))) {
             //finds the hexes closest to shooter hex
             let targetHexLabels = [];
             if (model2.large === true) {
@@ -1908,8 +1908,6 @@ const LI = (()=> {
         } else {
             targetHexes = [model2.hex];
         }
-log(targetHexes)
-
 
         let finalLOS = false;
         let losReason;
@@ -2003,6 +2001,7 @@ log(targetHexes)
                 let denom = interHexes.length - 1;
                 let lastElevation = model1Height - level; //track hill height as go
                 let highestElevation = 0;
+                let endHex;
 
                 interHexLoop:
                 for (let i=1;i<interHexes.length;i++) {
@@ -2045,6 +2044,7 @@ log(targetHexes)
                             targetLOS = 0;
                             losReason = "Terrain Drops Off";
                             if (special !== "Indirect") {
+                                endHex = interHex;
                                 break interHexLoop;
                             }
                         } else if (highestElevation >= model1Height && highestElevation <= model2Height && highestElevation > model2Base) {
@@ -2055,7 +2055,7 @@ log(targetHexes)
                     }
 
                     //Units in way
-                    if (hex.modelIDs.length > 0 && special !== "Indirect" && special !== "Blast") {
+                    if (hex.modelIDs.length > 0 && special !== "Indirect" && special !== "Blast" && special.includes("Beam") === false) {
                         let id3s = hex.modelIDs;
                         for (let j=0;j<id3s.length;j++) {
                             let id3 = id3s[j];
@@ -2071,6 +2071,7 @@ log(targetHexes)
                                 //fully blocks LOS
                                 targetLOS = 0;
                                 losReason = "LOS blocked by " + model3.name;
+                                endHex = interHex;
                                 break interHexLoop;
                             } else if (model3Height > B1 && model3Height <= B2) {
                                 //partially blocks LOS
@@ -2081,10 +2082,11 @@ log(targetHexes)
                     }
                     //Terrain in hex if not targetHex (as targetHex cover is captured above)
                     if (ihLabel !== targetHex.label()) {
-                        if (interHexHeight > B2 && hexLOS === false) {
+                        if (interHexHeight > B2 && hexLOS === false && special.includes("Heavy Beam") === false) {
                             //fully blocks LOS
                             targetLOS = 0;
                             losReason = "LOS blocked by Terrain";
+                            endHex = interHex;
                             break interHexLoop;                
                         } else if (interHexHeight > B1 && interHexHeight <= B2 && hexLOS === false) {
                             //partially blocks LOS
@@ -2143,6 +2145,7 @@ log(targetHexes)
             losReason: losReason,
             toHitMod: toHitMod,
             toHitTip: toHitTip,
+            endHex: endHex,
         }
         return result;
     }
@@ -2516,7 +2519,7 @@ log(targetHexes)
             layer: layer,
             fill: colour,
             stroke: colour,
-            stroke_width: 5,
+            stroke_width: 5,    
             left: left,
             top: top,
             width: width,
@@ -3424,27 +3427,36 @@ log(model.name)
     
     }
 
-    const CreateBlast = (msg) => {
+    const CreateTemplate= (msg) => {
         let Tag = msg.content.split(";");
         let shooterID = Tag[1];
         let weaponNum = parseInt(Tag[2]);
         let shooter = ModelArray[shooterID];
         let weapon = shooter.weaponArray[weaponNum];
-        SetupCard(shooter.name,"Blast",shooter.faction);
+        SetupCard(shooter.name,"",shooter.faction);
         if (shooter.weaponsFired.includes(weaponNum)) {
             outputCard.body.push("Already Fired this Weapon this Turn");
             PrintCard();
             return;
         }
+        let radius = 0;
+        let templateType;
         //find radius, create token/model and add abilities - Check LOS and Fire!
         let traits = weapon.traits.split(",");
-        let radius;
-        _.each(traits,trait => {
+        for (let i=0;i<traits.length;i++) {
+            let trait = traits[i];
             if (trait.includes("Blast")) {
+                templateType = "Blast";
                 radius = trait;
+                radius = radius.replace(/\D/g,'') - 1;
+                break;
             }
-        });
-        radius = radius.replace(/\D/g,'') - 1;
+            if (trait.includes("Beam")) {
+                templateType = "Beam";
+                break;
+            }
+        }
+      
         let img = "https://s3.amazonaws.com/files.d20.io/images/105823565/P035DS5yk74ij8TxLPU8BQ/thumb.png?15826799915";
         img = getCleanImgSrc(img);
         let represents = "-NAZtEQYwkNjQqZmyabb";
@@ -3455,7 +3467,7 @@ log(model.name)
             width: 70, 
             height: 70,  
             represents: represents,
-            name: "Blast Target",
+            name: "Target",
             pageid: Campaign().get("playerpageid"),
             imgsrc: img,
             layer: "objects",
@@ -3469,31 +3481,37 @@ log(model.name)
         for(let a=0;a<abilArray.length;a++) {
             abilArray[a].remove();
         } 
-        let abilityAction = "!CheckTemplateLOS;Blast;"+ shooterID + ";" + newToken.id + ";" + weaponNum;
+        let abilityAction = "!CheckTemplateLOS;" + templateType + ";" + shooterID + ";" + newToken.id + ";" + weaponNum;
         AddAbility("Check LOS/Range",abilityAction,represents);
         abilityAction = "!Shooting;Blast;" + shooterID + ";" + newToken.id + ";No;" + weaponNum;
         AddAbility("Fire " + weapon.name,abilityAction,represents);
 
         let model = new Model(newToken.id,0,0);
-        outputCard.body.push("Move into Place");
+        if (templateType === "Blast") {
+            outputCard.body.push("Move Template into Place");
+            outputCard.body.push("Can check LOS with Macro also")
+        } else if (templateType === "Beam") {
+            outputCard.body.push("Beam will Fire out towards the template location");
+            outputCard.body.push("Can check Beam with Macro also")
+        }
+
         outputCard.body.push("Select Fire when Done");
         PrintCard();
     }
+
 
     const CheckTemplateLOS = (msg) => {
         let Tag = msg.content.split(";");
         let type = Tag[1];
         let shooterID = Tag[2];
         let targetID = Tag[3];
+        let target = ModelArray[targetID];
         let weaponNum = Tag[4];
         let shooter = ModelArray[shooterID];
         let weapon = shooter.weaponArray[weaponNum];
         SetupCard("Check LOS","",ModelArray[shooterID].faction);
-
-
-
         if (type === "Blast") {
-            let losResult = LOS(shooterID,targetID,"Blast");
+            let losResult = LOS(shooterID,targetID,type);
             if (losResult.los === false) {
                 outputCard.body.push("No LOS");
             } else if (losResult.distance > weapon.maxRange || losResult.distance < weapon.minRange) {
@@ -3503,6 +3521,26 @@ log(model.name)
             } else {
                 outputCard.body.push("In LOS, Range and Arc");
             }
+        } else if (type === "Beam") {
+            RemoveLines();
+            if (weapon.traits.includes("Heavy Beam")) {
+                type = "Heavy Beam";
+            }
+            let losResult = LOS(shooterID,targetID,type);
+            if (losResult === false) {
+                let endHex = losResult.endHex;
+                let newCentre = hexToPoint(endHex);
+                target.token.set({
+                    left: newCentre.x,
+                    top: newCentre.y,
+                })
+                target.hex = endHex;
+                target.hexLabel = endHex.label();
+                target.location = newCentre;
+            }
+            let lineID = DrawLine(shooterID,targetID,2,"objects");
+            state.LI.lineArray = [lineID];
+            outputCard.body.push("Beam will stop at Target Location");
         }
 
 
@@ -3831,7 +3869,33 @@ scatterRoll = 1
 
     }
 
-    //make a deep copy of weapon to feed into this, add or change anything like adding singularity
+    const Beam = (shooterID,targetID,weaponNum) => {
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     const WeaponHits = (weapon,shooter,modelIDs,attacks,indirect) => {
         let shooterUnit = UnitArray[shooter.unitID];
@@ -4239,8 +4303,8 @@ scatterRoll = 1
             case '!Shooting':
                 Shooting(msg);
                 break;
-            case '!CreateBlast':
-                CreateBlast(msg);
+            case '!CreateTemplate':
+                CreateTemplate(msg);
                 break;
             case '!CheckTemplateLOS':
                 CheckTemplateLOS(msg);
