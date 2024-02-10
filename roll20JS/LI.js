@@ -3819,11 +3819,14 @@ log(model.name)
             let hitArray = WeaponHits(weapon,shooter,modelIDs,attacks);
             unitHitArray[keys[i]] = hitArray;
         }
+        if (keys.length === 0) {
+            outputCard.body.push("No Hits");
+        }
         PrintCard();
 
         //saves, by unit
         if (keys.length > 0) {
-            SetupCard("Saves","Saves",ModelArray[targetID].faction);
+            SetupCard(UnitArray[keys[0]].faction,"Saves",UnitArray[keys[0]].faction);
             for (let i=0;i<keys.length;i++) {
                 let unit = UnitArray[keys[i]];
                 let modelIDs = targetUnitsHit[keys[i]];
@@ -3831,7 +3834,7 @@ log(model.name)
                 if (i>0) {
                     outputCard.body.push("[hr]");
                 }
-                outputCard.body.push("[U]" + unit.name + "[/#]");
+                outputCard.body.push("[U]" + unit.name + "[/u]");
                 UnitSaves(unit,modelIDs,hitArray);
 
                 //morale
@@ -3846,7 +3849,7 @@ log(model.name)
     }
 
     const Beam = (shooterID,targetID,weaponNum) => {
-        //only Titans, so only single shooters
+        //only Titans, so only single shooters ?
         RemoveLines();
         let shooter = ModelArray[shooterID];
         let sweapon = DeepCopy(shooter.weaponArray[weaponNum]);
@@ -3964,9 +3967,23 @@ log(model.name)
         }
         PrintCard();
 
-log(unitHitArray)
+        //saves, by unit
+        if (keys.length > 0) {
+            SetupCard(UnitArray[keys[0]].faction,"Saves",UnitArray[keys[0]].faction);
+            for (let i=0;i<keys.length;i++) {
+                let unit = UnitArray[keys[i]];
+                let modelIDs = unitsHit[keys[i]];
+                let hitArray = unitHitArray[keys[i]];
+                if (i>0) {
+                    outputCard.body.push("[hr]");
+                }
+                outputCard.body.push("[U]" + unit.name + "[/u]");
+                UnitSaves(unit,modelIDs,hitArray);
 
-        //saves by unit, based on modelIDs
+                //morale
+                //unit destruction
+            }
+        } //else no hits to save
 
 
 
@@ -4650,11 +4667,10 @@ log(target)
                                     defWeapon.traits = defWeapon.traits.replace("Deflagrate","");
                                     defWeapon.name = "Deflagrate Hit";
                                     let defhitInfo = {
-                                        shooterID: shooterID,
+                                        shooterID: shooter.id,
                                         weapon: defWeapon,
                                         roll: deflagrateRoll,
                                         needed: needed,
-                                        notes: hitNotes,
                                     }                                
                                     hitArray.push(defhitInfo);
                                     hal++;
