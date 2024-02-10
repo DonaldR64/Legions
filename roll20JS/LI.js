@@ -3424,7 +3424,7 @@ log(model.name)
     
     }
 
-    const CreateTemplate= (msg) => {
+    const CreateTemplate = (msg) => {
         let Tag = msg.content.split(";");
         let shooterID = Tag[1];
         let weaponNum = parseInt(Tag[2]);
@@ -4521,6 +4521,9 @@ log(unitHitArray)
                 break;
             case '!CreateTemplate':
                 CreateTemplate(msg);
+                break;
+            case '!CreateFirestorm':
+                CreateFirestorm(msg);
                 break;
             case '!CheckTemplateLOS':
                 CheckTemplateLOS(msg);
