@@ -2521,6 +2521,7 @@ const LI = (()=> {
             width: width,
             height: height,
         });
+        toFront(newLine);
 
         let id = newLine.id;
         return id;
@@ -3523,8 +3524,17 @@ log(model.name)
                 type = "Heavy Beam";
             }
             let losResult = LOS(shooterID,targetID,type);
-            if (losResult.los === false) {
+            let targetHexes = shooter.hex.linedraw(target.hex);
+            if ((weapon.arc === "Front" && losResult.arc !== "Front") || (weapon.arc === "Rear" && losResult.arc !== "Rear")) {
+                outputCard.body.push("Out of Arc");
+                PrintCard();
+                return;
+            };
+            if (losResult.los === false || losResult.distance > weapon.maxRange) {
                 let endHex = losResult.endHex;
+                if (losResult.distance > weapon.maxRange) {
+                    endHex = targetHexes[weapon.maxRange - 1];
+                } 
                 let newCentre = hexToPoint(endHex);
                 target.token.set({
                     left: newCentre.x,
@@ -3866,13 +3876,92 @@ scatterRoll = 1
     }
 
     const Beam = (shooterID,targetID,weaponNum) => {
+        //only Titans, so only single shooters
+        RemoveLines();
+        let shooter = ModelArray[shooterID];
+        let sweapon = DeepCopy(shooter.weaponArray[weaponNum]);
+        let shooterUnit = UnitArray[shooter.unitID];
+        let target = ModelArray[targetID];
+        let type = (sweapon.traits.includes("Heavy Beam")) ? "Heavy Beam":"Beam";
+        SetupCard(shooter.name,"",shooter.faction);
+        let targetHexes = shooter.hex.linedraw(target.hex);
 
+        if (shooter.token.get(SM.moved) === false && sweapon.traits.includes("Siege Weapon") === true) {
+            sweapon.maxRange *= 2;
+        }
+        let losResult = LOS(shooterID,targetID,type);
+        let exception;
+        if (shooter.token.get(SM.shocked) === true && weaponNum > 0) {
+            exception = "<br>" + shooter.name + ": is Shocked";
+        }
+        if (shooter.weaponsFired.includes(weaponNum)) {
+            exception = "<br>" + shooter.name + ": Has Fired this Weapon already";
+        }
+        if ((sweapon.arc === "Front" && losResult.arc !== "Front") || (sweapon.arc === "Rear" && losResult.arc !== "Rear")) {
+            exception = "<br>" + shooter.name + ": Target Out of Arc";
+        };
+        if (exception) {
+            outputCard.body.push(exception);
+            return;
+        }
 
+        if (losResult.los === false || losResult.distance > sweapon.maxRange) {
+            //adjust target location before firing
+            let endHex = losResult.endHex;
+            if (losResult.distance > sweapon.maxRange) {
+                endHex = targetHexes[sweapon.maxRange - 1];
+            } 
+            let newCentre = hexToPoint(endHex);
+            target.token.set({
+                left: newCentre.x,
+                top: newCentre.y,
+            })
+            target.hex = endHex;
+            target.hexLabel = endHex.label();
+            target.location = newCentre;
+        }
+      
+        //place a 'beam' on map and into lines
+        let lineID = DrawLine(shooterID,targetID,"map");
+        state.LI.lineArray = [lineID];
 
+        targetHexes = shooter.hex.linedraw(target.hex);
+        let unitsHit = {};
+        let structuresHit = [];
+        _.each(targetHexes,hex => {
+            let hm = hexMap[hex.label()];
+            let modelIDs = hm.modelIDs;
+            _.each(modelIDs,id => {
+                if (id !== shooterID && id !== targetID) {
+                    let model = ModelArray[id];
+                    if (model.type === "Structure" && model.type !== "System Unit") {
+                        structuresHit.push(id);
+                    } else if (model.type !== "System Unit") {
+                        if (!unitsHit[model.unitID]) {
+                            unitsHit[model.unitID] = [id];
+                        } else if (unitsHit[model.unitID].includes(id) === false) {
+                            unitsHit[model.unitID].push(id);
+                        }
+                    }
+                }
+            });
+        });
+        structuresHit = [...new Set(structuresHit)];
 
+        //do structures first, if eligible weapon (?Later)
 
+        //units each take dice hits, and the ids of eligible models are in unitsHit array
+        let attacks = weapon.dice;
+        let unitHitArray = [];
+        let keys = Object.keys(unitsHit);
+        for (let i=0;i<keys.length;i++) {
+            let modelIDs = unitsHit[keys[i]];
+            let hitArray = WeaponHits(weapon,shooter,modelIDs,attacks);
+            unitHitArray[keys[i]] = hitArray;
+        }
+        PrintCard();
 
-
+        //saves by unit
 
 
 
