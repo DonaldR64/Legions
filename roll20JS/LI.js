@@ -3392,9 +3392,9 @@ log(model.name)
         } else if (weaponType === "Bombing Run") {
             results = BombingRun(shooterID,targetID,weaponNum);
         } else if (weaponType === "Barrage") {
-            results = Barrage(shooterID,targetID,weaponNum);
+            results = Barrage(shooterID,targetID,weaponNum,targetOnlyVisible);
         } else {
-            results = Regular(shooterID,targetID,weaponNum);
+            results = Regular(shooterID,targetID,weaponNum,ignoreCover,targetOnlyVisible);
         }
 
         if (results === "Error") {
@@ -3567,7 +3567,7 @@ log(model.name)
             let id = shooterUnit.modelIDs[q]
             let shooter = ModelArray[id];
             let sweapon = DeepCopy(shooter.weaponArray[weaponNum]);
-            if (shooter.token.get(SM.shocked) === true && weaponNum > 0) {
+            if (shooter.token.get(SM.shocked) === true && shooter.weaponsFired.length > 1) {
                 continue;
             }
             if (shooter.token.get(SM.moved) === false && sweapon.traits.includes("Siege Weapon") === true) {
@@ -3624,7 +3624,6 @@ log(model.name)
                 let scatter = (radius === 5) ? (randomInteger(6) + 1):(randomInteger(3) + 1);
                 scatter *= 80;
                 let scatterRoll = randomInteger(3);
-scatterRoll = 1
                 if (scatterRoll > 1) {
                     //scatters
                     let centre = hexMap[target.hexLabel].centre;
@@ -3811,7 +3810,7 @@ scatterRoll = 1
             }
         }
         //now each unit takes attacks equal to # of models * weapon.dice
-        let unitHitArray = [];
+        let unitHitArray = {};
         let shooter = ModelArray[shooterID];
         let keys = Object.keys(targetUnitsHit);
         for (let i=0;i<keys.length;i++) {
@@ -3862,17 +3861,6 @@ scatterRoll = 1
 
 */
 
-
-
-
-
-
-
-
-
-
-
-
     }
 
     const Beam = (shooterID,targetID,weaponNum) => {
@@ -3883,7 +3871,7 @@ scatterRoll = 1
         let shooterUnit = UnitArray[shooter.unitID];
         let target = ModelArray[targetID];
         let type = (sweapon.traits.includes("Heavy Beam")) ? "Heavy Beam":"Beam";
-        SetupCard(shooter.name,"",shooter.faction);
+        SetupCard(shooterUnit.name,"",shooter.faction);
         let targetHexes = shooter.hex.linedraw(target.hex);
 
         if (shooter.token.get(SM.moved) === false && sweapon.traits.includes("Siege Weapon") === true) {
@@ -3891,7 +3879,7 @@ scatterRoll = 1
         }
         let losResult = LOS(shooterID,targetID,type);
         let exception;
-        if (shooter.token.get(SM.shocked) === true && weaponNum > 0) {
+        if (shooter.token.get(SM.shocked) === true && shooter.weaponsFired.length > 1) {
             exception = "<br>" + shooter.name + ": is Shocked";
         }
         if (shooter.weaponsFired.includes(weaponNum)) {
@@ -3936,6 +3924,11 @@ scatterRoll = 1
                     let model = ModelArray[id];
                     if (model.type === "Structure" && model.type !== "System Unit") {
                         structuresHit.push(id);
+                        let garrisonUnitIDs = Garrisons(id);
+                        _.each(garrisonUnitIDs,unitID => {
+                            unitsHit[unitID] = UnitArray[unitID].modelIDs;
+                            //as entire garrison becomes eligible target
+                        })
                     } else if (model.type !== "System Unit") {
                         if (!unitsHit[model.unitID]) {
                             unitsHit[model.unitID] = [id];
@@ -3947,8 +3940,36 @@ scatterRoll = 1
             });
         });
         structuresHit = [...new Set(structuresHit)];
-
-        //do structures first, if eligible weapon (currently no beam weapons with anti-structure)
+        //do structures first, if heavy beam
+        if (type === "Heavy Beam") {
+            let attacks = sweapon.dice;
+            let structureDown = false;
+            for (let i=0;i<structuresHit.length;i++) {
+                let structureID = structuresHit[i];
+                structureDown = StructureHits(structureID,sweapon,attacks);
+                
+            }
+            //revise targetUnitsHit if structureDown === true - compare list to unit.modelIDs
+            if (structureDown === true) {
+                let keys = Object.keys(unitsHit);
+                for (let i=0;i<keys.length;i++) {
+                    let unit = UnitArray[keys[i]];
+                    let originalIDs = unitsHit[keys[i]];
+                    let newIDs = []
+                    _.each(originalIDs,id => {
+                        if (unit.modelIDs.includes(id)) {
+                            newIDs.push(id);
+                        }
+                    });
+                    newIDs = [...new Set(newIDs)];
+                    if (newIDs.length > 0) {
+                        unitsHit[keys[i]] = newIDs;
+                    } else {
+                        delete unitsHit[keys[i]];
+                    }
+                }
+            }
+        }
 
         //units each take dice hits, and the ids of eligible models are in unitsHit array
         let attacks = sweapon.dice;
@@ -3971,11 +3992,116 @@ log(unitHitArray)
 
     }
 
+    const Barrage =  (shooterID,targetID,weaponNum,targetOnlyVisible) => {
+        let shooter = ModelArray[shooterID];
+        let shooterUnit = UnitArray[shooter.unitID];
+        let target = ModelArray[targetID];
+        SetupCard(shooterUnit.name,"",shooter.faction);
+        let shooterExceptions = "";
+        let indirectPenalty = 0;
+
+       
 
 
 
 
 
+
+
+    }
+
+    const Firestorm = (shooterID,targetID,weaponNum) => {
+
+
+
+
+
+
+
+
+
+    }
+
+    const BombingRun = (shooterID,targetID,weaponNum) => {
+        //target can be structure/garrison - in which case both
+        //or a single unit otherwise
+        let shooter = ModelArray[shooterID];
+        let weapon = shooter.weaponArray[weaponNum];
+        let target = ModelArray[targetID];            
+        SetupCard(shooter.name,"Bombing Run",shooter.faction);
+        //check 3" range, arc (will have LOS as flyer) and target not flyer
+        let exception;
+        let rangeFlag = false;
+        let arcFlag = false;
+        let structureID;
+        let targetUnitIDs = [];
+
+        if (target.special.includes("Flyer")) {
+            exception = "Cannot target a Flyer";
+        }
+        if (target.type === "Structure") {
+            let losResult = LOS(shooterID,targetID);
+            structureID = targetID;
+            if (losResult.distance < 3) {
+                rangeFlag = true;
+            }
+            if  (weapon.arc === "Front" && losResult.arc === "Front" || weapon.arc === "Rear" && losResult.arc === "Rear" || weapon.arc === "Any") {
+                arcFlag = true;
+            }
+            targetUnitIDs = Garrisons[structureID];
+        } else {
+            let hm = hexMap[target.hexLabel];
+            if (hm.structureID === "") {
+                targetUnitIDs = [target.unitID];
+            } else {
+                structureID = hm.structureID;
+                targetUnitIDs = Garrisons[hm.structureID];
+            }
+            _.each(UnitArray[target.unitID].modelIDs,id => {
+                let losResult = LOS(shooterID,id);
+                if (losResult.distance < 3) {
+                    rangeFlag = true;
+                }
+                if  (weapon.arc === "Front" && losResult.arc === "Front" || weapon.arc === "Rear" && losResult.arc === "Rear" || weapon.arc === "Any") {
+                    arcFlag = true;
+                }
+            });
+        }
+        if (rangeFlag === false) {
+            exception = "More than 3 Hex Range";
+        } else if (arcFlag === false) {
+            exception = "Out of Arc";
+        }
+        if (exception) {
+            outputCard.body.push(exception);
+            PrintCard();
+            return;
+        }
+        
+        //resolve structure hits first, using full weapon.dice
+        if (structureID) {
+            let structureDown = StructureHits(structureID,weapon,weapon.dice);
+            //if garrisoned, then any surviving models are hit
+        }
+
+        //then unit hits, using 1/2 weapon.dice rounded up
+        let unitHitArray = {};
+        let attacks = Math.round(weapon.dice/2);
+        _.each(targetUnitIDs,unitID => {
+            let hitArray = WeaponHits(weapon,shooter,UnitArray[unitID].modelIDs,attacks);
+            unitHitArray[unitID] = hitArray;
+        });
+        PrintCard();
+
+        //resolve saves
+
+
+
+
+
+
+
+    }
 
 
 
