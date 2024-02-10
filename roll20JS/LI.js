@@ -3480,7 +3480,7 @@ log(model.name)
         } 
         let abilityAction = "!CheckTemplateLOS;" + templateType + ";" + shooterID + ";" + newToken.id + ";" + weaponNum;
         AddAbility("Check LOS/Range",abilityAction,represents);
-        abilityAction = "!Shooting;Blast;" + shooterID + ";" + newToken.id + ";No;" + weaponNum;
+        abilityAction = "!Shooting;" + templateType + ";" + shooterID + ";" + newToken.id + ";No;" + weaponNum;
         AddAbility("Fire " + weapon.name,abilityAction,represents);
 
         let model = new Model(newToken.id,0,0);
@@ -3922,7 +3922,7 @@ scatterRoll = 1
         }
       
         //place a 'beam' on map and into lines
-        let lineID = DrawLine(shooterID,targetID,"map");
+        let lineID = DrawLine(shooterID,targetID,"objects");
         state.LI.lineArray = [lineID];
 
         targetHexes = shooter.hex.linedraw(target.hex);
@@ -3951,15 +3951,17 @@ scatterRoll = 1
         //do structures first, if eligible weapon (?Later)
 
         //units each take dice hits, and the ids of eligible models are in unitsHit array
-        let attacks = weapon.dice;
-        let unitHitArray = [];
+        let attacks = sweapon.dice;
+        let unitHitArray = {};
         let keys = Object.keys(unitsHit);
         for (let i=0;i<keys.length;i++) {
             let modelIDs = unitsHit[keys[i]];
-            let hitArray = WeaponHits(weapon,shooter,modelIDs,attacks);
+            let hitArray = WeaponHits(sweapon,shooter,modelIDs,attacks);
             unitHitArray[keys[i]] = hitArray;
         }
         PrintCard();
+
+log(unitHitArray)
 
         //saves by unit
 
