@@ -4036,6 +4036,9 @@ log(unitHitArray)
         let structureID;
         let targetUnitIDs = [];
 
+        if (state.LI.phase !== "Movement Phase") {
+            exception = "Can only fire this weapon during Movement Phase";
+        }
         if (target.special.includes("Flyer")) {
             exception = "Cannot target a Flyer";
         }
