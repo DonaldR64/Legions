@@ -3963,7 +3963,7 @@ scatterRoll = 1
 
 log(unitHitArray)
 
-        //saves by unit
+        //saves by unit, based on modelIDs
 
 
 
