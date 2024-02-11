@@ -3393,8 +3393,6 @@ log(model.name)
             results = BombingRun(shooterID,targetID,weaponNum);
         } else if (weaponType === "Barrage") {
             results = Barrage(shooterID,targetID,weaponNum,targetOnlyVisible);
-        } else if (weaponType === "Impale") {
-            results = Impale(shooterID,targetID,weaponNum);
         } else if (weaponType === "Singularity") {
             results = Singularity(shooterID,targetID,weaponNum,ignoreCover);
         } else {
@@ -3996,6 +3994,7 @@ log(model.name)
     }
 
     const Barrage =  (shooterID,targetID,weaponNum,targetOnlyVisible) => {
+        //heavy barrage can affect buildings
         let shooter = ModelArray[shooterID];
         let shooterUnit = UnitArray[shooter.unitID];
         let target = ModelArray[targetID];
@@ -4024,6 +4023,25 @@ log(model.name)
 
 
     }
+
+   const Singularity = (shooterID,targetID,weaponNum,ignoreCover) => {
+        let shooter = ModelArray[shooterID];
+        let shooterUnit = UnitArray[shooter.unitID];
+        let target = ModelArray[targetID];
+        SetupCard(shooterUnit.name,"",shooter.faction);
+        let shooterExceptions = "";
+        let sweapon = DeepCopy(shooter.weaponArray[weaponNum]);
+        
+
+
+
+
+
+
+   }
+
+
+
 
     const BombingRun = (shooterID,targetID,weaponNum) => {
         //target can be structure/garrison - in which case both
@@ -4099,9 +4117,23 @@ log(model.name)
         });
         PrintCard();
 
-        //resolve saves
-
-
+        //saves, by unit
+        let keys = Object.keys(unitHitArray);
+        if (keys.length > 0) {
+            SetupCard(UnitArray[keys[0]].faction,"Saves",UnitArray[keys[0]].faction);
+            for (let i=0;i<keys.length;i++) {
+                let unit = UnitArray[keys[i]];
+                let modelIDs = unit.modelIDs;
+                let hitArray = unitHitArray[keys[i]];
+                if (i>0) {
+                    outputCard.body.push("[hr]");
+                }
+                outputCard.body.push("[U]" + unit.name + "[/u]");
+                UnitSaves(unit,modelIDs,hitArray);
+                //morale
+                //unit destruction
+            }
+        } //else no hits to save
 
 
 
