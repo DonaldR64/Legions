@@ -315,6 +315,21 @@ const LI = (()=> {
         return arr1.some(item => arr2.includes(item));
     };
 
+    const returnCommonElements = (arr1,arr2) => {
+        let arr3 = [];
+        _.each(arr2,element => {
+            if (arr1.includes(element)) {
+                arr3.push(element);
+            }
+        });
+        return arr3;
+    };
+
+
+
+
+
+
     const SearchSpecials = (special,array1) => {
         //variant on findCommonElements, comparing elements in a comma'd string eg. Weapon.traits, and an array
         let array2 =  special.split(",");
@@ -4759,86 +4774,171 @@ log(target)
     }
 
     const CloseCombat = (msg) => {
+
         let modelID = msg.selected[0]._id;
         let p1Model = ModelArray[modelID];
         SetupCard("Close Combat","",p1Model.faction);
         let p1Unit = UnitArray[p1Model.unitID];
-    
-        let attacker = p1Model.player;
+
+        let attacker = p1Model.player; //attacker should be player with initiative
         let defender = (attacker === 0) ? 1:0;
     
         let CCArray = []; //sets of combatants
     
         let unmatchedIDs = p1Unit.modelIDs;
-    log("Unmatched IDs")
-    log(unmatchedIDs)
+        unmatchedIDs.reverse(); //should inc. chances of higher ranks being in a multiple token group
+        let ccUnitIDs = [p1Model.unitID];
 
-        const buildCCArray = () => {
-            let id = unmatchedIDs.shift();
-            if (id) {
-                let model = ModelArray[id];
-                let neighbours = model.hex.neighbours(); //surrounding hexes
-                _.each(neighbours,hex => {
-                    let opponents = [[],[]];
-                    let modelIDs = hexMap[hex.label()].modelIDs;
-                    _.each(modelIDs,id2 => {
-                        let model2 = ModelArray[id2];
-                        let m2Flag = false;
-                        if (model2.player !== model.player) {
-                            for (let i=0;i<CCArray.length;i++) {
-
-
-                
-        //rewrite
-
-
-                                if (CCArray[i][model.player].includes(id) && CCArray[i][model2.player].includes(id2) === false) {
-                                    CCArray[i][model2.player].push(id2);
-                                    m2Flag = true;
-                                    break;
-                                } else if (CCArray[i][model2.player].includes(id2) && CCArray[i][model.player].includes(id) === false) {
-                                    CCArray[i][model.player].push(id);
-                                    m2Flag = true;
-                                    break;
-                                }
+        //build groups of tokens
+        do {
+            let id1 = unmatchedIDs.shift();
+            if (id1) {
+                let model1 = ModelArray[id1];
+                log(model1.name)
+                let mp1 = model1.player;
+                let mp2 = (mp1 === 0) ? 1:0;
+                let neighbourIDs = [];
+                _.each(model1.hex.neighbours(),hex => {
+                    let nids = hexMap[hex.label()].modelIDs;
+                    _.each(nids,nid => {
+                        let model2 = ModelArray[nid];
+                        if (model2.player !== model1.player) {
+                            neighbourIDs.push(nid);
+                            if (ccUnitIDs.includes(model2.unitID) === false) {
+                                ccUnitIDs.push(model2.unitID);
+                                unmatchedIDs = unmatchedIDs.concat(UnitArray[model2.unitID].modelIDs);
                             }
-                            if (m2Flag === false) {
-
-
-
-                                opponents[model.player].push(id);
-                                opponents[model2.player].push(id);
-                                CCArray.push(opponents);
-                            }
-                            unmatchedIDs.push(id2); //so its neighbours get checked
                         }
                     });
                 });
+                if (neighbourIDs.length > 0) {
+                    let ccPair = CCArray.find(element => element[model1.player].includes(id1));
+                    if (ccPair === undefined) {
+                        let pair = [[],[]];
+                        pair[mp1].push(id1);
+                        pair[mp2] = neighbourIDs;
+                        CCArray.push(pair);
+                    }
+                }
             }
-            setTimeout(buildCCArray,0);
-        }
-        buildCCArray();    
-    
+        } while (unmatchedIDs.length > 0);
+
         if (CCArray.length === 0) {
             outputCard.body.push("No Valid Close Combats Found");
             PrintCard();
             return;
         }
+        unmatchedIDs = [];
+        //refine into pairs
+        let CCArray2 = [];
+        for (let i=0;i<CCArray.length;i++) {
+            let group = CCArray[i];
+            if (group[0].length === 1 && group[1].length === 1) {
+                CCArray2.push(group);
+                CCArray.splice(i,1);
+            }
+        }
+        //remove duplicates
+        for (let g=0;g<CCArray.length;g++) {
+            let group = CCArray[g];
+            for (let i=0;i<group.length;i++) {
+                let subgroup = group[i];
+                _.each(CCArray2,group2 => {
+                    let subgroup2 = group2[i];
+                    for (let j=0;j<subgroup2.length;j++) {
+                        let element = subgroup2[j];
+                        let index = subgroup.indexOf(element);
+                        if (index > -1) {
+                            subgroup.splice(index,1);
+                        }
+                    }
+                });
+                group[i] = subgroup;
+            }
+
+            if (group[0].length === 0) {
+                unmatchedIDs = unmatchedIDs.concat(group[1]);
+            } else if (group[1].length === 0) {
+                unmatchedIDs = unmatchedIDs.concat(group[0]);
+            } else {
+                group[0] = [...new Set(group[0])];
+                group[1] = [...new Set(group[1])];
+                CCArray2.push(group);
+            }
+        }
+
+        unmatchedIDs = [...new Set(unmatchedIDs)];
+
+        //add the now-unmatched back into a pair, going for the one with higher rank
+        _.each(unmatchedIDs,id => {
+            let model1 = ModelArray[id];
+            let bestI;
+            let opponents = 1000;
+            let highestRank = 1;
+
+            for (let i=0;i<CCArray2.length;i++) {
+                let group = CCArray2[i];
+                let other = (model1.player === 0) ? 1:0;
+                let subGroupOwn = group[model1.player];
+                let subGroupOther = group[other];
+                for (let j=0;j<subGroupOther.length;j++) {
+                    let id2 = subGroupOther[j];
+                    let model2 = ModelArray[id2];
+                    let dist = ModelDistance(model1,model2).distance;
+                    if (dist < 1) {
+                        //pick the group with lowest # of opponents
+                        if (subGroupOther.length < opponents) {
+                            bestI = i;
+                            opponents = subGroupOther.length;
+                        } else if (subGroupOther.length === opponents) {
+                            //and if same # of opponents, pick group with highest rank
+                            for (let k=0;k<subGroupOwn.length;k++) {
+                                let id3 = subGroupOwn[k];
+                                if (id3 === id) {continue};
+                                let model3 = ModelArray[id3];
+                                if (model3.rank > highestRank) {
+                                    highestRank = model3.rank;
+                                    bestI = i;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            CCArray2[bestI][model1.player].push(id);
+        });
+
     
     
     
-        log(CCArray);
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+        //temp for troubleshooting
+
+
+        outputCard.body.push("Groups")
+        for (let k=0;k<CCArray2.length;k++) {
+            let group = CCArray2[k];
+            outputCard.body.push("Group " + (k+1));
+            for (let j=0;j<group.length;j++) {
+                let subgroup = group[j];
+                let names = [];
+                for (let i=0;i<subgroup.length;i++) {
+                    names.push(ModelArray[subgroup[i]].name);
+                }
+                outputCard.body.push(names.toString());
+            }
+            outputCard.body.push("[hr]");
+        }
+
+
+
+
+
+
+
+        PrintCard();
+
     
     
     
