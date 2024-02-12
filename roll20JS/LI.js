@@ -325,7 +325,7 @@ const LI = (()=> {
         return arr3;
     };
 
-
+    
 
 
 
@@ -4773,9 +4773,14 @@ log(target)
         
     }
 
+ 
     const CloseCombat = (msg) => {
 
+
         let modelID = msg.selected[0]._id;
+        let ccArray = BuildCCArray(modelID);
+
+
         let p1Model = ModelArray[modelID];
         SetupCard("Close Combat","",p1Model.faction);
         let p1Unit = UnitArray[p1Model.unitID];
@@ -4786,40 +4791,46 @@ log(target)
         let CCArray = []; //sets of combatants
     
         let unmatchedIDs = p1Unit.modelIDs;
-        unmatchedIDs.reverse(); //should inc. chances of higher ranks being in a multiple token group
-        let ccUnitIDs = [p1Model.unitID];
+        //organize based on distance from farthest place;
 
-        //build groups of tokens
+
+        let refID = p1Unit.modelIDs
+        unmatchedIDs.sort(())
+
+
+        let attackerUnitIDs = [p1Unit.id];
+        matchedDefenderIDs = [];
+
+        //build groups of tokens based on initial unit
         do {
             let id1 = unmatchedIDs.shift();
             if (id1) {
                 let model1 = ModelArray[id1];
                 log(model1.name)
-                let mp1 = model1.player;
-                let mp2 = (mp1 === 0) ? 1:0;
-                let neighbourIDs = [];
+                let pair = [[],[]];
+                pair[attacker].push(id1);
                 _.each(model1.hex.neighbours(),hex => {
                     let nids = hexMap[hex.label()].modelIDs;
                     _.each(nids,nid => {
                         let model2 = ModelArray[nid];
-                        if (model2.player !== model1.player) {
-                            neighbourIDs.push(nid);
-                            if (ccUnitIDs.includes(model2.unitID) === false) {
-                                ccUnitIDs.push(model2.unitID);
-                                unmatchedIDs = unmatchedIDs.concat(UnitArray[model2.unitID].modelIDs);
-                            }
+                        if (model2.player === defender) {
+                            pair[defender].push(nid);
+                            _.each(model2.hex.neighbours(),hex2 => {
+                                let nids2 = hexMap[hex2.label()].modelIDs;
+                                _.each(nids2,nid2 => {
+                                    let model3 = ModelArray[nid2];
+                                    if (model3.player === attacker) {
+                                        if (attackerUnitIDs.includes(model3.unitID) === false) {
+                                            unmatchedIDs = unmatchedIDs.concat(UnitArray[model3.unitID].modelIDs);
+                                            attackerUnitIDs.push(model3.unitID);
+                                        }
+                                    }
+                                })
+                            })
                         }
                     });
                 });
-                if (neighbourIDs.length > 0) {
-                    let ccPair = CCArray.find(element => element[model1.player].includes(id1));
-                    if (ccPair === undefined) {
-                        let pair = [[],[]];
-                        pair[mp1].push(id1);
-                        pair[mp2] = neighbourIDs;
-                        CCArray.push(pair);
-                    }
-                }
+                CCArray.push(pair);
             }
         } while (unmatchedIDs.length > 0);
 
@@ -4828,74 +4839,69 @@ log(target)
             PrintCard();
             return;
         }
+
         unmatchedIDs = [];
-        //refine into pairs
+        
+        //sort based on # of defenders
+        CCArray.sort((a,b) => {
+            return a[defender].length - b[defender].length;
+        })
+
+
         let CCArray2 = [];
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
-            if (group[0].length === 1 && group[1].length === 1) {
-                CCArray2.push(group);
-                CCArray.splice(i,1);
-            }
-        }
-        //remove duplicates
-        for (let g=0;g<CCArray.length;g++) {
-            let group = CCArray[g];
-            for (let i=0;i<group.length;i++) {
-                let subgroup = group[i];
-                _.each(CCArray2,group2 => {
-                    let subgroup2 = group2[i];
-                    for (let j=0;j<subgroup2.length;j++) {
-                        let element = subgroup2[j];
-                        let index = subgroup.indexOf(element);
-                        if (index > -1) {
-                            subgroup.splice(index,1);
-                        }
-                    }
-                });
-                group[i] = subgroup;
-            }
-
-            if (group[0].length === 0) {
-                unmatchedIDs = unmatchedIDs.concat(group[1]);
-            } else if (group[1].length === 0) {
-                unmatchedIDs = unmatchedIDs.concat(group[0]);
-            } else {
-                group[0] = [...new Set(group[0])];
-                group[1] = [...new Set(group[1])];
+            let attackers = group[attacker];
+            log("Group " + (i+1) + ": " + ModelArray[attackers[0]].name)
+            let defenders = group[defender];
+            let finalDefenders = [];
+            for (let j=0;j<defenders.length;j++) {
+                let defID = defenders[j];
+                log(ModelArray[defID].name);
+                if (matchedDefenderIDs.includes(defID) === false) {
+                    log("Add")
+                    matchedDefenderIDs.push(defID);
+                    finalDefenders.push(defID);
+                }
+            }      
+            log("# Defenders: " + finalDefenders.length)
+            if (finalDefenders.length === 0) {
+                let attID = group[attacker][0];
+                log(ModelArray[attID].name + " unattached") 
+                unmatchedIDs.push(attID);
+            } else if (finalDefenders.length > 0) {
+                CCArray[i][defender] = finalDefenders;
+                group[defender] = finalDefenders;
                 CCArray2.push(group);
             }
         }
 
-        unmatchedIDs = [...new Set(unmatchedIDs)];
-
-        //add the now-unmatched back into a pair, going for the one with higher rank
-        _.each(unmatchedIDs,id => {
-            let model1 = ModelArray[id];
+        //add the unmatched back in, going for highest # of oppoents first, then if equal, help the higher rank
+log("Unmatched")
+        _.each(unmatchedIDs,id1 => {
+            let model1 = ModelArray[id1];
+log(model1.name)
             let bestI;
-            let opponents = 1000;
+            let opponentNum = 0;
             let highestRank = 1;
-
+            let adjacentIDs = [];
+        
             for (let i=0;i<CCArray2.length;i++) {
-                let group = CCArray2[i];
-                let other = (model1.player === 0) ? 1:0;
-                let subGroupOwn = group[model1.player];
-                let subGroupOther = group[other];
-                for (let j=0;j<subGroupOther.length;j++) {
-                    let id2 = subGroupOther[j];
+                let subgroupOwn = CCArray2[i][attacker];
+                let subgroupOther = CCArray2[i][defender];
+                for (let j=0;j<subgroupOther.length;j++) {
+                    let id2 = subgroupOther[j];
                     let model2 = ModelArray[id2];
                     let dist = ModelDistance(model1,model2).distance;
                     if (dist < 1) {
-                        //pick the group with lowest # of opponents
-                        if (subGroupOther.length < opponents) {
+                        adjacentIDs.push(id2);
+                        if (subgroupOther.length > opponentNum) {
                             bestI = i;
-                            opponents = subGroupOther.length;
-                        } else if (subGroupOther.length === opponents) {
-                            //and if same # of opponents, pick group with highest rank
-                            for (let k=0;k<subGroupOwn.length;k++) {
-                                let id3 = subGroupOwn[k];
-                                if (id3 === id) {continue};
-                                let model3 = ModelArray[id3];
+                            opponentNum = subgroupOther.length;
+                        } else if (subgroupOther.length === opponentNum) {
+                            for (let k=0;k<subgroupOwn.length;k++) {
+                                let id3 = subgroupOwn[k];
+                                let model3 = ModelArray[id3];                                
                                 if (model3.rank > highestRank) {
                                     highestRank = model3.rank;
                                     bestI = i;
@@ -4905,13 +4911,38 @@ log(target)
                     }
                 }
             }
+log("Best I: " + bestI)
+            let attLength = CCArray2[bestI][attacker].length;
+            let defLength = CCArray2[bestI][defender].length;
+log(attLength)
+log(defLength)
 
-            CCArray2[bestI][model1.player].push(id);
-        });
+            if (defLength > attLength) {
+                //split into 2 groups
+                let arr1 = [];
+                let arr2 = [];
+                for (let i=0;i<defLength;i++) {
+                    let aid = CCArray2[bestI][defender][i];
+                    if (adjacentIDs.includes(aid)) {
+                        arr1.push(aid);
+                    } else {
+                        arr2.push(aid);
+                    }
+                }
+                CCArray2[bestI][defender] = arr2;
+                let newGroup = [[id1],arr1];
+                CCArray2.push(newGroup);
+            } else {
+                CCArray2[bestI][attacker].push(id1);
+            }
+        })
+
+
 
     
-    
-    
+
+
+
 
         //temp for troubleshooting
 
@@ -4936,7 +4967,6 @@ log(target)
 
 
 
-
         PrintCard();
 
     
@@ -4949,7 +4979,6 @@ log(target)
     
     
     }
-
     const changeGraphic = (tok,prev) => {
         if (tok.get('subtype') === "token") {
             RemoveLines();
