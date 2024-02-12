@@ -4786,6 +4786,12 @@ log(target)
                         let m2Flag = false;
                         if (model2.player !== model.player) {
                             for (let i=0;i<CCArray.length;i++) {
+
+
+                
+        //rewrite
+
+
                                 if (CCArray[i][model.player].includes(id) && CCArray[i][model2.player].includes(id2) === false) {
                                     CCArray[i][model2.player].push(id2);
                                     m2Flag = true;
@@ -4797,6 +4803,9 @@ log(target)
                                 }
                             }
                             if (m2Flag === false) {
+
+
+
                                 opponents[model.player].push(id);
                                 opponents[model2.player].push(id);
                                 CCArray.push(opponents);
