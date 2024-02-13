@@ -121,9 +121,15 @@ const BuildCCArray = (id) => {
     PrintCard();
 
     
+    let CCArray2 = [];
+    
+    for (let i=0;i<CCArray.length;i++) {
+        let group = CCArray[i];
+        
 
-    
-    
+
+
+    }
 
 
 
