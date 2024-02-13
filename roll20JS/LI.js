@@ -4818,24 +4818,24 @@ log(target)
         do {
             let id = unmatchedIDs.shift();
             let model = ModelArray[id];
-            let surroundingHexes = SurroundingHexes(id);
-log(model.name)
-log(surroundingHexes)
+            let garrison = (model.player === defender) ? true:false;
+            let surroundingHexes = SurroundingHexes(id,garrison);
             _.each(surroundingHexes,hex => {
                 let nids = [];
-                if (hexMap[hex.label()].structureID !== "") {
+                if (hexMap[hex.label()].structureID !== "" && garrison === true) {
                     let garrisonIDs = Garrisons(hexMap[hex.label()].structureID);
                     for (let i=0;i<garrisonIDs.length;i++) {
                         let unit = UnitArray[garrisonIDs[i]];
                         if (unit) {
-                            nids = nids.concat(unit.modelIDs);
-                            trackedGarrisonIDs = trackedGarrisonIDs.concat(unit.modelIDs);
+                            _.each(unit.modelIDs,id => {
+                                nids.push(id);
+                                trackedGarrisonIDs.push(id);
+                            })
                         }
                     }
                 } else {
                     nids = hexMap[hex.label()].modelIDs;
                 }
-log(model.name + ": " + nids.length)
                 hexModelIDs[hex.label()] = nids;
                 if (nids.length > 0) {
                     _.each(nids,id2 => {
@@ -4941,12 +4941,11 @@ log(model.name + ": " + nids.length)
         }
         PrintCard();
     
-        
         let CCArray2 = [];
         let assignedDefenders = [];
         let assignedAttackers = [];
 /////
-        //Part 1 - run through attackerInfo, those with just aRatio (usually 1) opponent are 'fixed' and moved to 2nd array
+        //Part 1 - run through attackerInfo, those with just dRatio (usually 1) opponent are 'fixed' and moved to 2nd array
         let pass = 0;
         let change = false;
         do {
@@ -5038,7 +5037,7 @@ log(model.name + ": " + nids.length)
         } while (change === true);
 
         //run through attackers to see if any not assigned
-        //assign to neighbouring defender, 1st to lowest # of opponents, then rank, then CAF
+        //assign to neighbouring defender
 
         _.each(attackerIDs,aid => {
             if (assignedAttackers.includes(aid) === false) {
@@ -5047,10 +5046,10 @@ log("Missing is " + model.name)
                 let bestChoiceID;
                 let highestRank = 0;
                 let lowestCAF = 20;
-                let lowestOpponents = 100;
-                let surroundingHexes = SurroundingHexes(aid);
+                let lowestOpponents = 1000;
+                let surroundingHexes = SurroundingHexes(aid,false);
                 _.each(surroundingHexes,hex => {
-                    let nids = hexModelIDs[hex.label];
+                    let nids = hexModelIDs[hex.label()];
                     _.each(nids,id2 => {
                         let model2 = ModelArray[id2];
                         if (model2.player === defender) {
@@ -5093,7 +5092,7 @@ log("Missing is " + model.name)
         })
 
         //run through defenders to see if any not assigned
-        //assign to neighbouring attacker, 1st to highest # of opponetns, then rank, then CAF
+        //assign to neighbouring attacker
         _.each(defenderIDs,did => {
             if (assignedDefenders.includes(did) === false) {
                 let model = ModelArray[did];
@@ -5101,29 +5100,30 @@ log("Missing is " + model.name)
                 let bestChoiceID;
                 let lowestRank = 5;
                 let highestCAF = 0;
-                let highestOpponents = 0;
-                let surroundingHexes = SurroundingHexes(did);
+
+                let lowestOwn = 1000;
+                let surroundingHexes = SurroundingHexes(did,true);
                 _.each(surroundingHexes,hex => {
-                    let nids = hexModelIDs[hex.label];
+                    let nids = hexModelIDs[hex.label()];
                     _.each(nids,id2 => {
                         let model2 = ModelArray[id2];
                         if (model2.player === attacker) {
                             for (let i=0;i<CCArray2.length;i++) {
                                 let group = CCArray2[i];
                                 if (group.attackerIDs.includes(id2)) {
-                                    let opps = group.attackerIDs.length;
-                                    if (opps > highestOpponents) {
-                                        highestOpponents = opps;
+                                    let opps = group.defenderIDs.length;
+                                    if (opps < lowestOwn) {
+                                        lowestOwn = opps;
                                         bestChoiceID = id2;
                                         lowestRank = model2.rank;
                                         highestCAF = model2.caf;
                                     } else if (model2.rank < lowestRank) {
-                                        highestOpponents = opps;
+                                        lowestOwn = opps;
                                         bestChoiceID = id2;
                                         lowestRank = model2.rank;
                                         highestCAF = model2.caf;
                                     } else if (model2.caf > highestCAF) {
-                                        highestOpponents = opps;
+                                        lowestOwn = opps;
                                         bestChoiceID = id2;
                                         lowestRank = model2.rank;
                                         highestCAF = model2.caf;
@@ -5214,22 +5214,21 @@ log("Missing is " + model.name)
         };
     };
 
-    const SurroundingHexes = (id) => {
+    const SurroundingHexes = (id,garrison) => {
         let object = ModelArray[id];
         if (!object) {return};
         let hex = hexMap[object.hexLabel];
-        if (hex.structureID !== "") {
+        if (hex.structureID !== "" && garrison === true) {
             //infantry in structure - change object to structure
             object = ModelArray[hex.structureID];
         }
         let ownHexes = (object.large === true || object.type === "Structure") ? object.largeHexList:[object.hex];
-        let ownHexLabels = ownHexes.map(hex => hex.label());
         let surroundingHexes = [];
         let surroundingHexLabels = [];
         _.each(ownHexes,ownHex => {
             let neighbourHexes = ownHex.neighbours();
             _.each(neighbourHexes,hex2 => {
-                if (ownHexLabels.includes(hex2.label()) === false && surroundingHexLabels.includes(hex2.label()) === false) {
+                if (surroundingHexLabels.includes(hex2.label()) === false) {
                     surroundingHexes.push(hex2);
                     surroundingHexLabels.push(hex2.label());
                 }
