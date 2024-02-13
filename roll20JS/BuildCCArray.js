@@ -122,17 +122,89 @@ const BuildCCArray = (id) => {
 
     
     let CCArray2 = [];
-    
-    for (let i=0;i<CCArray.length;i++) {
-        let group = CCArray[i];
-        
+    //Pass 1 - run through defenderInfo, those with just 1 are 'fixed' - 
+    let pass = 0;
+    let change = false;
+    do {
+        pass++
+        log("Pass: " + pass)
+        change = false;
+        let dkeys = Object.keys(defenderInfo);
+        for (let i=0;i<dkeys.length;i++) {
+            if (defenderInfo[dkeys[i]] === 1) {
+                log(ModelArray[dkeys[i]].name)
+                let index = -1
+                let group;
+                for (let g=0;g<CCArray.length;g++) {
+                    group = CCArray[g];
+                    if (group.defenderIDs.includes(dkeys[i])) {
+                        index = g;
+                        break;
+                    }
+                }
+                if (index > -1) {
+                    let otherDefenders = group.defenderIDs;
+                    let index2 = otherDefenders.indexOf(dkeys[i]);
+                    otherDefenders.splice(index2,1);
+                    for (let d=0;d<otherDefenders.length;d++) {
+                        defenderInfo[otherDefenders[d]]--;
+                    }
+                    group.defenderIDs = [dkeys[i]];
+                    CCArray2.push(group);
+                    CCArray.splice(index,1);
+                }
+                defenderInfo[dkeys[i]] = 0;
+                change = true;
+            }
+        }
+    } while (change === true)
+/*
+    //Pass 2 - move those with approp ratios to 2nd array and adjust remainder
+    _.each(CCArray,group => {
+        if (group.attackerIDs.length <= aRatio && group.defenderIDs.length <= dRatio) {
+            CCArray.splice(i,1);
+            for (let d=0;d<group.defenderIDs.length;d++) {
+                let did = group.defenderIDs[d];
+                delete defenderInfo[did];
+                for (let g=0;g<CCArray.length;g++) {
+                    let index = CCArray[g].defenderIDs.indexOf(did);
+                    if (index > -1) {
+                        CCArray[g].defenderIDs.splice(index,1);
+                    }
+                }
+            }
+            CCArray2.push(group);
+        } 
+    })
+*/
 
 
 
+
+
+
+    SetupCard("Post Sort 1","",initialModel.faction);
+    for (let i=0;i<CCArray2.length;i++) {
+        let group = CCArray2[i];
+        if (i > 0) {
+            outputCard.body.push("[hr]");
+        }
+        outputCard.body.push("Group " + (i+1));
+        _.each(group.attackerIDs,id => {
+            outputCard.body.push(ModelArray[id].name);
+        })
+        _.each(group.defenderIDs,id => {
+            outputCard.body.push(ModelArray[id].name);
+        })
+    }
+    outputCard.body.push("[hr]");
+    keys = Object.keys(defenderInfo);
+    for (let i=0;i<keys.length;i++) {
+        let line = ModelArray[keys[i]].name + ": " + defenderInfo[keys[i]];
+        outputCard.body.push(line);
     }
 
-
-
+    PrintCard();
 
 
 

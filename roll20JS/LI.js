@@ -4789,6 +4789,7 @@ log(target)
     
     
     }
+    
     const BuildCCArray = (id) => {
         let initialModel = ModelArray[id];
         let attacker = initialModel.player;
@@ -4911,47 +4912,91 @@ log(target)
     
         PrintCard();
     
-    /*
+        
         let CCArray2 = [];
+        //Pass 1 - run through defenderInfo, those with just 1 are 'fixed' - 
+        let pass = 0;
+        let change = false;
         do {
-            let group = CCArray.shift();
-            if (group.attackerIDs.length <= aRatio && group.defenderIDs.length <= dRatio) {
-                CCArray2.push(group);
-                for (let i=0;i<CCArray.length;i++) {
-                    let group2 = CCArray[i];
-                    _.each(group.defenderIDs,id => {
-                        let index = group2.indexOf(id);
-                        if (index > -1) {
-                            group2.splice(index,1);
+            pass++
+            log("Pass: " + pass)
+            change = false;
+            let dkeys = Object.keys(defenderInfo);
+            for (let i=0;i<dkeys.length;i++) {
+                if (defenderInfo[dkeys[i]] === 1) {
+                    log(ModelArray[dkeys[i]].name)
+                    let index = -1
+                    let group;
+                    for (let g=0;g<CCArray.length;g++) {
+                        group = CCArray[g];
+                        if (group.defenderIDs.includes(dkeys[i])) {
+                            index = g;
+                            break;
                         }
-                    })
-                    CCArray[i] = group2;
+                    }
+                    if (index > -1) {
+                        let otherDefenders = group.defenderIDs;
+                        let index2 = otherDefenders.indexOf(dkeys[i]);
+                        otherDefenders.splice(index2,1);
+                        for (let d=0;d<otherDefenders.length;d++) {
+                            defenderInfo[otherDefenders[d]]--;
+                        }
+                        group.defenderIDs = [dkeys[i]];
+                        CCArray2.push(group);
+                        CCArray.splice(index,1);
+                    }
+                    defenderInfo[dkeys[i]] = 0;
+                    change = true;
                 }
-            } else if (group.attackerIDs.length <= aRatio && group.defenderIDs.length > dRatio) {
-                let number = 0;
-    
-    
-    
-    
-    
+            }
+        } while (change === true)
+    /*
+        //Pass 2 - move those with approp ratios to 2nd array and adjust remainder
+        _.each(CCArray,group => {
+            if (group.attackerIDs.length <= aRatio && group.defenderIDs.length <= dRatio) {
+                CCArray.splice(i,1);
+                for (let d=0;d<group.defenderIDs.length;d++) {
+                    let did = group.defenderIDs[d];
+                    delete defenderInfo[did];
+                    for (let g=0;g<CCArray.length;g++) {
+                        let index = CCArray[g].defenderIDs.indexOf(did);
+                        if (index > -1) {
+                            CCArray[g].defenderIDs.splice(index,1);
+                        }
+                    }
+                }
+                CCArray2.push(group);
             } 
-    
-    
-    
-            CCArray.sort((a,b) => {
-                return (a.defenderIDs.length - b.defenderIDs.length);
-            });
-        } while (CCArray.length > 0);
-    
-    
-    
+        })
     */
     
     
-        
-        
     
     
+    
+    
+        SetupCard("Post Sort 1","",initialModel.faction);
+        for (let i=0;i<CCArray2.length;i++) {
+            let group = CCArray2[i];
+            if (i > 0) {
+                outputCard.body.push("[hr]");
+            }
+            outputCard.body.push("Group " + (i+1));
+            _.each(group.attackerIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+            _.each(group.defenderIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+        }
+        outputCard.body.push("[hr]");
+        keys = Object.keys(defenderInfo);
+        for (let i=0;i<keys.length;i++) {
+            let line = ModelArray[keys[i]].name + ": " + defenderInfo[keys[i]];
+            outputCard.body.push(line);
+        }
+    
+        PrintCard();
     
     
     
@@ -4961,6 +5006,9 @@ log(target)
     
     
     }
+    
+    
+    
 
     const changeGraphic = (tok,prev) => {
         if (tok.get('subtype') === "token") {
