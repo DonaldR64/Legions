@@ -4789,7 +4789,6 @@ log(target)
     
     
     }
-
     const BuildCCArray = (id) => {
         let initialModel = ModelArray[id];
         let attacker = initialModel.player;
@@ -4868,8 +4867,28 @@ log(target)
         CCArray.sort((a,b) => {
             return (a.defenderIDs.length - b.defenderIDs.length);
         })
+        let dRatio = defenderIDs.length/attackerIDs.length;
+        if (dRatio >= 1) {
+            dRatio = Math.floor(dRatio);
+            aRatio = 1;
+        } else {
+            dRatio = 1;
+            aRatio = Math.floor(1/dRatio);
+        }
     
-        SetupCard("Close Combat","",initialModel.faction);
+        let defenderInfo = {};
+        _.each(CCArray,group => {
+            for (let i=0;i<group.defenderIDs.length;i++) {
+                let id = group.defenderIDs[i];
+                if (defenderInfo[id]) {
+                    defenderInfo[id]++;
+                } else {
+                    defenderInfo[id] = 1;
+                }
+            }
+        });
+    
+        SetupCard("Pre Sort","",initialModel.faction);
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
             if (i > 0) {
@@ -4883,24 +4902,50 @@ log(target)
                 outputCard.body.push(ModelArray[id].name);
             })
         }
+        outputCard.body.push("[hr]");
+        let keys = Object.keys(defenderInfo);
+        for (let i=0;i<keys.length;i++) {
+            let line = ModelArray[keys[i]].name + ": " + defenderInfo[keys[i]];
+            outputCard.body.push(line);
+        }
+    
         PrintCard();
     
-    
-    
-    
-    
-    
-    
+    /*
         let CCArray2 = [];
-        let matchedIDs = [];
-        attackerIDs = [];
-        defenderIDs = [];
+        do {
+            let group = CCArray.shift();
+            if (group.attackerIDs.length <= aRatio && group.defenderIDs.length <= dRatio) {
+                CCArray2.push(group);
+                for (let i=0;i<CCArray.length;i++) {
+                    let group2 = CCArray[i];
+                    _.each(group.defenderIDs,id => {
+                        let index = group2.indexOf(id);
+                        if (index > -1) {
+                            group2.splice(index,1);
+                        }
+                    })
+                    CCArray[i] = group2;
+                }
+            } else if (group.attackerIDs.length <= aRatio && group.defenderIDs.length > dRatio) {
+                let number = 0;
     
     
     
     
     
+            } 
     
+    
+    
+            CCArray.sort((a,b) => {
+                return (a.defenderIDs.length - b.defenderIDs.length);
+            });
+        } while (CCArray.length > 0);
+    
+    
+    
+    */
     
     
         
@@ -4916,7 +4961,7 @@ log(target)
     
     
     }
-    
+
     const changeGraphic = (tok,prev) => {
         if (tok.get('subtype') === "token") {
             RemoveLines();

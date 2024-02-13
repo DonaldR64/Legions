@@ -85,6 +85,18 @@ const BuildCCArray = (id) => {
         aRatio = Math.floor(1/dRatio);
     }
 
+    let defenderInfo = {};
+    _.each(CCArray,group => {
+        for (let i=0;i<group.defenderIDs.length;i++) {
+            let id = group.defenderIDs[i];
+            if (defenderInfo[id]) {
+                defenderInfo[id]++;
+            } else {
+                defenderInfo[id] = 1;
+            }
+        }
+    });
+
     SetupCard("Pre Sort","",initialModel.faction);
     for (let i=0;i<CCArray.length;i++) {
         let group = CCArray[i];
@@ -99,46 +111,20 @@ const BuildCCArray = (id) => {
             outputCard.body.push(ModelArray[id].name);
         })
     }
+    outputCard.body.push("[hr]");
+    let keys = Object.keys(defenderInfo);
+    for (let i=0;i<keys.length;i++) {
+        let line = ModelArray[keys[i]].name + ": " + defenderInfo[keys[i]];
+        outputCard.body.push(line);
+    }
+
     PrintCard();
 
-    let CCArray2 = [];
-    do {
-        let group = CCArray.shift();
-        if (group.attackerIDs.length <= aRatio && group.defenderIDs.length <= dRatio) {
-            CCArray2.push(group);
-            for (let i=0;i<CCArray.length;i++) {
-                let group2 = CCArray[i];
-                _.each(group.defenderIDs,id => {
-                    let index = group2.indexOf(id);
-                    if (index > -1) {
-                        group2.splice(index,1);
-                    }
-                })
-                CCArray[i] = group2;
-            }
-        } else if (group.attackerIDs.length <= aRatio && group.defenderIDs.length > dRatio) {
-   
-
-
-
-
-
-        } 
-
-
-
-        CCArray.sort((a,b) => {
-            return (a.defenderIDs.length - b.defenderIDs.length);
-        });
-    } while (CCArray.length > 0);
-
-
-
-
-
+    
 
     
     
+
 
 
 
