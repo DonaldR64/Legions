@@ -52,8 +52,6 @@ const BuildCCArray = (id) => {
         });
     } while (unmatchedIDs.length > 0);
 
-  
-
 
     SetupCard("Close Combat","","Neutral")
     outputCard.body.push("Attackers")
@@ -65,6 +63,39 @@ const BuildCCArray = (id) => {
         outputCard.body.push(ModelArray[id].name);
     })
     PrintCard();
+
+    let CCArray = [];
+
+    for (let i=0;i<attackerIDs.length;i++) {
+        let id1 = attackerIDs[i];
+        let model1 = ModelArray[id1];
+        let group = {
+            attackerIDs: [id1],
+            defenderIDs: [],
+        };
+        for (let j=0;j<defenderIDs.length;j++) {
+            let id2 = defenderIDs[i];
+            let model2 = ModelArray[id2];
+            let dist = ModelDistance(model1,model2).distance;
+            if (dist < 1) {
+                group.defenderIDs.push(id2);
+            }
+        }
+        CCArray.push(group);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    
+    
 
 
 
