@@ -4844,19 +4844,67 @@ log(target)
             });
         } while (unmatchedIDs.length > 0);
     
-      
-    
-    
-        SetupCard("Close Combat","","Neutral")
-        outputCard.body.push("Attackers")
-        _.each(attackerIDs,id => {
-            outputCard.body.push(ModelArray[id].name);
+        let CCArray = [];
+        for (let i=0;i<attackerIDs.length;i++) {
+            let id1 = attackerIDs[i];
+            let model1 = ModelArray[id1];
+        log(model1.name)
+            let group = {
+                attackerIDs: [id1],
+                defenderIDs: [],
+            };
+            for (let j=0;j<defenderIDs.length;j++) {
+                let id2 = defenderIDs[j];
+                let model2 = ModelArray[id2];
+            log(model2.name)
+                let dist = ModelDistance(model1,model2).distance;
+            log(dist)
+                if (dist < 1) {
+                    group.defenderIDs.push(id2);
+                }
+            }
+            CCArray.push(group);
+        }
+        CCArray.sort((a,b) => {
+            return (a.defenderIDs.length - b.defenderIDs.length);
         })
-        outputCard.body.push("Defenders")
-        _.each(defenderIDs,id => {
-            outputCard.body.push(ModelArray[id].name);
-        })
+    
+        SetupCard("Close Combat","",initialModel.faction);
+        for (let i=0;i<CCArray.length;i++) {
+            let group = CCArray[i];
+            if (i > 0) {
+                outputCard.body.push("[hr]");
+            }
+            outputCard.body.push("Group " + (i+1));
+            _.each(group.attackerIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+            _.each(group.defenderIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+        }
         PrintCard();
+    
+    
+    
+    
+    
+    
+    
+        let CCArray2 = [];
+        let matchedIDs = [];
+        attackerIDs = [];
+        defenderIDs = [];
+    
+    
+    
+    
+    
+    
+    
+    
+        
+        
     
     
     
@@ -4868,12 +4916,7 @@ log(target)
     
     
     }
-
-
-
-
-
-
+    
     const changeGraphic = (tok,prev) => {
         if (tok.get('subtype') === "token") {
             RemoveLines();
