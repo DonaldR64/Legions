@@ -3379,8 +3379,14 @@ log(model.name)
                 });
             }
         });
-        unitIDs = [...new Set(unitIDs)];
-        return unitIDs;
+        let garrisonIDs = [];
+        _.each(unitIDs,unitID => {
+            if (garrisonIDs.includes(unitID) === false && unitID) {
+                garrisonIDs.push(unitID)
+            }
+        })
+        return garrisonIDs;
+
     }
 
     const Shooting = (msg) => {
@@ -4806,7 +4812,19 @@ log(target)
             let id = unmatchedIDs.shift();
             let model = ModelArray[id];
             _.each(model.hex.neighbours(),hex => {
-                let nids = hexMap[hex.label()].modelIDs;
+                let nids = [];
+                if (hexMap[hex.label()].structureID !== "") {
+                    let garrisonIDs = Garrisons(hexMap[hex.label()].structureID);
+log(garrisonIDs)
+                    for (let i=0;i<garrisonIDs.length;i++) {
+                        let unit = UnitArray[garrisonIDs[i]];
+                        if (unit) {
+                            nids = nids.concat(unit.modelIDs);
+                        }
+                    }
+                } else {
+                    nids = hexMap[hex.label()].modelIDs;
+                }
                 if (nids.length > 0) {
                     _.each(nids,id2 => {
                         let model2 = ModelArray[id2];
@@ -4915,7 +4933,7 @@ log(target)
         let CCArray2 = [];
         let assignedDefenders = [];
         let assignedAttackers = [];
-
+/////
         //Part 1 - run through attackerInfo, those with just aRatio (usually 1) opponent are 'fixed' and moved to 2nd array
         let pass = 0;
         let change = false;
