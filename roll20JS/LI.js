@@ -4775,199 +4775,9 @@ log(target)
 
  
     const CloseCombat = (msg) => {
-
-
         let modelID = msg.selected[0]._id;
         let ccArray = BuildCCArray(modelID);
 
-
-        let p1Model = ModelArray[modelID];
-        SetupCard("Close Combat","",p1Model.faction);
-        let p1Unit = UnitArray[p1Model.unitID];
-
-        let attacker = p1Model.player; //attacker should be player with initiative
-        let defender = (attacker === 0) ? 1:0;
-    
-        let CCArray = []; //sets of combatants
-    
-        let unmatchedIDs = p1Unit.modelIDs;
-        //organize based on distance from farthest place;
-
-
-        let refID = p1Unit.modelIDs
-        unmatchedIDs.sort(())
-
-
-        let attackerUnitIDs = [p1Unit.id];
-        matchedDefenderIDs = [];
-
-        //build groups of tokens based on initial unit
-        do {
-            let id1 = unmatchedIDs.shift();
-            if (id1) {
-                let model1 = ModelArray[id1];
-                log(model1.name)
-                let pair = [[],[]];
-                pair[attacker].push(id1);
-                _.each(model1.hex.neighbours(),hex => {
-                    let nids = hexMap[hex.label()].modelIDs;
-                    _.each(nids,nid => {
-                        let model2 = ModelArray[nid];
-                        if (model2.player === defender) {
-                            pair[defender].push(nid);
-                            _.each(model2.hex.neighbours(),hex2 => {
-                                let nids2 = hexMap[hex2.label()].modelIDs;
-                                _.each(nids2,nid2 => {
-                                    let model3 = ModelArray[nid2];
-                                    if (model3.player === attacker) {
-                                        if (attackerUnitIDs.includes(model3.unitID) === false) {
-                                            unmatchedIDs = unmatchedIDs.concat(UnitArray[model3.unitID].modelIDs);
-                                            attackerUnitIDs.push(model3.unitID);
-                                        }
-                                    }
-                                })
-                            })
-                        }
-                    });
-                });
-                CCArray.push(pair);
-            }
-        } while (unmatchedIDs.length > 0);
-
-        if (CCArray.length === 0) {
-            outputCard.body.push("No Valid Close Combats Found");
-            PrintCard();
-            return;
-        }
-
-        unmatchedIDs = [];
-        
-        //sort based on # of defenders
-        CCArray.sort((a,b) => {
-            return a[defender].length - b[defender].length;
-        })
-
-
-        let CCArray2 = [];
-        for (let i=0;i<CCArray.length;i++) {
-            let group = CCArray[i];
-            let attackers = group[attacker];
-            log("Group " + (i+1) + ": " + ModelArray[attackers[0]].name)
-            let defenders = group[defender];
-            let finalDefenders = [];
-            for (let j=0;j<defenders.length;j++) {
-                let defID = defenders[j];
-                log(ModelArray[defID].name);
-                if (matchedDefenderIDs.includes(defID) === false) {
-                    log("Add")
-                    matchedDefenderIDs.push(defID);
-                    finalDefenders.push(defID);
-                }
-            }      
-            log("# Defenders: " + finalDefenders.length)
-            if (finalDefenders.length === 0) {
-                let attID = group[attacker][0];
-                log(ModelArray[attID].name + " unattached") 
-                unmatchedIDs.push(attID);
-            } else if (finalDefenders.length > 0) {
-                CCArray[i][defender] = finalDefenders;
-                group[defender] = finalDefenders;
-                CCArray2.push(group);
-            }
-        }
-
-        //add the unmatched back in, going for highest # of oppoents first, then if equal, help the higher rank
-log("Unmatched")
-        _.each(unmatchedIDs,id1 => {
-            let model1 = ModelArray[id1];
-log(model1.name)
-            let bestI;
-            let opponentNum = 0;
-            let highestRank = 1;
-            let adjacentIDs = [];
-        
-            for (let i=0;i<CCArray2.length;i++) {
-                let subgroupOwn = CCArray2[i][attacker];
-                let subgroupOther = CCArray2[i][defender];
-                for (let j=0;j<subgroupOther.length;j++) {
-                    let id2 = subgroupOther[j];
-                    let model2 = ModelArray[id2];
-                    let dist = ModelDistance(model1,model2).distance;
-                    if (dist < 1) {
-                        adjacentIDs.push(id2);
-                        if (subgroupOther.length > opponentNum) {
-                            bestI = i;
-                            opponentNum = subgroupOther.length;
-                        } else if (subgroupOther.length === opponentNum) {
-                            for (let k=0;k<subgroupOwn.length;k++) {
-                                let id3 = subgroupOwn[k];
-                                let model3 = ModelArray[id3];                                
-                                if (model3.rank > highestRank) {
-                                    highestRank = model3.rank;
-                                    bestI = i;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-log("Best I: " + bestI)
-            let attLength = CCArray2[bestI][attacker].length;
-            let defLength = CCArray2[bestI][defender].length;
-log(attLength)
-log(defLength)
-
-            if (defLength > attLength) {
-                //split into 2 groups
-                let arr1 = [];
-                let arr2 = [];
-                for (let i=0;i<defLength;i++) {
-                    let aid = CCArray2[bestI][defender][i];
-                    if (adjacentIDs.includes(aid)) {
-                        arr1.push(aid);
-                    } else {
-                        arr2.push(aid);
-                    }
-                }
-                CCArray2[bestI][defender] = arr2;
-                let newGroup = [[id1],arr1];
-                CCArray2.push(newGroup);
-            } else {
-                CCArray2[bestI][attacker].push(id1);
-            }
-        })
-
-
-
-    
-
-
-
-
-        //temp for troubleshooting
-
-
-        outputCard.body.push("Groups")
-        for (let k=0;k<CCArray2.length;k++) {
-            let group = CCArray2[k];
-            outputCard.body.push("Group " + (k+1));
-            for (let j=0;j<group.length;j++) {
-                let subgroup = group[j];
-                let names = [];
-                for (let i=0;i<subgroup.length;i++) {
-                    names.push(ModelArray[subgroup[i]].name);
-                }
-                outputCard.body.push(names.toString());
-            }
-            outputCard.body.push("[hr]");
-        }
-
-
-
-
-
-
-        PrintCard();
 
     
     
@@ -4979,6 +4789,91 @@ log(defLength)
     
     
     }
+
+    const BuildCCArray = (id) => {
+        let initialModel = ModelArray[id];
+        let attacker = initialModel.player;
+        let defender = (attacker === 0) ? 1:0;
+    
+        let unmatchedIDs = UnitArray[initialModel.unitID].modelIDs;
+        let unitIDs = [initialModel.unitID];
+        let attackerIDs = [];
+        let defenderIDs = [];
+    
+        do {
+            let id = unmatchedIDs.shift();
+            let model = ModelArray[id];
+            _.each(model.hex.neighbours(),hex => {
+                let nids = hexMap[hex.label()].modelIDs;
+                if (nids.length > 0) {
+                    _.each(nids,id2 => {
+                        let model2 = ModelArray[id2];
+                        if (model.player === attacker && model2.player === defender) {
+                            if (attackerIDs.includes(id) === false) {
+                                attackerIDs.push(id);
+                                if (unitIDs.includes(model.unitID) === false) {
+                                    unitIDs.push(model.unitID);
+                                    unmatchedIDs = unmatchedIDs.concat(UnitArray[model.unitID].modelIDs);
+                                }
+                            }
+                            if (defenderIDs.includes(id2) === false) {
+                                defenderIDs.push(id2);
+                                if (unitIDs.includes(model2.unitID) === false) {
+                                    unitIDs.push(model2.unitID);
+                                    unmatchedIDs = unmatchedIDs.concat(UnitArray[model2.unitID].modelIDs);
+                                }
+                            }
+                        } else if (model.player === defender && model2.player === attacker) {
+                            if (attackerIDs.includes(id2) === false) {
+                                attackerIDs.push(id2);
+                                if (unitIDs.includes(model2.unitID) === false) {
+                                    unitIDs.push(model2.unitID);
+                                    unmatchedIDs = unmatchedIDs.concat(UnitArray[model2.unitID].modelIDs);
+                                }
+                            }
+                            if (defenderIDs.includes(id) === false) {
+                                defenderIDs.push(id);
+                                if (unitIDs.includes(model.unitID) === false) {
+                                    unitIDs.push(model.unitID);
+                                    unmatchedIDs = unmatchedIDs.concat(UnitArray[model.unitID].modelIDs);
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        } while (unmatchedIDs.length > 0);
+    
+      
+    
+    
+        SetupCard("Close Combat","","Neutral")
+        outputCard.body.push("Attackers")
+        _.each(attackerIDs,id => {
+            outputCard.body.push(ModelArray[id].name);
+        })
+        outputCard.body.push("Defenders")
+        _.each(defenderIDs,id => {
+            outputCard.body.push(ModelArray[id].name);
+        })
+        PrintCard();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    }
+
+
+
+
+
+
     const changeGraphic = (tok,prev) => {
         if (tok.get('subtype') === "token") {
             RemoveLines();
