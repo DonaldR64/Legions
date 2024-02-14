@@ -3391,7 +3391,7 @@ log(model.name)
         let garrisonIDs = [];
         _.each(unitIDs,unitID => {
             if (garrisonIDs.includes(unitID) === false && unitID) {
-                garrisonIDs.push(unitID)
+                garrisonIDs.push(unitID);
             }
         })
         return garrisonIDs;
@@ -4813,7 +4813,7 @@ log(target)
         let attacker = initialModel.player;
         let defender = (attacker === 0) ? 1:0;
     
-        let unmatchedIDs = UnitArray[initialModel.unitID].modelIDs;
+        let unmatchedIDs = DeepCopy(UnitArray[initialModel.unitID].modelIDs);
         let unitIDs = [initialModel.unitID];
         let attackerIDs = [];
         let subsetIDs = []; //those in B2B contact with building
@@ -4907,6 +4907,7 @@ log(target)
             if (pos > (CCArray.length - 1)) {pos = 0};
         }
 
+
         //Then go onto other non-garrison troops involved in combat
 
         for (let i=0;i<attackerIDs.length;i++) {
@@ -4974,11 +4975,11 @@ log(target)
             outputCard.body.push(line);
         }
         PrintCard();
-    
+
         let CCArray2 = [];
         let assignedDefenders = [];
         let assignedAttackers = [];
-
+log("Attackers")
         //Part 1 - run through attackerInfo, those with just dRatio (usually 1) opponent are 'fixed' and moved to 2nd array
         let pass = 0;
         let change = false;
@@ -4988,18 +4989,17 @@ log(target)
             change = false;
             let akeys = Object.keys(attackerInfo);
             for (let i=0;i<akeys.length;i++) {
-                if (attackerInfo[akeys[i]].length > 0 && attackerInfo[akeys[i]].length <= dRatio) {
-                    log(ModelArray[akeys[i]].name + " has only " + dRatio + " opponent(s)")
+                if (attackerInfo[akeys[i]].length === 1) {
+                    log(ModelArray[akeys[i]].name + " has only 1 opponent")
                     let group = CCArray.find(group => {
                         return group.attackerIDs.includes(akeys[i]);
                     })
-                    let index = CCArray.findIndex(group => {return group.attackerIDs.includes(1)})
+                    let index = CCArray.findIndex(group => {return group.attackerIDs.includes(akeys[i])});
                     if (group) {
                         assignedAttackers.push(akeys[i]);
-                        CCArray2.push(group);
-                        _.each(group.defenderIDs,id2 => {
+                        let id2 = group.defenderIDs[0]; //as only 1
+                        if (id2) {
                             for (let w=0;w<CCArray.length;w++) {
-                                if (w===g) {continue};
                                 let group2 = CCArray[w];
                                 let index3 = group2.defenderIDs.indexOf(id2);
                                 if (index3 > -1) {
@@ -5007,23 +5007,30 @@ log(target)
                                 }
                             }
                             _.each(akeys, id4 => {
-                                let index = attackerInfo[id4].indexOf(id2);
-                                if (index > -1) {
-                                    attackerInfo[id4].splice(index,1);
+                                let index4 = attackerInfo[id4].indexOf(id2);
+                                if (index4 > -1) {
+                                    attackerInfo[id4].splice(index4,1);
                                 }
                             })
-                            delete defenderInfo[id2];
-                            assignedDefenders.push(id2);
-        log(ModelArray[id2].name + " assigned")
-                        })
-                        delete attackerInfo[akeys[i]];
+                            defenderInfo[id2] = [];
+                            if (assignedDefenders.includes(id2) === false) {
+                                assignedDefenders.push(id2);
+                                log(ModelArray[id2].name + " assigned")
+                            }
+                            newGroup = {
+                                attackerIDs: [akeys[i]],
+                                defenderIDs: [id2],
+                            }
+                            CCArray2.push(newGroup);
+                        }
+                        attackerInfo[akeys[i]] = [];
                         CCArray.splice(index,1);
                         change = true;
                     }
                 }
             }
         } while (change === true);
-
+log("Defenders")
         //PArt 2 - run through defenderInfo, those with just 1 are 'fixed' and moved to 2nd array
         pass = 0;
         change = false;
@@ -5034,17 +5041,17 @@ log(target)
             let dkeys = Object.keys(defenderInfo);
             for (let i=0;i<dkeys.length;i++) {
                 if (defenderInfo[dkeys[i]].length === 1) {
-                    log(ModelArray[dkeys[i]].name + " has only 1 opponent or in Structure")
+                    log(ModelArray[dkeys[i]].name + " has only 1 opponent")
                     let group = CCArray.find(group => {
                         return group.defenderIDs.includes(dkeys[i]);
                     })
                     let index = CCArray.findIndex(group => {return group.defenderIDs.includes(dkeys[i])});
-
+log(group)
                     if (group) {
                         let aid = group.attackerIDs[0];
-                        let otherDefenders = group.defenderIDs;
-                        let index2 = otherDefenders.indexOf(dkeys[i]);
-                        otherDefenders.splice(index2,1);
+                        let otherDefenders = group.defenderIDs.filter(id => {
+                            return id !== dkeys[i];
+                        })
                         for (let d=0;d<otherDefenders.length;d++) {
                             let index4 = defenderInfo[otherDefenders[d]].indexOf(aid);
                             if (index4 > -1) {
@@ -5055,9 +5062,9 @@ log(target)
                         CCArray2.push(group);
                         CCArray.splice(index,1);
                         assignedDefenders.push(dkeys[i]);
-                        delete attackerInfo[group.attackerIDs[0]];
-                        assignedAttackers.push(group.attackerIDs[0]);
-                        delete defenderInfo[dkeys[i]];
+                        attackerInfo[aid] = [];
+                        assignedAttackers.push(aid);
+                        defenderInfo[dkeys[i]] = [];
                         change = true;
                     } 
                 }
@@ -5066,7 +5073,7 @@ log(target)
 
         //run through attackers to see if any not assigned
         //assign to neighbouring defender
-
+log("Attackers")
         _.each(attackerIDs,aid => {
             if (assignedAttackers.includes(aid) === false) {
                 let model = ModelArray[aid];
@@ -5080,28 +5087,36 @@ log("Missing is " + model.name)
                     let nids = hexModelIDs[hex.label()];
                     _.each(nids,id2 => {
                         let model2 = ModelArray[id2];
-                        if (model2.player === defender) {
-                            for (let i=0;i<CCArray2.length;i++) {
-                                let group = CCArray2[i];
-                                if (group.defenderIDs.includes(id2)) {
-                                    let opps = group.defenderIDs.length;
-                                    if (opps < lowestOpponents) {
-                                        lowestOpponents = opps;
-                                        bestChoiceID = id2;
-                                        highestRank = model2.rank;
-                                        lowestCAF = model2.caf;
-                                    } else if (model2.rank > highestRank) {
-                                        lowestOpponents = opps;
-                                        bestChoiceID = id2;
-                                        highestRank = model2.rank;
-                                        lowestCAF = model2.caf;
-                                    } else if (model2.caf < lowestCAF) {
-                                        lowestOpponents = opps;
-                                        bestChoiceID = id2;
-                                        highestRank = model2.rank;
-                                        lowestCAF = model2.caf;
+                        if (model2.player !== model.player) {
+log(model2.name + ":" + id2)
+                            if (assignedDefenders.includes(id2) === false) {
+                                bestChoiceID = id2;
+                                lowestOpponents = -1;
+                            } else {
+                                if (!bestChoiceID) {bestChoiceID = id2};
+                                for (let i=0;i<CCArray2.length;i++) {
+                                    let group = CCArray2[i];
+    log(group)
+                                    if (group.defenderIDs.includes(id2)) {
+                                        let opps = group.defenderIDs.length;
+                                        log(i + ": " + opps)
+                                        if (opps < lowestOpponents) {
+                                            lowestOpponents = opps;
+                                            bestChoiceID = id2;
+                                            highestRank = model2.rank;
+                                            lowestCAF = model2.caf;
+                                        } else if (model2.rank > highestRank) {
+                                            lowestOpponents = opps;
+                                            bestChoiceID = id2;
+                                            highestRank = model2.rank;
+                                            lowestCAF = model2.caf;
+                                        } else if (model2.caf < lowestCAF) {
+                                            lowestOpponents = opps;
+                                            bestChoiceID = id2;
+                                            highestRank = model2.rank;
+                                            lowestCAF = model2.caf;
+                                        }
                                     }
-                                    break;
                                 }
                             }
                         }
@@ -5109,15 +5124,26 @@ log("Missing is " + model.name)
                 
                 });
 
-                for (let i=0;i<CCArray2.length;i++) {
-                    let group = CCArray2[i];
-                    if (group.defenderIDs.includes(bestChoiceID)) {
-                        CCArray2[i].attackerIDs.push(aid);
-                        break;
+log(bestChoiceID)
+                let group = CCArray2.find(group => {
+                    return group.defenderIDs.includes(bestChoiceID);
+                })
+                if (group) {
+                    group.attackerIDs.push(aid);
+                } else {
+                    let newgroup = {
+                        attackerIDs: [aid],
+                        defenderIDs: [bestChoiceID],
                     }
+                    let index = assignedDefenders.indexOf(bestChoiceID);
+                    if (index > -1) {
+                        assignedDefenders.splice(index,1);
+                    }    
+                    CCArray2.push(newgroup);
                 }
             }
         })
+        log("Defenders")
 
         //run through defenders to see if any not assigned
         //assign to neighbouring attacker
@@ -5128,7 +5154,6 @@ log("Missing is " + model.name)
                 let bestChoiceID;
                 let lowestRank = 5;
                 let highestCAF = 0;
-
                 let lowestOwn = 1000;
                 let surroundingHexes = SurroundingHexes(did,true);
                 _.each(surroundingHexes,hex => {
@@ -5136,8 +5161,12 @@ log("Missing is " + model.name)
                     _.each(nids,id2 => {
                         let model2 = ModelArray[id2];
                         if (model2.player === attacker) {
+                            if (!bestChoiceID) {bestChoiceID = id2};
+log(model2.name + ":" + id2)
                             for (let i=0;i<CCArray2.length;i++) {
                                 let group = CCArray2[i];
+log(group)
+
                                 if (group.attackerIDs.includes(id2)) {
                                     let opps = group.defenderIDs.length;
                                     if (opps < lowestOwn) {
@@ -5156,19 +5185,24 @@ log("Missing is " + model.name)
                                         lowestRank = model2.rank;
                                         highestCAF = model2.caf;
                                     }
-                                    break;
                                 }
                             }
                         }
                     });
                 });
 
-                for (let i=0;i<CCArray2.length;i++) {
-                    let group = CCArray2[i];
-                    if (group.attackerIDs.includes(bestChoiceID)) {
-                        CCArray2[i].defenderIDs.push(did);
-                        break;
+                log(bestChoiceID)
+                let group = CCArray2.find(group => {
+                    return group.attackerIDs.includes(bestChoiceID);
+                })
+                if (group) {
+                    group.defenderIDs.push(did);
+                } else {
+                    let newgroup = {
+                        attackerIDs: [bestChoiceID],
+                        defenderIDs: [did],
                     }
+                    CCArray2.push(newgroup)
                 }
             }
         });
