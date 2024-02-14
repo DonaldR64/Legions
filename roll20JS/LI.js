@@ -3372,7 +3372,7 @@ log(model.name)
 
     }
 
-    const Garrisons = (structureID) => {
+    const Garrisons = (structureID,defender) => {
         let structure = ModelArray[structureID];
         let hexes = structure.largeHexList;
         let unitIDs = [];
@@ -3380,7 +3380,11 @@ log(model.name)
             let Hex = hexMap[hex.label()];
             if (Hex.modelIDs.length > 0) {
                 _.each(Hex.modelIDs,id => {
-                    unitIDs.push(ModelArray[id].unitID);
+                    let model = ModelArray[id];
+                    if (!defender) {defender = model.player};
+                    if (model.player === defender) {
+                        unitIDs.push(ModelArray[id].unitID);
+                    }
                 });
             }
         });
@@ -3457,6 +3461,7 @@ log(model.name)
         let shooterID = Tag[1];
         let weaponNum = parseInt(Tag[2]);
         let shooter = ModelArray[shooterID];
+        let defendingPlayer = (shooter.player === 0)  ? 1:0;
         let weapon = shooter.weaponArray[weaponNum];
         SetupCard(shooter.name,"",shooter.faction);
         if (shooter.weaponsFired.includes(weaponNum)) {
@@ -3730,7 +3735,7 @@ log(model.name)
             if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
                 //Add in Garrison if center of blast over building
                 structureID = hexMap[target.hexLabel].structureID
-                let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
+                let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID,defendingPlayer];
                 _.each(garrisonUnitIDs,unitID => {
                     let unit = UnitArray[unitID];
                     let ids = [];
@@ -3880,6 +3885,7 @@ log(model.name)
         //only Titans, so only single shooters ?
         RemoveLines();
         let shooter = ModelArray[shooterID];
+        let defendingPlayer = (shooter.player === 0) ? 1:0;
         let sweapon = DeepCopy(shooter.weaponArray[weaponNum]);
         let shooterUnit = UnitArray[shooter.unitID];
         let target = ModelArray[targetID];
@@ -3937,7 +3943,7 @@ log(model.name)
                     let model = ModelArray[id];
                     if (model.type === "Structure" && model.type !== "System Unit") {
                         structuresHit.push(id);
-                        let garrisonUnitIDs = Garrisons(id);
+                        let garrisonUnitIDs = Garrisons(id,defendingPlayer);
                         _.each(garrisonUnitIDs,unitID => {
                             unitsHit[unitID] = UnitArray[unitID].modelIDs;
                             //as entire garrison becomes eligible target
@@ -4073,6 +4079,7 @@ log(model.name)
         //target can be structure/garrison - in which case both
         //or a single unit otherwise
         let shooter = ModelArray[shooterID];
+        let defendingPlayer = (shooter.player === 0) ? 1:0;
         let weapon = shooter.weaponArray[weaponNum];
         let target = ModelArray[targetID];            
         SetupCard(shooter.name,"Bombing Run",shooter.faction);
@@ -4098,14 +4105,14 @@ log(model.name)
             if  (weapon.arc === "Front" && losResult.arc === "Front" || weapon.arc === "Rear" && losResult.arc === "Rear" || weapon.arc === "Any") {
                 arcFlag = true;
             }
-            targetUnitIDs = Garrisons[structureID];
+            targetUnitIDs = Garrisons[structureID,defendingPlayer];
         } else {
             let hm = hexMap[target.hexLabel];
             if (hm.structureID === "") {
                 targetUnitIDs = [target.unitID];
             } else {
                 structureID = hm.structureID;
-                targetUnitIDs = Garrisons[hm.structureID];
+                targetUnitIDs = Garrisons[hm.structureID,defendingPlayer];
             }
             _.each(UnitArray[target.unitID].modelIDs,id => {
                 let losResult = LOS(shooterID,id);
@@ -4451,8 +4458,6 @@ log(model.name)
             })
             
             let garrisonUnitIDs = Garrisons(structure.id);
-
-            
             _.each(garrisonUnitIDs,unitID => {
                 let unit = UnitArray[unitID];
                 let hitArray = [];
@@ -4822,8 +4827,8 @@ log(target)
             let surroundingHexes = SurroundingHexes(id,garrison);
             _.each(surroundingHexes,hex => {
                 let nids = [];
-                if (hexMap[hex.label()].structureID !== "" && garrison === true) {
-                    let garrisonIDs = Garrisons(hexMap[hex.label()].structureID);
+                if (hexMap[hex.label()].structureID !== "") {
+                    let garrisonIDs = Garrisons(hexMap[hex.label()].structureID,defender);
                     for (let i=0;i<garrisonIDs.length;i++) {
                         let unit = UnitArray[garrisonIDs[i]];
                         if (unit) {
@@ -4877,6 +4882,14 @@ log(target)
         } while (unmatchedIDs.length > 0);
     
         trackedGarrisonIDs = [...new Set(trackedGarrisonIDs)];
+////////
+        //- Count up # of attackers attacking structure
+        //Divide the garrison up evenly - can just loop through
+
+        //Then go onto other non-garrison troops involved in combat
+
+
+
         let defenderInfo = {};
         let attackerInfo = {};
 
@@ -4944,7 +4957,7 @@ log(target)
         let CCArray2 = [];
         let assignedDefenders = [];
         let assignedAttackers = [];
-/////
+
         //Part 1 - run through attackerInfo, those with just dRatio (usually 1) opponent are 'fixed' and moved to 2nd array
         let pass = 0;
         let change = false;
