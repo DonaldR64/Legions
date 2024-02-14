@@ -4828,14 +4828,17 @@ log(target)
             _.each(surroundingHexes,hex => {
                 let nids = [];
                 if (hexMap[hex.label()].structureID !== "") {
-                    subsetIDs.push(id);
+                    if (subsetIDs.includes(id) === false && model.player === attacker) {
+                        subsetIDs.push(id);
+                    }
                     let gids = Garrisons(hexMap[hex.label()].structureID,defender);
                     for (let i=0;i<gids.length;i++) {
-                        let unit = UnitArray[garrisonIDs[i]];
-                        if (unit) {
-                            _.each(unit.modelIDs,id => {
-                                nids.push(id);
-                                garrisonIDs.push(id);
+                        let gunit = UnitArray[gids[i]];
+                        if (gunit) {
+                            _.each(gunit.modelIDs,mid => {
+                                if (garrisonIDs.includes(mid) === false) {
+                                    garrisonIDs.push(mid);
+                                }
                             })
                         }
                     }
@@ -4883,8 +4886,23 @@ log(target)
             });
         } while (unmatchedIDs.length > 0);
     
-        garrisonIDs = [...new Set(garrisonIDs)]; //only defenders can be in garrison
-        subsetIDs = [...new Set(subsetIDs)]; //attackers in contact with the building
+
+if (garrisonIDs.length > 0) {
+    SetupCard("Garrisons","","Neutral")
+    outputCard.body.push("Garrison Force")
+    _.each(garrisonIDs,id => {
+        outputCard.body.push(ModelArray[id].name);
+    })
+    outputCard.body.push("[hr]");
+    outputCard.body.push("Attackers");
+    _.each(subsetIDs,id => {
+        outputCard.body.push(ModelArray[id].name);
+    })
+    PrintCard();
+}
+
+
+
 
         let defenderInfo = {};
         let attackerInfo = {};
@@ -4900,13 +4918,15 @@ log(target)
             }
             CCArray.push(group);
         }        
+log(CCArray)
+
         let pos = 0;
         for (let i=0;i<garrisonIDs.length;i++) {
             CCArray[pos].defenderIDs.push(garrisonIDs[i]);
             pos++;
             if (pos > (CCArray.length - 1)) {pos = 0};
         }
-
+log(CCArray)
 
         //Then go onto other non-garrison troops involved in combat
 
@@ -5207,6 +5227,11 @@ log(group)
                 }
             }
         });
+
+        if (CCArray.length > 0) {
+            CCArray2 = CCArray2.concat(CCArray);
+        }
+
 
 
         SetupCard("Post Sort 2","",initialModel.faction);
