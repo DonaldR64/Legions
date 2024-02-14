@@ -3402,15 +3402,22 @@ log(model.name)
         if (action === "Query") {
             return unitIDs;
         } else if (action === "Add") {
-            if (unitIDs.length >= structure.structureInfo.garrisonNumber) {
-                sendChat("","Error - can only Garrison " + structure.structureInfo.garrisonNumbe + " Units in Structure");
-            } else {
-                unitIDs.push(unitID);
-                structure.garrisonUnitIDs = unitIDs;
-                let unit = UnitArray[unitID];
-                _.each(unit.modelIDs,id => {
-                    ModelArray[id].garrison = structureID;
-                })
+            let unit = UnitArray[unitID];
+            if (unitIDs.includes(unitID)) {return};
+            let garrisonPlayer = unit.player;
+            if (unitIDs.length > 0) {
+                garrisonPlayer = UnitArray[unitIDs[0]].player;
+            }
+            if (garrisonPlayer === unit.player) {
+                if (unitIDs.length >= structure.structureInfo.garrisonNumber) {
+                    sendChat("","Error - can only Garrison " + structure.structureInfo.garrisonNumber + " Units in Structure");
+                } else {
+                    unitIDs.push(unitID);
+                    structure.garrisonUnitIDs = unitIDs;
+                    _.each(unit.modelIDs,id => {
+                        ModelArray[id].garrison = structureID;
+                    })
+                }
             }
         } else if (action === "Remove") {
             let index = unitIDs.indexOf(unitID);
@@ -4850,7 +4857,7 @@ log(target)
         do {
             let id = unmatchedIDs.shift();
             let model = ModelArray[id];
-            let garrison = (model.player === attacker) ? false:true;
+            let garrison = (model.garrison === "") ? false:true;
             let surroundingHexes = SurroundingHexes(id,garrison);
             _.each(surroundingHexes,hex => {
                 let nids = [];
@@ -4858,7 +4865,7 @@ log(target)
                     if (subsetIDs.includes(id) === false && model.player === attacker) {
                         subsetIDs.push(id);
                     }
-                    let gids = Garrisons(hexMap[hex.label()].structureID);
+                    let gids = Garrisons(hexMap[hex.label()].structureID,"Query");
                     for (let i=0;i<gids.length;i++) {
                         let gunit = UnitArray[gids[i]];
                         if (gunit) {
@@ -4928,7 +4935,7 @@ if (garrisonIDs.length > 0) {
     PrintCard();
 }
 
-
+return
 
 
         let defenderInfo = {};
