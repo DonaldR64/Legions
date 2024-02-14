@@ -4935,7 +4935,6 @@ if (garrisonIDs.length > 0) {
     PrintCard();
 }
 
-return
 
 
         let defenderInfo = {};
@@ -4946,9 +4945,13 @@ return
 
         //- Count up # of attackers attacking structure
         //Divide the garrison up evenly - can just loop through
+//depends on ratio
+
+
+
         for (let i=0;i<subsetIDs.length;i++) {
             let group = {
-                attackerID: [subsetIDs[i]],
+                attackerIDs: [subsetIDs[i]],
                 defenderIDs: [],
             }
             GGArray.push(group);
@@ -5261,24 +5264,32 @@ log(group)
             }
         });
 
+log(CCArray2)
+log(GGArray)
+
         if (GGArray.length > 0) {
-            for (let i=0;i<GGArray.length;i++) {
-                let attID = GGArray[i].attackerID[0];
-                let defIDs = GGArray[i].defenderIDs;
-                let group = CCArray2.find(group => {
-                    return group.attackerIDs.includes(attID);
-                })
-                if (group) {
-                    for (let j=0;j<defIDs.length;j++) {
-                        group.defenderIDs.push(defIDs[j]);
+                for (let i=0;i<GGArray.length;i++) {
+                    let group = GGArray[i];
+log(group)
+                    let attID = group.attackerIDs[0];
+                    let defIDs = group.defenderIDs;
+                    if (CCArray2.length > 0) {
+                        let group = CCArray2.find(group => {
+                            return group.attackerIDs.includes(attID);
+                        })
+                        if (group) {
+                            for (let j=0;j<defIDs.length;j++) {
+                                group.defenderIDs.push(defIDs[j]);
+                            }
+                        } else {
+                            CCArray2.push(GGArray[i]);
+                        }
+                    } else {
+                        CCArray2.push(group);
                     }
-                } else {
-                    CCArray2.push(GGArray[i]);
                 }
-            }
+
         }
-
-
 
         SetupCard("Post Sort 2","",initialModel.faction);
         for (let i=0;i<CCArray2.length;i++) {
