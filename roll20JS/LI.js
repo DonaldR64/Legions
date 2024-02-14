@@ -967,6 +967,7 @@ const LI = (()=> {
             this.vertices = vertices;
             this.large = large;
             this.garrison = "";
+            this.garrisonUnits = [];
             this.largeHexList = []; //hexes that have parts of larger token, mainly for LOS 
             hexMap[hexLabel].modelIDs.push(token.id);
             if (this.large === true) {
@@ -1790,10 +1791,10 @@ const LI = (()=> {
         });
         //structures all added, so can note which units/models are garrisons
         _.each(ModelArray,model => {
-            if (model.type === "Infantry") {
+            if (model.type === "Infantry" && model.garrison === "") {
                 let structureID = hexMap[model.hexLabel].structureID;
                 if (structureID !== "") {
-                    model.garrison = structureID;
+                    Garrisons(structureID,"Add",model.unitID);
                 }
             }
         })
@@ -2460,7 +2461,7 @@ const LI = (()=> {
                 outputCard.body.push("Garrison Number: " + model.structureInfo.garrisonNumber);
                 outputCard.body.push("CAF Bonus: +" + model.structureInfo.cafBonus);
                 outputCard.body.push("Cover Save: " + model.structureInfo.coverSave + "+");
-                let gids = Garrisons(model.id);
+                let gids = Garrisons(model.id,"Query");
                 if (gids.length === 0) {
                     outputCard.body.push("No Garrisoning Units");
                 } else {
@@ -3395,29 +3396,33 @@ log(model.name)
 
     }
 
-    const Garrisons = (structureID) => {
+    const Garrisons = (structureID,action,unitID) => {
         let structure = ModelArray[structureID];
-        let hexes = structure.largeHexList;
-        let unitIDs = [];
-        _.each(hexes,hex => {
-            let Hex = hexMap[hex.label()];
-            if (Hex.modelIDs.length > 0) {
-                _.each(Hex.modelIDs,id => {
-                    let model = ModelArray[id];
-                    if (model.garrison === structureID) {
-                        unitIDs.push(ModelArray[id].unitID);
-                    }
-                });
+        let unitIDs = structure.garrisonUnits || [];
+        if (action === "Query") {
+            return unitIDs;
+        } else if (action === "Add") {
+            if (unitIDs.length >= structure.structureInfo.garrisonNumber) {
+                sendChat("","Error - can only Garrison " + structure.structureInfo.garrisonNumbe + " Units in Structure");
+            } else {
+                unitIDs.push(unitID);
+                structure.garrisonUnitIDs = unitIDs;
+                let unit = UnitArray[unitID];
+                _.each(unit.modelIDs,id => {
+                    ModelArray[id].garrison = structureID;
+                })
             }
-        });
-        let garrisonIDs = [];
-        _.each(unitIDs,unitID => {
-            if (garrisonIDs.includes(unitID) === false && unitID) {
-                garrisonIDs.push(unitID);
+        } else if (action === "Remove") {
+            let index = unitIDs.indexOf(unitID);
+            if (index > -1) {
+                unitIDs.splice(index,1);
+                structure.garrisonUnitIDs = unitIDs;
+                let unit = UnitArray[unitID];
+                _.each(unit.modelIDs,id => {
+                    ModelArray[id].garrison = "";
+                })
             }
-        })
-        return garrisonIDs;
-
+        }
     }
 
     const Shooting = (msg) => {
@@ -5332,28 +5337,19 @@ log(group)
 
                 let structureID = hexMap[newHexLabel].structureID
                 if (model.type === "Infantry" && structureID !== "") {
-                    let garrisonNumber = ModelArray[structureID].structureInfo.garrisonNumber;
-                    let gids = Garrisons(structureID);
+                    let gids = Garrisons(structureID,"Query");
                     if (gids.length === 0) {
-                        let unit = UnitArray[model.unitID];
-                        _.each(unit.modelIDs,id => {
-                            ModelArray[id].garrison = structureID;
-                        })
+                        Garrisons(structureID,"Add",model.unitID);
                     } else if (gids.length > 0) {
                         let gunit = UnitArray[gids[0]];
                         if (gunit.player === model.player) {
-                            if (gids.length >= garrisonNumber && gids.includes(gunit.id) === false) {
-                                sendChat("","Error - can only Garrison " + garrisonNumber + " Units in Structure");
-                            } else {
-                                let unit = UnitArray[model.unitID];
-                                _.each(unit.modelIDs,id => {
-                                    ModelArray[id].garrison = structureID;
-                                })
-                            }
+                            Garrisons(structureID,"Add",model.unitID);
                         }
                     }
-                } else {
-                    model.garrison = "";
+                } else if (model.type === "Infantry" && structureID === "") {
+                    if (model.garrison !== "") {
+                        Garrisons(model.garrison,"Remove",model.unitID);
+                    }
                 }
             };
         };
