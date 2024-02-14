@@ -51,6 +51,7 @@ const LI = (()=> {
         engaged: "status_blue",
         quake: "status_yellow", //temporary
         shocked: "status_yellow", //temporary
+        garrison: ""
     };
 
     let outputCard = {title: "",subtitle: "",faction: "",body: [],buttons: [],};
@@ -965,6 +966,7 @@ const LI = (()=> {
             this.radius = radius;
             this.vertices = vertices;
             this.large = large;
+            this.garrison = "";
             this.largeHexList = []; //hexes that have parts of larger token, mainly for LOS 
             hexMap[hexLabel].modelIDs.push(token.id);
             if (this.large === true) {
@@ -1784,12 +1786,17 @@ const LI = (()=> {
 //add back into terrain array, based on side
                     AddStructure(model);
                 }
-
-
-
-
             }
         });
+        //structures all added, so can note which units/models are garrisons
+        _.each(ModelArray,model => {
+            if (model.type === "Infantry") {
+                let structureID = hexMap[model.hexLabel].structureID;
+                if (structureID !== "") {
+                    model.garrison = structureID;
+                }
+            }
+        })
         let elapsed = Date.now()-startTime;
         log(tokenArray.length + " Teams added to array in " + elapsed/1000 + " seconds");
     }
@@ -2449,10 +2456,21 @@ const LI = (()=> {
             if (side === 0) {
                 outputCard.body.push("Wounds: " + model.token.get("bar1_value"));
                 outputCard.body.push("Height: " + model.structureInfo.height);
-                outputCard.body.push("Armour Save: " + model.structureInfo.armourSave + "+");
+                outputCard.body.push("Armour Save: " + model.save + "+");
                 outputCard.body.push("Garrison Number: " + model.structureInfo.garrisonNumber);
                 outputCard.body.push("CAF Bonus: +" + model.structureInfo.cafBonus);
                 outputCard.body.push("Cover Save: " + model.structureInfo.coverSave + "+");
+                let gids = Garrisons(model.id);
+                if (gids.length === 0) {
+                    outputCard.body.push("No Garrisoning Units");
+                } else {
+                    for (let g=0;g<gids.length;g++) {
+                        let unit = UnitArray[gids[g]];
+                        if (unit) {
+                            outputCard.body.push("Garrison Unit: " + unit.name);
+                        }
+                    }
+                }
             } else {
                 outputCard.body.push("Structure is in Ruins");
                 outputCard.body.push("Height: 1");
@@ -2490,11 +2508,16 @@ const LI = (()=> {
                 } else {
                     outputCard.body.push("Order: " + unit.order);
                 }
+            
+
 
                 for (let i=0;i<unit.modelIDs.length;i++) {
                     let m = ModelArray[unit.modelIDs[i]];
                     let name = m.name;
                     if (i===0) {
+                        if (m.garrison !== "") {
+                            outputCard.body.push("Garrisoning a Structure");
+                        }
                         name += " (Leader)"
                     }
                     outputCard.body.push(name);
@@ -3372,7 +3395,7 @@ log(model.name)
 
     }
 
-    const Garrisons = (structureID,defender) => {
+    const Garrisons = (structureID) => {
         let structure = ModelArray[structureID];
         let hexes = structure.largeHexList;
         let unitIDs = [];
@@ -3381,8 +3404,7 @@ log(model.name)
             if (Hex.modelIDs.length > 0) {
                 _.each(Hex.modelIDs,id => {
                     let model = ModelArray[id];
-                    if (!defender) {defender = model.player};
-                    if (model.player === defender) {
+                    if (model.garrison === structureID) {
                         unitIDs.push(ModelArray[id].unitID);
                     }
                 });
@@ -4823,7 +4845,7 @@ log(target)
         do {
             let id = unmatchedIDs.shift();
             let model = ModelArray[id];
-            let garrison = (model.player === defender) ? true:false;
+            let garrison = (model.player === attacker) ? false:true;
             let surroundingHexes = SurroundingHexes(id,garrison);
             _.each(surroundingHexes,hex => {
                 let nids = [];
@@ -4908,25 +4930,24 @@ if (garrisonIDs.length > 0) {
         let attackerInfo = {};
 
         let CCArray = [];
+        let GGArray = [];
 
         //- Count up # of attackers attacking structure
         //Divide the garrison up evenly - can just loop through
         for (let i=0;i<subsetIDs.length;i++) {
             let group = {
-                attackerIDs: [subsetIDs[i]],
+                attackerID: [subsetIDs[i]],
                 defenderIDs: [],
             }
-            CCArray.push(group);
+            GGArray.push(group);
         }        
-log(CCArray)
 
         let pos = 0;
         for (let i=0;i<garrisonIDs.length;i++) {
-            CCArray[pos].defenderIDs.push(garrisonIDs[i]);
+            GGArray[pos].defenderIDs.push(garrisonIDs[i]);
             pos++;
-            if (pos > (CCArray.length - 1)) {pos = 0};
+            if (pos > (GGArray.length - 1)) {pos = 0};
         }
-log(CCArray)
 
         //Then go onto other non-garrison troops involved in combat
 
@@ -5228,8 +5249,21 @@ log(group)
             }
         });
 
-        if (CCArray.length > 0) {
-            CCArray2 = CCArray2.concat(CCArray);
+        if (GGArray.length > 0) {
+            for (let i=0;i<GGArray.length;i++) {
+                let attID = GGArray[i].attackerID[0];
+                let defIDs = GGArray[i].defenderIDs;
+                let group = CCArray2.find(group => {
+                    return group.attackerIDs.includes(attID);
+                })
+                if (group) {
+                    for (let j=0;j<defIDs.length;j++) {
+                        group.defenderIDs.push(defIDs[j]);
+                    }
+                } else {
+                    CCArray2.push(GGArray[i]);
+                }
+            }
         }
 
 
@@ -5294,6 +5328,32 @@ log(group)
                 }
                 if (state.LI.turn > 0 && newHex !== oldHex && model.type !== "System Unit" && model.type !== "Structure") {
                     tok.set(SM.moved, true);
+                }
+
+                let structureID = hexMap[newHexLabel].structureID
+                if (model.type === "Infantry" && structureID !== "") {
+                    let garrisonNumber = ModelArray[structureID].structureInfo.garrisonNumber;
+                    let gids = Garrisons(structureID);
+                    if (gids.length === 0) {
+                        let unit = UnitArray[model.unitID];
+                        _.each(unit.modelIDs,id => {
+                            ModelArray[id].garrison = structureID;
+                        })
+                    } else if (gids.length > 0) {
+                        let gunit = UnitArray[gids[0]];
+                        if (gunit.player === model.player) {
+                            if (gids.length >= garrisonNumber && gids.includes(gunit.id) === false) {
+                                sendChat("","Error - can only Garrison " + garrisonNumber + " Units in Structure");
+                            } else {
+                                let unit = UnitArray[model.unitID];
+                                _.each(unit.modelIDs,id => {
+                                    ModelArray[id].garrison = structureID;
+                                })
+                            }
+                        }
+                    }
+                } else {
+                    model.garrison = "";
                 }
             };
         };
