@@ -5083,15 +5083,20 @@ log("Missing is " + model.name)
                 let lowestCAF = 20;
                 let lowestOpponents = 1000;
                 let surroundingHexes = SurroundingHexes(aid,false);
-                _.each(surroundingHexes,hex => {
+                shloop1:
+                for (let h=0;h<surroundingHexes.length;h++) {   
+                    let hex = surroundingHexes[h];
                     let nids = hexModelIDs[hex.label()];
-                    _.each(nids,id2 => {
+                    for (let n=0;n<nids.length;n++) {
+                        let id2 = nids[n];
                         let model2 = ModelArray[id2];
                         if (model2.player !== model.player) {
 log(model2.name + ":" + id2)
                             if (assignedDefenders.includes(id2) === false) {
+log("Unassigned Defender")
+                                assignedDefenders.push(id2);
                                 bestChoiceID = id2;
-                                lowestOpponents = -1;
+                                break shloop1;
                             } else {
                                 if (!bestChoiceID) {bestChoiceID = id2};
                                 for (let i=0;i<CCArray2.length;i++) {
@@ -5120,9 +5125,8 @@ log(model2.name + ":" + id2)
                                 }
                             }
                         }
-                    });
-                
-                });
+                    };
+                };
 
 log(bestChoiceID)
                 let group = CCArray2.find(group => {
@@ -5131,14 +5135,11 @@ log(bestChoiceID)
                 if (group) {
                     group.attackerIDs.push(aid);
                 } else {
+log("New Group")
                     let newgroup = {
                         attackerIDs: [aid],
                         defenderIDs: [bestChoiceID],
                     }
-                    let index = assignedDefenders.indexOf(bestChoiceID);
-                    if (index > -1) {
-                        assignedDefenders.splice(index,1);
-                    }    
                     CCArray2.push(newgroup);
                 }
             }
@@ -5221,12 +5222,6 @@ log(group)
             _.each(group.defenderIDs,id => {
                 outputCard.body.push(ModelArray[id].name);
             })
-        }
-        outputCard.body.push("[hr]");
-        keys = Object.keys(defenderInfo);
-        for (let i=0;i<keys.length;i++) {
-            let line = ModelArray[keys[i]].name + ": " + defenderInfo[keys[i]].length;
-            outputCard.body.push(line);
         }
     
         PrintCard();
