@@ -4945,10 +4945,7 @@ if (garrisonIDs.length > 0) {
 
         //- Count up # of attackers attacking structure
         //Divide the garrison up evenly - can just loop through
-//depends on ratio
-
-
-
+        //if more attackers than defenders, will adjust at end if they remain unengaged
         for (let i=0;i<subsetIDs.length;i++) {
             let group = {
                 attackerIDs: [subsetIDs[i]],
@@ -5263,32 +5260,54 @@ log(group)
                 }
             }
         });
-
+log("CCArray2")
 log(CCArray2)
+log("GGArray")
 log(GGArray)
 
+
+        let flag = CCArray2.length;
+
         if (GGArray.length > 0) {
-                for (let i=0;i<GGArray.length;i++) {
-                    let group = GGArray[i];
-log(group)
-                    let attID = group.attackerIDs[0];
-                    let defIDs = group.defenderIDs;
-                    if (CCArray2.length > 0) {
-                        let group = CCArray2.find(group => {
-                            return group.attackerIDs.includes(attID);
-                        })
-                        if (group) {
-                            for (let j=0;j<defIDs.length;j++) {
-                                group.defenderIDs.push(defIDs[j]);
-                            }
-                        } else {
-                            CCArray2.push(GGArray[i]);
+            let unattachedAttackers = [];
+            let GGArray2 = [];
+            for (let i=0;i<GGArray.length;i++) {
+                let group = GGArray[i];
+                let attID = group.attackerIDs[0];
+                let defIDs = group.defenderIDs;
+                if (defIDs.length === 0) {
+                    unattachedAttackers.push(attID);
+                } else {
+                    GGArray2.push(group);
+                }
+            }
+            let pos = 0;
+            if (unattachedAttackers.length > 0) {
+                for (let i=0;i<unattachedAttackers.length;i++) {
+                    GGArray2[pos].attackerIDs.push(unattachedAttackers[i]);
+                    pos++;
+                    if (pos > (GGArray2.length -1)) {pos = 0};
+                }
+            }
+            for (let i=0;i<GGArray2.length;i++) {
+                let group = GGArray2[i];
+                let attID = group.attackerIDs[0];
+                let defIDs = group.defenderIDs;
+                if (flag > 0) {
+                    let group = CCArray2.find(group => {
+                        return group.attackerIDs.includes(attID);
+                    })
+                    if (group) {
+                        for (let j=0;j<defIDs.length;j++) {
+                            group.defenderIDs.push(defIDs[j]);
                         }
                     } else {
                         CCArray2.push(group);
                     }
+                } else {
+                    CCArray2.push(group)
                 }
-
+            }
         }
 
         SetupCard("Post Sort 2","",initialModel.faction);
