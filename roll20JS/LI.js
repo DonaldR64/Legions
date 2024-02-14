@@ -3757,7 +3757,7 @@ log(model.name)
             if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
                 //Add in Garrison if center of blast over building
                 structureID = hexMap[target.hexLabel].structureID
-                let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID,defendingPlayer];
+                let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
                 _.each(garrisonUnitIDs,unitID => {
                     let unit = UnitArray[unitID];
                     let ids = [];
@@ -3965,7 +3965,7 @@ log(model.name)
                     let model = ModelArray[id];
                     if (model.type === "Structure" && model.type !== "System Unit") {
                         structuresHit.push(id);
-                        let garrisonUnitIDs = Garrisons(id,defendingPlayer);
+                        let garrisonUnitIDs = Garrisons(id);
                         _.each(garrisonUnitIDs,unitID => {
                             unitsHit[unitID] = UnitArray[unitID].modelIDs;
                             //as entire garrison becomes eligible target
@@ -4127,14 +4127,14 @@ log(model.name)
             if  (weapon.arc === "Front" && losResult.arc === "Front" || weapon.arc === "Rear" && losResult.arc === "Rear" || weapon.arc === "Any") {
                 arcFlag = true;
             }
-            targetUnitIDs = Garrisons[structureID,defendingPlayer];
+            targetUnitIDs = Garrisons[structureID];
         } else {
             let hm = hexMap[target.hexLabel];
             if (hm.structureID === "") {
                 targetUnitIDs = [target.unitID];
             } else {
                 structureID = hm.structureID;
-                targetUnitIDs = Garrisons[hm.structureID,defendingPlayer];
+                targetUnitIDs = Garrisons[hm.structureID];
             }
             _.each(UnitArray[target.unitID].modelIDs,id => {
                 let losResult = LOS(shooterID,id);
@@ -4853,7 +4853,7 @@ log(target)
                     if (subsetIDs.includes(id) === false && model.player === attacker) {
                         subsetIDs.push(id);
                     }
-                    let gids = Garrisons(hexMap[hex.label()].structureID,defender);
+                    let gids = Garrisons(hexMap[hex.label()].structureID);
                     for (let i=0;i<gids.length;i++) {
                         let gunit = UnitArray[gids[i]];
                         if (gunit) {
