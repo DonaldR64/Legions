@@ -5091,15 +5091,25 @@ log(bestGroups)
             placeInGroup(id1);
         })
 
+log(CCArray)
 
 
+        SetupCard("Close Combat Array","",initialModel.faction);
+        for (let i=0;i<CCArray.length;i++) {
+            let group = CCArray[i];
+            if (i > 0) {
+                outputCard.body.push("[hr]");
+            }
+            outputCard.body.push("Group " + (i+1));
+            _.each(group.attackerIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+            _.each(group.defenderIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+        }
+        PrintCard();
 
-
-
-
-            
-        log("CCArray")
-        log(CCArray)
       
 
     
