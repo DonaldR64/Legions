@@ -4842,6 +4842,7 @@ log(target)
 
 
     const BuildCCArray = (id) => {
+        let startTime = Date.now();
         let initialModel = ModelArray[id];
         let attacker = initialModel.player; //maybe determined higher in script during initiative??
         let initialUnit = UnitArray[initialModel.unitID];
@@ -4851,8 +4852,6 @@ log(target)
             unmatchedIDs.push(id);
         })
     
-        let defendingGarrisonIDs = [];
-        let attackingGarrisonIDs = [];
         let unitIDs = [];//units involved in the Combat
         let attackerIDs = [];
         let defenderIDs = [];
@@ -4864,11 +4863,11 @@ log(target)
             let id2 = pair.oppIDs[0];
             let a,d;
             if (model.player === attacker) {
-                a = [id];
+                a = [id1];
                 d = [id2];
             } else {
                 a = [id2];
-                d = [id];
+                d = [id1];
             }
             let group = {
                 attackerIDs: a,
@@ -4895,46 +4894,47 @@ log(target)
             let group = modelInfo.find(group => {
                 return group.id === id1;
             });
-log("In Place In Group")
-log("ID1: " + id1)
-log("Group")
-log(group)
+
+//log("In Place In Group")
+//log("ID1: " + id1)
+//log("Group")
+//log(group)
 
             //sort on lowest # of opponents
             let bestGroups = [];
             let number = 1000;
             _.each(group.oppIDs,oppID => {
-        log("Testing on Opp ID: " + oppID)
+//log("Testing on Opp ID: " + oppID)
                 let bestGroup;
                 if (model.player === attacker) {
                     bestGroup = CCArray.find(group => {
                         return group.defenderIDs.includes(oppID);
                     });
-        log("Test Group")
-        log(bestGroup)
-                    if (bestGroup.defenderIDs.length < number) {
-                        bestGroups = [bestGroup];
-                        number = bestGroup.defenderIDs.length;
-                    } else if (bestGroup.defenderIDs.length === number) {
-                        bestGroups.push(bestGroup);
+                    if (bestGroup) {
+                        if (bestGroup.defenderIDs.length < number) {
+                            bestGroups = [bestGroup];
+                            number = bestGroup.defenderIDs.length;
+                        } else if (bestGroup.defenderIDs.length === number) {
+                            bestGroups.push(bestGroup);
+                        }
                     }
                 } else if (model.player !== attacker) {
                     bestGroup = CCArray.find(group => {
                         return group.attackerIDs.includes(oppID);
                     });
-        log("Test Group")
-        log(bestGroup)
-                    if (bestGroup.attackerIDs.length < number) {
-                        bestGroups = [bestGroup];
-                        number = bestGroup.attackerIDs.length;
-                    } else if (bestGroup.attackerIDs.length === number) {
-                        bestGroups.push(bestGroup);
+                    if (bestGroup) {
+                        if (bestGroup.attackerIDs.length < number) {
+                            bestGroups = [bestGroup];
+                            number = bestGroup.attackerIDs.length;
+                        } else if (bestGroup.attackerIDs.length === number) {
+                            bestGroups.push(bestGroup);
+                        }
                     }
                 }
             });
 
-log("Interim Best Groups")
-log(bestGroups)
+//log("Interim Best Groups")
+//log(bestGroups)
             if (bestGroups.length > 1) {
                 //if attacker, sort based on rank of allies - highest
                 //if defender, sort based on rank of opponents - lowest
@@ -4946,7 +4946,7 @@ log(bestGroups)
                         let att = ModelArray[attID];
                         if (att) {
                             let rank = parseInt(att.rank)
-log("Testing against: " + att.name + " Rank: " + rank)
+//log("Testing against: " + att.name + " Rank: " + rank)
                             if ((model.player === attacker && rank > bestRank) || (model.player !== attacker && rank < bestRank)) {
                                 bestGroup = group;
                                 bestRank = rank;
@@ -4956,8 +4956,8 @@ log("Testing against: " + att.name + " Rank: " + rank)
                 });
                 bestGroups = [bestGroup];
             }
-log("Final Best Groups")
-log(bestGroups)
+//log("Final Best Groups")
+//log(bestGroups)
 
             if (model.player === attacker) {
                 bestGroups[0].attackerIDs.push(id1);
@@ -4965,6 +4965,36 @@ log(bestGroups)
                 bestGroups[0].defenderIDs.push(id1);
             }
         }
+
+        const matchUp = (id1) => {
+            let testInfo = modelInfo.find(element => {
+                return element.id === id1;
+            })
+            for (let i=0;i<singletonArray.length;i++) {
+                let id2 = singletonArray[i];
+                if (id2 === id1) {continue};
+                if (testInfo.oppIDs.includes(id2)) {
+                    if (ModelArray[id1].player === attacker) {
+                        a = [id1];
+                        d = [id2];
+                    } else {
+                        a = [id2];
+                        d = [id1];
+                    }
+                    let group = {
+                        attackerIDs: a,
+                        defenderIDs: d,
+                    }
+                    CCArray.push(group);
+                    singletonArray.splice(singletonArray.indexOf(id1),1);
+                    singletonArray.splice(singletonArray.indexOf(id2),1);
+                    break;
+                }
+            }
+        }
+
+
+
 
 
 
@@ -4978,10 +5008,19 @@ log(bestGroups)
             _.each(surroundingHexes,hex => {
                 let nids = [];
                 if (hexMap[hex.label()].structureID !== "") {
-    
-    
+                    let garUnitIDs = Garrisons(hexMap[hex.label()].structureID,"Query");
+                    _.each(garUnitIDs,uID => {
+                        let gu = UnitArray[uID];
+                        if (gu) {
+                            _.each(gu.modelIDs,id => {
+                                nids.push(id);
+                            })
+                        }
+                    })
                 } else {
-                    nids = hexMap[hex.label()].modelIDs;
+                    _.each(hexMap[hex.label()].modelIDs,id => {
+                        nids.push(id);
+                    })
                 }
                 if (nids.length > 0) {
                     _.each(nids,id2 => {
@@ -5061,6 +5100,7 @@ log(bestGroups)
     
         let CCArray = [];
         let workingArray = DeepCopy(modelInfo);
+        let singletonArray = [];
  
         SetupCard("Pre Sort","","Neutral");
         outputCard.body.push("Attackers")
@@ -5084,10 +5124,6 @@ log(bestGroups)
         PrintCard();
 
 
-
-
-
-
         let change = false;
         do {
             change = false;
@@ -5095,20 +5131,30 @@ log(bestGroups)
                 workingArray.sort((a,b) => {
                     return a.oppIDs.length - b.oppIDs.length;
                 });
+
                 if (workingArray[0].oppIDs.length > 0) {
                     let pair = workingArray.shift();
                     makePair(pair);
                     change = true;
+                } else if (workingArray[0].oppIDs.length === 0) {
+                    let pair = workingArray.shift();
+                    singletonArray.push(pair.id);
+                    change = true;
                 }
             }
         } while (change === true)
+
         //now should only have ids with no OppIDs(due to being assigned already)
-        _.each(workingArray,singleton => {
-            let id1 = singleton.id;
+        //see if any 2 singletons match up
+        _.each(singletonArray,id1 => {            
+            matchUp(id1);
+        })
+
+        //place remaining into existing groups in CCArray
+        _.each(singletonArray,id1 => {
             placeInGroup(id1);
         })
 
-log(CCArray)
 
 
         SetupCard("Close Combat Array","",initialModel.faction);
@@ -5129,29 +5175,10 @@ log(CCArray)
 
       
 
+        let elapsed = Date.now()-startTime;
+        log("Sorted in " + elapsed/1000 + " seconds");
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        return CCArray;
     }
     
     
