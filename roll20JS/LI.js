@@ -4841,7 +4841,166 @@ log(target)
     }
 
 
+    const BuildCCArray = (id) => {
+        let initialModel = ModelArray[id];
+        let attacker = initialModel.player; //maybe determined higher in script during initiative??
+        let initialUnit = UnitArray[initialModel.unitID];
     
+        let unmatchedIDs = [];
+        _.each(initialUnit.modelIDs,id => {
+            unmatchedIDs.push(id);
+        })
+    
+        let defendingGarrisonIDs = [];
+        let attackingGarrisonIDs = [];
+        let unitIDs = [];//units involved in the Combat
+        let attackerIDs = [];
+        let defenderIDs = [];
+        let modelInfo = {};
+    
+        //build arrays of all combatants in this combat
+        do {
+            let id = unmatchedIDs.shift();
+            let model = ModelArray[id];
+            let garrison = (model.garrison === "") ? false:true;
+            let surroundingHexes = SurroundingHexes(id,garrison);
+            _.each(surroundingHexes,hex => {
+                let nids = [];
+                if (hexMap[hex.label()].structureID !== "") {
+    
+    
+                } else {
+                    nids = hexMap[hex.label()].modelIDs;
+                }
+                if (nids.length > 0) {
+                    _.each(nids,id2 => {
+                        let model2 = ModelArray[id2];
+                        if (model.player === attacker && model2.player !== attacker) {
+                            if (!modelInfo[id]) {
+                                modelInfo[id] = [{hex: hex.label(), oppID: [id2]}];
+                            } else {
+                                if (modelInfo[id].some(info => info.hex === hex.label()) === false) {
+                                    modelInfo[id].push({hex: hex.label(), oppID: [id2]});
+                                }
+                            }
+                            if (attackerIDs.includes(id) === false) {
+                                attackerIDs.push(id);
+                                if (unitIDs.includes(model.unitID) === false) {
+                                    unitIDs.push(model.unitID);
+                                    _.each(UnitArray[model.unitID].modelIDs,id => {
+                                        unmatchedIDs.push(id);
+                                    })
+                                }
+                            }
+                            if (defenderIDs.includes(id2) === false) {
+                                defenderIDs.push(id2);
+                                if (unitIDs.includes(model2.unitID) === false) {
+                                    unitIDs.push(model2.unitID);
+                                    _.each(UnitArray[model2.unitID].modelIDs,id => {
+                                        unmatchedIDs.push(id);
+                                    })
+                                }
+                            }
+                        } else if (model.player !== attacker && model2.player === attacker) {
+                            if (!modelInfo[id]) {
+                                modelInfo[id] = [{hex: hex.label(), oppID: [id2]}];
+                            } else {
+                                if (modelInfo[id].some(info => info.hex === hex.label()) === false) {
+                                    modelInfo[id].push({hex: hex.label(), oppID: [id2]});
+                                }
+                            }
+                            if (attackerIDs.includes(id2) === false) {
+                                attackerIDs.push(id2);
+                                if (unitIDs.includes(model2.unitID) === false) {
+                                    unitIDs.push(model.unitID);
+                                    _.each(UnitArray[model2.unitID].modelIDs,id => {
+                                        unmatchedIDs.push(id);
+                                    })
+                                }
+                            }
+                            if (defenderIDs.includes(id) === false) {
+                                defenderIDs.push(id);
+                                if (unitIDs.includes(model.unitID) === false) {
+                                    unitIDs.push(model.unitID);
+                                    _.each(UnitArray[model.unitID].modelIDs,id => {
+                                        unmatchedIDs.push(id);
+                                    })
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        } while (unmatchedIDs.length > 0);
+    
+        let CCArray = [];
+    
+    log("Unit IDs")
+    log(unitIDs)
+    log("Attacker IDs")
+    log(attackerIDs)
+    log("Defender IDs")
+    log(defenderIDs)
+    log("Model Info")
+    log(modelInfo)
+   
+    
+        
+
+       
+        if (modelInfo[attackerIDs[0]].length === 1) {
+            let model = ModelArray[attackerIDs[0]];
+            let attacker,defender
+            if (model.player === attacker) {
+                attacker = [id];
+                defender = modelInfo[id][0].oppID;
+            } else {
+                attacker = modelInfo[id][0].oppID;
+                defender = [id];
+            }
+            let group = {
+                attackerIDs: attacker,
+                defenderIDs: defender
+            }
+            CCArray.push(group);
+            _.each(attacker,id1 => {
+                attackerIDs.splice(attackerIDs.indexOf(id1));
+            })
+            _.each(defender,id2 => {
+                defenderIDs.splice(defenderIDs.indexOf(id2));
+            })
+        } 
+            
+    
+    
+
+        log(CCArray)
+        log(attackerIDs)
+        log(defenderIDs)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    }
     
     
 
