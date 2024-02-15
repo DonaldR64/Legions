@@ -1,5 +1,5 @@
 const LI = (()=> {
-    const version = '2024.2.10';
+    const version = '2024.2.15';
     const rules = '1.0'
     if (!state.LI) {state.LI = {}};
     const pageInfo = {name: "",page: "",gridType: "",scale: 0,width: 0,height: 0};
@@ -3769,7 +3769,7 @@ log(model.name)
             if (hexMap[target.hexLabel].structureID !== "" && weapon.traits.includes("Skyfire") === false) {
                 //Add in Garrison if center of blast over building
                 structureID = hexMap[target.hexLabel].structureID
-                let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID];
+                let garrisonUnitIDs = Garrisons[hexMap[target.hexLabel].structureID,"Query"];
                 _.each(garrisonUnitIDs,unitID => {
                     let unit = UnitArray[unitID];
                     let ids = [];
@@ -3977,7 +3977,7 @@ log(model.name)
                     let model = ModelArray[id];
                     if (model.type === "Structure" && model.type !== "System Unit") {
                         structuresHit.push(id);
-                        let garrisonUnitIDs = Garrisons(id);
+                        let garrisonUnitIDs = Garrisons(id,"Query");
                         _.each(garrisonUnitIDs,unitID => {
                             unitsHit[unitID] = UnitArray[unitID].modelIDs;
                             //as entire garrison becomes eligible target
@@ -4139,14 +4139,14 @@ log(model.name)
             if  (weapon.arc === "Front" && losResult.arc === "Front" || weapon.arc === "Rear" && losResult.arc === "Rear" || weapon.arc === "Any") {
                 arcFlag = true;
             }
-            targetUnitIDs = Garrisons[structureID];
+            targetUnitIDs = Garrisons[structureID,"Query"];
         } else {
             let hm = hexMap[target.hexLabel];
             if (hm.structureID === "") {
                 targetUnitIDs = [target.unitID];
             } else {
                 structureID = hm.structureID;
-                targetUnitIDs = Garrisons[hm.structureID];
+                targetUnitIDs = Garrisons[hm.structureID,"Query"];
             }
             _.each(UnitArray[target.unitID].modelIDs,id => {
                 let losResult = LOS(shooterID,id);
@@ -4491,7 +4491,7 @@ log(model.name)
                 hexMap[hex.label()].height = hexMap[hex.label()].elevation;
             })
             
-            let garrisonUnitIDs = Garrisons(structure.id);
+            let garrisonUnitIDs = Garrisons(structure.id,"Query");
             _.each(garrisonUnitIDs,unitID => {
                 let unit = UnitArray[unitID];
                 let hitArray = [];
