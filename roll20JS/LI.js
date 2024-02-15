@@ -4826,10 +4826,25 @@ log(target)
  
     const CloseCombat = (msg) => {
         let modelID = msg.selected[0]._id;
-        let ccArray = BuildCCArray(modelID);
+        let initialModel = ModelArray[modelID];
+        let CCArray = BuildCCArray(modelID);
 
 
-    
+        SetupCard("Close Combat Array","",initialModel.faction);
+        for (let i=0;i<CCArray.length;i++) {
+            let group = CCArray[i];
+            if (i > 0) {
+                outputCard.body.push("[hr]");
+            }
+            outputCard.body.push("Group " + (i+1));
+            _.each(group.attackerIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+            _.each(group.defenderIDs,id => {
+                outputCard.body.push(ModelArray[id].name);
+            })
+        }
+        PrintCard();
     
     
     
@@ -4892,33 +4907,14 @@ log(target)
             let group = modelInfo.find(group => {
                 return group.id === id1;
             });
-
-//log("In Place In Group")
-//log("ID1: " + id1)
-//log("Group")
-//log(group)
-
             //sort on lowest # of opponents
             let bestGroups = [];
             let number = 1000;
             _.each(group.oppIDs,oppID => {
-//log("Testing on Opp ID: " + oppID)
                 let bestGroup;
                 if (model.player === attacker) {
                     bestGroup = CCArray.find(group => {
                         return group.defenderIDs.includes(oppID);
-                    });
-                    if (bestGroup) {
-                        if (bestGroup.defenderIDs.length < number) {
-                            bestGroups = [bestGroup];
-                            number = bestGroup.defenderIDs.length;
-                        } else if (bestGroup.defenderIDs.length === number) {
-                            bestGroups.push(bestGroup);
-                        }
-                    }
-                } else if (model.player !== attacker) {
-                    bestGroup = CCArray.find(group => {
-                        return group.attackerIDs.includes(oppID);
                     });
                     if (bestGroup) {
                         if (bestGroup.attackerIDs.length < number) {
@@ -4928,11 +4924,21 @@ log(target)
                             bestGroups.push(bestGroup);
                         }
                     }
+                } else if (model.player !== attacker) {
+                    bestGroup = CCArray.find(group => {
+                        return group.attackerIDs.includes(oppID);
+                    });
+                    if (bestGroup) {
+                        if (bestGroup.defenderIDs.length < number) {
+                            bestGroups = [bestGroup];
+                            number = bestGroup.defenderIDs.length;
+                        } else if (bestGroup.defenderIDs.length === number) {
+                            bestGroups.push(bestGroup);
+                        }
+                    }
                 }
             });
 
-//log("Interim Best Groups")
-//log(bestGroups)
             if (bestGroups.length > 1) {
                 //if attacker, sort based on rank of allies - highest
                 //if defender, sort based on rank of opponents - lowest
@@ -4944,7 +4950,6 @@ log(target)
                         let att = ModelArray[attID];
                         if (att) {
                             let rank = parseInt(att.rank)
-//log("Testing against: " + att.name + " Rank: " + rank)
                             if ((model.player === attacker && rank > bestRank) || (model.player !== attacker && rank < bestRank)) {
                                 bestGroup = group;
                                 bestRank = rank;
@@ -4954,8 +4959,6 @@ log(target)
                 });
                 bestGroups = [bestGroup];
             }
-//log("Final Best Groups")
-//log(bestGroups)
 
             if (model.player === attacker) {
                 bestGroups[0].attackerIDs.push(id1);
@@ -4991,17 +4994,10 @@ log(target)
             }
         }
 
-
-
-
-
-
-
         //build arrays of all combatants in this combat
         do {
             let id = unmatchedIDs.shift();
             let model = ModelArray[id];
-log(model.name)
             let garrison = (model.garrison === "") ? false:true;
             let surroundingHexes = SurroundingHexes(id,garrison);
             _.each(surroundingHexes,hex => {
@@ -5022,9 +5018,7 @@ log(model.name)
                     })
                 }
 
-                if (nids.length > 0) {
-log("NIDS")
-log(nids)          
+                if (nids.length > 0) {        
                     _.each(nids,id2 => {
                         let model2 = ModelArray[id2];
                         if (model.player !== model2.player) {
@@ -5042,6 +5036,19 @@ log(nids)
                                     info.oppIDs.push(id2);
                                 }
                             }
+                            let info2 = modelInfo.find(element => {
+                                return element.id === id2;
+                            })
+                            if (!info2) {
+                                info2 = {
+                                    id: id2,
+                                    oppIDs: [id],
+                                }
+                            } else {
+                                if (info2.oppIDs.includes(id) === false) {
+                                    info2.oppIDs.push(id);
+                                }
+                            }
                             if (unitIDs.includes(model2.unitID) === false) {
                                 unitIDs.push(model2.unitID);
                                 _.each(UnitArray[model2.unitID].modelIDs,id => {
@@ -5057,16 +5064,8 @@ log(nids)
         let CCArray = [];
         let workingArray = DeepCopy(modelInfo);
         let singletonArray = [];
- 
+ /*
         SetupCard("Pre Sort","","Neutral");
-        outputCard.body.push("Attackers")
-        _.each(attackerIDs,id => {
-            outputCard.body.push(ModelArray[id].name);
-        });
-        outputCard.body.push("Defenders")
-        _.each(defenderIDs,id => {
-            outputCard.body.push(ModelArray[id].name);
-        });
         outputCard.body.push("Working Array");
         _.each(workingArray,group => {
             let line = ModelArray[group.id].name + ": ";
@@ -5078,7 +5077,7 @@ log(nids)
             outputCard.body.push(line);
         })
         PrintCard();
-
+*/
 
         let change = false;
         do {
@@ -5110,26 +5109,6 @@ log(nids)
         _.each(singletonArray,id1 => {
             placeInGroup(id1);
         })
-
-
-
-        SetupCard("Close Combat Array","",initialModel.faction);
-        for (let i=0;i<CCArray.length;i++) {
-            let group = CCArray[i];
-            if (i > 0) {
-                outputCard.body.push("[hr]");
-            }
-            outputCard.body.push("Group " + (i+1));
-            _.each(group.attackerIDs,id => {
-                outputCard.body.push(ModelArray[id].name);
-            })
-            _.each(group.defenderIDs,id => {
-                outputCard.body.push(ModelArray[id].name);
-            })
-        }
-        PrintCard();
-
-      
 
         let elapsed = Date.now()-startTime;
         log("Sorted in " + elapsed/1000 + " seconds");
