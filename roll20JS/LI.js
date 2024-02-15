@@ -4829,7 +4829,6 @@ log(target)
         let initialModel = ModelArray[modelID];
         let CCArray = BuildCCArray(modelID);
 
-
         SetupCard("Close Combat Array","",initialModel.faction);
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
@@ -4846,6 +4845,7 @@ log(target)
         }
         PrintCard();
     
+        
     
     
     
