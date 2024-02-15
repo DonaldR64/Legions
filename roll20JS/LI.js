@@ -4943,10 +4943,6 @@ log(target)
     log(defenderIDs)
     log("Model Info")
     log(modelInfo)
-   
-    
-        
-
        
         if (modelInfo[attackerIDs[0]].length === 1) {
             let model = ModelArray[attackerIDs[0]];
@@ -4971,11 +4967,11 @@ log(target)
             })
         } 
             
-    
-    
-
+        log("CCArray")
         log(CCArray)
+        log("Att IDs")
         log(attackerIDs)
+        log("Def IDs")
         log(defenderIDs)
     
     
