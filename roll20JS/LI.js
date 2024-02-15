@@ -4853,8 +4853,6 @@ log(target)
         })
     
         let unitIDs = [];//units involved in the Combat
-        let attackerIDs = [];
-        let defenderIDs = [];
         let modelInfo = [];
     
         const makePair = (pair) => {
@@ -5003,6 +5001,7 @@ log(target)
         do {
             let id = unmatchedIDs.shift();
             let model = ModelArray[id];
+log(model.name)
             let garrison = (model.garrison === "") ? false:true;
             let surroundingHexes = SurroundingHexes(id,garrison);
             _.each(surroundingHexes,hex => {
@@ -5022,10 +5021,13 @@ log(target)
                         nids.push(id);
                     })
                 }
+
                 if (nids.length > 0) {
+log("NIDS")
+log(nids)          
                     _.each(nids,id2 => {
                         let model2 = ModelArray[id2];
-                        if (model.player === attacker && model2.player !== attacker) {
+                        if (model.player !== model2.player) {
                             let info = modelInfo.find(element => {
                                 return element.id === id;
                             })
@@ -5040,57 +5042,11 @@ log(target)
                                     info.oppIDs.push(id2);
                                 }
                             }
-
-                            if (attackerIDs.includes(id) === false) {
-                                attackerIDs.push(id);
-                                if (unitIDs.includes(model.unitID) === false) {
-                                    unitIDs.push(model.unitID);
-                                    _.each(UnitArray[model.unitID].modelIDs,id => {
-                                        unmatchedIDs.push(id);
-                                    })
-                                }
-                            }
-                            if (defenderIDs.includes(id2) === false) {
-                                defenderIDs.push(id2);
-                                if (unitIDs.includes(model2.unitID) === false) {
-                                    unitIDs.push(model2.unitID);
-                                    _.each(UnitArray[model2.unitID].modelIDs,id => {
-                                        unmatchedIDs.push(id);
-                                    })
-                                }
-                            }
-                        } else if (model.player !== attacker && model2.player === attacker) {
-                            let info = modelInfo.find(element => {
-                                return element.id === id;
-                            })
-                            if (!info) {
-                                info = {
-                                    id: id,
-                                    oppIDs: [id2]
-                                }
-                                modelInfo.push(info);
-                            } else {
-                                if (info.oppIDs.includes(id2) === false) {
-                                    info.oppIDs.push(id2);
-                                }
-                            }
-                            if (attackerIDs.includes(id2) === false) {
-                                attackerIDs.push(id2);
-                                if (unitIDs.includes(model2.unitID) === false) {
-                                    unitIDs.push(model.unitID);
-                                    _.each(UnitArray[model2.unitID].modelIDs,id => {
-                                        unmatchedIDs.push(id);
-                                    })
-                                }
-                            }
-                            if (defenderIDs.includes(id) === false) {
-                                defenderIDs.push(id);
-                                if (unitIDs.includes(model.unitID) === false) {
-                                    unitIDs.push(model.unitID);
-                                    _.each(UnitArray[model.unitID].modelIDs,id => {
-                                        unmatchedIDs.push(id);
-                                    })
-                                }
+                            if (unitIDs.includes(model2.unitID) === false) {
+                                unitIDs.push(model2.unitID);
+                                _.each(UnitArray[model2.unitID].modelIDs,id => {
+                                    unmatchedIDs.push(id);
+                                })
                             }
                         }
                     });
