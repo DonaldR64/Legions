@@ -5061,15 +5061,32 @@ log(bestGroups)
     
         let CCArray = [];
         let workingArray = DeepCopy(modelInfo);
-    log("Unit IDs")
-    log(unitIDs)
-    log("Attacker IDs")
-    log(attackerIDs)
-    log("Defender IDs")
-    log(defenderIDs)
-    log("Model Info")
-    log(modelInfo)
-    
+ 
+        SetupCard("Pre Sort","","Neutral");
+        outputCard.body.push("Attackers")
+        _.each(attackerIDs,id => {
+            outputCard.body.push(ModelArray[id].name);
+        });
+        outputCard.body.push("Defenders")
+        _.each(defenderIDs,id => {
+            outputCard.body.push(ModelArray[id].name);
+        });
+        outputCard.body.push("Working Array");
+        _.each(workingArray,group => {
+            let line = ModelArray[group.id].name + ": ";
+            let nameArray = []
+            _.each(group.oppIDs,id => {
+                nameArray.push(ModelArray[id].name);
+            })
+            line += nameArray.toString();
+            outputCard.body.push(line);
+        })
+        PrintCard();
+
+
+
+
+
 
         let change = false;
         do {
