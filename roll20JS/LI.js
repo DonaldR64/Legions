@@ -5109,29 +5109,29 @@ log(target)
         _.each(singletonArray,id1 => {
             placeInGroup(id1);
         })
-        //sort array grouping units and by order in modelIDs
+        //sort array grouping units
         CCArray.sort((a,b) => {
-            let aU = ModelArray[a.attackerIDs[0]].unitID
+            let aU = ModelArray[a.attackerIDs[0]].unitID;
             let aUI = unitIDs.indexOf(aU);
-            let bU = ModelArray[b.attackerIDs[0]].unitID
+            let bU = ModelArray[b.attackerIDs[0]].unitID;
             let bUI = unitIDs.indexOf(bU);
             if (aUI < bUI) {return -1};
             if (aUI > bUI) {return 1};
-            let unit = UnitArray[aU.unitID];
-            aUI = unit.modelIDs.indexOf(ModelArray[a.attackerIDs[0]]);
-            bUI = unit.modelIDs.indexOf(ModelArray[b.attackerIDs[0]]);
+            let unit = UnitArray[aU];
+            aUI = unit.modelIDs.indexOf(a.attackerIDs[0]);
+            bUI = unit.modelIDs.indexOf(b.attackerIDs[0]);
             return aUI - bUI;
         })
         //sort attackerIDs - higher rank last and defenderIDs - higher ranks first
         _.each(CCArray,group => {
             group.attackerIDs.sort((a,b) => {
-                let aM = ModelArray[a];
-                let bM = ModelArray[b];
+                let aM = ModelArray[a].rank;
+                let bM = ModelArray[b].rank;
                 return aM - bM;
             })
             group.defenderIDs.sort((a,b) => {
-                let aM = ModelArray[a];
-                let bM = ModelArray[b];
+                let aM = ModelArray[a].rank;
+                let bM = ModelArray[b].rank;
                 return bM - aM;
             })
         });
