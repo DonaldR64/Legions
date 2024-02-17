@@ -4885,7 +4885,7 @@ log(target)
         let initialFaction = state.LI.factionNames[state.LI.initiativePlayer][0];
         
         let CCArray = BuildCCArray(modelID);
-
+return
         SetupCard("Close Combat Array","",initialFaction);
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
@@ -4978,11 +4978,12 @@ return
         //in CCArray, 0 will be player with initiative
 
         let unmatchedIDs = [];
+        let matchedIDs = [];
         _.each(initialUnit.modelIDs,id => {
             unmatchedIDs.push(id);
         })
     
-        let unitIDs = [];//units involved in the Combat
+        let unitIDs = [initialUnit];//units involved in the Combat
         let modelInfo = [];
     
         const makePair = (pair) => {
@@ -5136,9 +5137,9 @@ log(bestGroups)
                         }
                     });
                 } else {
-                    _.each(hexMap[hex.label()].modelIDs,id => {
-                        if (ModelArray[id].player !== model.player) {
-                            nids.push(id);
+                    _.each(hexMap[hex.label()].modelIDs,hid => {
+                        if (ModelArray[hid].player !== model.player) {
+                            nids.push(hid);
                         }
                     })
                 }
@@ -5146,51 +5147,54 @@ log(bestGroups)
             nids = [...new Set(nids)];
 log(model.name)
 log("Nids: " + nids.length)
-                if (nids.length > 0) {        
-                    for (let n=0;n<nids.length;n++) {
-                        let id2 = nids[n];
-                        let model2 = ModelArray[id2];
-                        //check for 2nd rank for garrison attacks
-                        //pending
 
-                        let info = modelInfo.find(element => {
-                            return element.id === id;
+            if (nids.length > 0) {        
+                for (let n=0;n<nids.length;n++) {
+                    let id2 = nids[n];
+                    let model2 = ModelArray[id2];
+                    //check for 2nd rank for garrison attacks
+                    //pending
+
+                    let info = modelInfo.find(element => {
+                        return element.id === id;
+                    })
+                    if (!info) {
+                        info = {
+                            id: id,
+                            oppIDs: [id2]
+                        }
+                        modelInfo.push(info);
+                    } else {
+                        if (info.oppIDs.includes(id2) === false) {
+                            info.oppIDs.push(id2);
+                        }
+                    }
+                    let info2 = modelInfo.find(element => {
+                        return element.id === id2;
+                    })
+                    if (!info2) {
+                        info2 = {
+                            id: id2,
+                            oppIDs: [id],
+                        }
+                    } else {
+                        if (info2.oppIDs.includes(id) === false) {
+                            info2.oppIDs.push(id);
+                        }
+                    }
+                    modelInfo.push(info2);
+                    if (unitIDs.includes(model2.unitID) === false) {
+                        unitIDs.push(model2.unitID);
+                        _.each(UnitArray[model2.unitID].modelIDs,id => {
+                            unmatchedIDs.push(id);
                         })
-                        if (!info) {
-                            info = {
-                                id: id,
-                                oppIDs: [id2]
-                            }
-                            modelInfo.push(info);
-                        } else {
-                            if (info.oppIDs.includes(id2) === false) {
-                                info.oppIDs.push(id2);
-                            }
-                        }
-                        let info2 = modelInfo.find(element => {
-                            return element.id === id2;
-                        })
-                        if (!info2) {
-                            info2 = {
-                                id: id2,
-                                oppIDs: [id],
-                            }
-                        } else {
-                            if (info2.oppIDs.includes(id) === false) {
-                                info2.oppIDs.push(id);
-                            }
-                        }
-                        modelInfo.push(info2);
-                        if (unitIDs.includes(model2.unitID) === false) {
-                            unitIDs.push(model2.unitID);
-                            _.each(UnitArray[model2.unitID].modelIDs,id => {
-                                unmatchedIDs.push(id);
-                            })
-                        }
-                    };
-                }
+                    }
+                };
+            }
         } while (unmatchedIDs.length > 0);
-    
+log("Pre Sort")
+        log(modelInfo)
+
         let CCArray = [];
         let workingArray = DeepCopy(modelInfo);
         let singletonArray = [];
@@ -5231,6 +5235,9 @@ log("WA after pairing")
 log(workingArray)
 log("Singleton Array")
 log(singletonArray)
+
+
+return
         //now should only have ids with no OppIDs(due to being assigned already)
         //see if any 2 singletons match up
         _.each(singletonArray,id1 => {            
