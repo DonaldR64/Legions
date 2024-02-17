@@ -18,6 +18,9 @@ const LI = (()=> {
     let CheckArray = [];
     let fallbackFlag = false;
 
+
+
+
     let unitCreationInfo = {};
     let hexMap = {}; 
     let xSpacing = 75.1985619844599;
@@ -2300,6 +2303,7 @@ const LI = (()=> {
             mission: '1',
             turnMarkerIDs: tmID,
             structures: {},
+            initiativePlayer: 2,
         }
         for (let i=0;i<UnitMarkers.length;i++) {
             state.LI.markers[0].push(i);
@@ -4826,7 +4830,7 @@ log(target)
  
     const CloseCombat = (msg) => {
         let modelID = msg.selected[0]._id;
-        let initialModel = ModelArray[modelID];
+        let initialModel = ModelArray[modelID]; 
         let CCArray = BuildCCArray(modelID);
 
         SetupCard("Close Combat Array","",initialModel.faction);
@@ -4845,7 +4849,63 @@ log(target)
         }
         PrintCard();
     
-        
+        SetupCard("Close Combat","",initialModel.faction);
+
+        let wins = [0,0]; //by player
+
+        for (let i=0;i<CCArray.length;i++) {
+            let group = CCArray[i];
+            let p0IDs = group.p0IDs;
+            let p1IDs = group.p1IDs;
+            outputCard.body.push("[U]Combat " + (i+1) + "[/u]")
+
+            let pair = true;
+            do {
+                let p0Num = 0;
+                let p1Num = 0;
+
+                let p0ID = p0IDs[p0Num];
+                let p1ID = p1IDs[p1Num];
+                let winner = IndividualCombat(p0ID,p0Num,p1ID,p1Num);
+                wins[winner]++;
+
+                if (winner === 0) {
+                    p1Num++;
+                } else if (winner === 1) {
+                    p0Num++;
+                }
+                if (p0Num >= p0IDs.length || p1Num >= p1IDs.length) {
+                    pair = false;
+                }
+            } while (pair === true);
+        }
+
+        outputCard.body.push("[hr]")
+        if (wins[0] > wins[1]) {
+
+
+
+
+        } else if (wins[0] < wins[1]) {
+
+
+
+
+        } else {
+            //tie
+
+
+
+
+
+        }
+
+
+
+
+
+
+
     
     
     
