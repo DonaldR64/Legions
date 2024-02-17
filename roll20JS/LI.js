@@ -556,7 +556,23 @@ const LI = (()=> {
             }
             return results;
         }
-
+        intervening(b) {
+            let dist = this.distance(b);
+            if (dist !== 2) {
+                return [];
+            }
+            let aN = this.neighbours();
+            let bN = b.neighbours();
+            let arr = [];
+            _.each(aN,hex1 => {
+                _.each(bN,hex2 => {
+                    if (hex1.q === hex2.q && hex1.r === hex2.r) {
+                        arr.push(hex1);
+                    }
+                })
+            })
+            return arr;
+        }
 
 
         len() {
@@ -2290,7 +2306,8 @@ const LI = (()=> {
 
         state.LI = {
             players: {}, //keyed by playerID, shows which side
-            factions: {}, //factions, keyed by playerID
+            factions: {}, //factions, keyed by playerID,
+            factionNames: [[],[]], //factions, keyed by 0 or 1
             markers: [[],[]],
             turn: 0,
             phase: "",
@@ -2303,7 +2320,7 @@ const LI = (()=> {
             mission: '1',
             turnMarkerIDs: tmID,
             structures: {},
-            initiativePlayer: 2,
+            initiativePlayer: 0,
         }
         for (let i=0;i<UnitMarkers.length;i++) {
             state.LI.markers[0].push(i);
@@ -2334,6 +2351,16 @@ const LI = (()=> {
         let refChar = getObj("character", refToken.get("represents")); 
         let faction = Attribute(refChar,"faction");
 
+        let f = (TraitorForces.includes(faction)) ? 1:0
+        if (!state.LI.factionNames[f]) {
+            state.LI.factionNames[f] = [faction];
+        } else {
+            if (state.LI.factionNames[f].includes(faction) === false) {
+                state.LI.factionNames[f].push(faction);
+            }
+        }
+       
+        
         let formationKeys = Object.keys(FormationArray);
         SetupCard("Unit Creation","",faction);
         let newID = stringGen();
@@ -3343,14 +3370,38 @@ log(model.name)
         });
     }
 
+//set initiative test
+/*   
     const Test = (msg) => {
         if (!msg.selected) {
             sendChat("","No Token Selected")
             return
         }
         let id = msg.selected[0]._id;
-        SurroundingHexes(id);
+        let model = ModelArray[id];
+        state.LI.initiativePlayer = model.player;
+        sendChat("","Initiative to " + state.LI.factionNames[model.player]);
     }
+*/
+    const Test = (msg) => {
+        let Tag = msg.content.split(";");
+        let id1 = Tag[1];
+        let id2 = Tag[2];
+        let model1 = ModelArray[id1];
+        let model2 = ModelArray[id2];
+        let intHexes = model1.hex.intervening(model2.hex);
+        SetupCard("Intervening Hexes","",model1.faction);
+        if (intHexes.length === 0) {
+            outputCard.body.push("None");
+        } else {
+            _.each(intHexes,hex =>{
+                outputCard.body.push(hex.label());
+            })
+        }
+        PrintCard();
+    }
+
+
 
     const AugerArray = (shooter,target) => {
         let targetUnit = UnitArray[target.unitID];
@@ -4831,24 +4882,26 @@ log(target)
     const CloseCombat = (msg) => {
         let modelID = msg.selected[0]._id;
         let initialModel = ModelArray[modelID]; 
+        let initialFaction = state.LI.factionNames[state.LI.initiativePlayer][0];
+        
         let CCArray = BuildCCArray(modelID);
 
-        SetupCard("Close Combat Array","",initialModel.faction);
+        SetupCard("Close Combat Array","",initialFaction);
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
             if (i > 0) {
                 outputCard.body.push("[hr]");
             }
             outputCard.body.push("Group " + (i+1));
-            _.each(group.attackerIDs,id => {
+            _.each(group.initIDs,id => {
                 outputCard.body.push(ModelArray[id].name);
             })
-            _.each(group.defenderIDs,id => {
+            _.each(group.otherIDs,id => {
                 outputCard.body.push(ModelArray[id].name);
             })
         }
         PrintCard();
-    
+return
         SetupCard("Close Combat","",initialModel.faction);
 
         let wins = [0,0]; //by player
@@ -4919,9 +4972,11 @@ log(target)
     const BuildCCArray = (id) => {
         let startTime = Date.now();
         let initialModel = ModelArray[id];
-        let attacker = initialModel.player; //maybe determined higher in script during initiative??
+        //in CCArray, 0 reference in arrays will be player with initiative
         let initialUnit = UnitArray[initialModel.unitID];
-    
+        let IP = parseInt(state.LI.initiativePlayer);
+        //in CCArray, 0 will be player with initiative
+
         let unmatchedIDs = [];
         _.each(initialUnit.modelIDs,id => {
             unmatchedIDs.push(id);
@@ -4934,17 +4989,17 @@ log(target)
             let id1 = pair.id;
             let model = ModelArray[id1];
             let id2 = pair.oppIDs[0];
-            let a,d;
-            if (model.player === attacker) {
+            let a,b;
+            if (model.player === IP) {
                 a = [id1];
-                d = [id2];
+                b = [id2];
             } else {
                 a = [id2];
-                d = [id1];
+                b = [id1];
             }
             let group = {
-                attackerIDs: a,
-                defenderIDs: d
+                initIDs: a,
+                otherIDs: b,
             }
             //remove the pair based on ID2 as main ID
             //remove ID2s from other groups oppIDs
@@ -4964,53 +5019,61 @@ log(target)
 
         const placeInGroup = (id1) => {
             let model = ModelArray[id1];
+log("Place in Group for " + model.name)
             let group = modelInfo.find(group => {
                 return group.id === id1;
             });
+log(group)
             //sort on lowest # of opponents
             let bestGroups = [];
             let number = 1000;
             _.each(group.oppIDs,oppID => {
                 let bestGroup;
-                if (model.player === attacker) {
+                if (model.player === IP) {
                     bestGroup = CCArray.find(group => {
-                        return group.defenderIDs.includes(oppID);
+                        return group.otherIDs.includes(oppID);
                     });
                     if (bestGroup) {
-                        if (bestGroup.attackerIDs.length < number) {
+                        if (bestGroup.initIDs.length < number) {
                             bestGroups = [bestGroup];
-                            number = bestGroup.attackerIDs.length;
-                        } else if (bestGroup.attackerIDs.length === number) {
+                            number = bestGroup.initIDs.length;
+                        } else if (bestGroup.initIDs.length === number) {
                             bestGroups.push(bestGroup);
                         }
                     }
-                } else if (model.player !== attacker) {
+                } else if (model.player !== IP) {
                     bestGroup = CCArray.find(group => {
-                        return group.attackerIDs.includes(oppID);
+                        return group.initIDs.includes(oppID);
                     });
                     if (bestGroup) {
-                        if (bestGroup.defenderIDs.length < number) {
+                        if (bestGroup.otherIDs.length < number) {
                             bestGroups = [bestGroup];
-                            number = bestGroup.defenderIDs.length;
-                        } else if (bestGroup.defenderIDs.length === number) {
+                            number = bestGroup.otherIDs.length;
+                        } else if (bestGroup.otherIDs.length === number) {
                             bestGroups.push(bestGroup);
                         }
                     }
                 }
             });
-
+log(bestGroups)
             if (bestGroups.length > 1) {
-                //if attacker, sort based on rank of allies - highest
-                //if defender, sort based on rank of opponents - lowest
+                //if player with Initiative, sort based on rank of allies - highest
+                //otherwise sort based on rank of opponents - lowest
                 //default will end up being first group if all equal
                 let bestGroup;
-                let bestRank = (model.player === attacker) ? -1:10;
+                let bestRank = (model.player === IP) ? -1:10;
                 _.each(bestGroups,group => {
-                    _.each(group.attackerIDs, attID => {
-                        let att = ModelArray[attID];
-                        if (att) {
-                            let rank = parseInt(att.rank)
-                            if ((model.player === attacker && rank > bestRank) || (model.player !== attacker && rank < bestRank)) {
+                    let ids;
+                    if (model.player === IP) {
+                        ids = group.initIDs;
+                    } else {
+                        ids = group.otherIDs;                
+                    }
+                    _.each(ids, id => {
+                        let m = ModelArray[id];
+                        if (m) {
+                            let rank = parseInt(m.rank)
+                            if ((model.player === IP && rank > bestRank) || (model.player !== IP && rank < bestRank)) {
                                 bestGroup = group;
                                 bestRank = rank;
                             } 
@@ -5019,11 +5082,10 @@ log(target)
                 });
                 bestGroups = [bestGroup];
             }
-
-            if (model.player === attacker) {
-                bestGroups[0].attackerIDs.push(id1);
+            if (model.player === IP) {
+                bestGroups[0].initIDs.push(id1);
             } else {
-                bestGroups[0].defenderIDs.push(id1);
+                bestGroups[0].otherIDs.push(id1);
             }
         }
 
@@ -5035,16 +5097,16 @@ log(target)
                 let id2 = singletonArray[i];
                 if (id2 === id1) {continue};
                 if (testInfo.oppIDs.includes(id2)) {
-                    if (ModelArray[id1].player === attacker) {
+                    if (ModelArray[id1].player === IP) {
                         a = [id1];
-                        d = [id2];
+                        b = [id2];
                     } else {
                         a = [id2];
-                        d = [id1];
+                        b = [id1];
                     }
                     let group = {
-                        attackerIDs: a,
-                        defenderIDs: d,
+                        initIDs: a,
+                        otherIDs: b,
                     }
                     CCArray.push(group);
                     singletonArray.splice(singletonArray.indexOf(id1),1);
@@ -5058,73 +5120,81 @@ log(target)
         do {
             let id = unmatchedIDs.shift();
             let model = ModelArray[id];
-            let garrison = (model.garrison === "") ? false:true;
-            let surroundingHexes = SurroundingHexes(id,garrison);
+            let surroundingHexes = SurroundingHexes(id);
+            let nids = [];
             _.each(surroundingHexes,hex => {
-                let nids = [];
                 if (hexMap[hex.label()].structureID !== "") {
                     let garUnitIDs = Garrisons(hexMap[hex.label()].structureID,"Query");
                     _.each(garUnitIDs,uID => {
                         let gu = UnitArray[uID];
                         if (gu) {
-                            _.each(gu.modelIDs,id => {
-                                nids.push(id);
-                            })
-                        }
-                    })
-                } else {
-                    _.each(hexMap[hex.label()].modelIDs,id => {
-                        nids.push(id);
-                    })
-                }
-
-                if (nids.length > 0) {        
-                    _.each(nids,id2 => {
-                        let model2 = ModelArray[id2];
-                        if (model.player !== model2.player) {
-                            let info = modelInfo.find(element => {
-                                return element.id === id;
-                            })
-                            if (!info) {
-                                info = {
-                                    id: id,
-                                    oppIDs: [id2]
-                                }
-                                modelInfo.push(info);
-                            } else {
-                                if (info.oppIDs.includes(id2) === false) {
-                                    info.oppIDs.push(id2);
-                                }
-                            }
-                            let info2 = modelInfo.find(element => {
-                                return element.id === id2;
-                            })
-                            if (!info2) {
-                                info2 = {
-                                    id: id2,
-                                    oppIDs: [id],
-                                }
-                            } else {
-                                if (info2.oppIDs.includes(id) === false) {
-                                    info2.oppIDs.push(id);
-                                }
-                            }
-                            if (unitIDs.includes(model2.unitID) === false) {
-                                unitIDs.push(model2.unitID);
-                                _.each(UnitArray[model2.unitID].modelIDs,id => {
-                                    unmatchedIDs.push(id);
+                            if (gu.player !== model.player) {
+                                _.each(gu.modelIDs,id => {
+                                    nids.push(id);
                                 })
                             }
                         }
                     });
+                } else {
+                    _.each(hexMap[hex.label()].modelIDs,id => {
+                        if (ModelArray[id].player !== model.player) {
+                            nids.push(id);
+                        }
+                    })
                 }
             });
+            nids = [...new Set(nids)];
+log(model.name)
+log("Nids: " + nids.length)
+                if (nids.length > 0) {        
+                    for (let n=0;n<nids.length;n++) {
+                        let id2 = nids[n];
+                        let model2 = ModelArray[id2];
+                        //check for 2nd rank for garrison attacks
+                        //pending
+
+                        let info = modelInfo.find(element => {
+                            return element.id === id;
+                        })
+                        if (!info) {
+                            info = {
+                                id: id,
+                                oppIDs: [id2]
+                            }
+                            modelInfo.push(info);
+                        } else {
+                            if (info.oppIDs.includes(id2) === false) {
+                                info.oppIDs.push(id2);
+                            }
+                        }
+                        let info2 = modelInfo.find(element => {
+                            return element.id === id2;
+                        })
+                        if (!info2) {
+                            info2 = {
+                                id: id2,
+                                oppIDs: [id],
+                            }
+                        } else {
+                            if (info2.oppIDs.includes(id) === false) {
+                                info2.oppIDs.push(id);
+                            }
+                        }
+                        modelInfo.push(info2);
+                        if (unitIDs.includes(model2.unitID) === false) {
+                            unitIDs.push(model2.unitID);
+                            _.each(UnitArray[model2.unitID].modelIDs,id => {
+                                unmatchedIDs.push(id);
+                            })
+                        }
+                    };
+                }
         } while (unmatchedIDs.length > 0);
     
         let CCArray = [];
         let workingArray = DeepCopy(modelInfo);
         let singletonArray = [];
- /*
+ 
         SetupCard("Pre Sort","","Neutral");
         outputCard.body.push("Working Array");
         _.each(workingArray,group => {
@@ -5137,8 +5207,8 @@ log(target)
             outputCard.body.push(line);
         })
         PrintCard();
-*/
 
+log(workingArray)
         let change = false;
         do {
             change = false;
@@ -5146,19 +5216,21 @@ log(target)
                 workingArray.sort((a,b) => {
                     return a.oppIDs.length - b.oppIDs.length;
                 });
-
-                if (workingArray[0].oppIDs.length > 0) {
-                    let pair = workingArray.shift();
+                let pair = workingArray.shift();
+log(pair)
+                if (pair.oppIDs.length > 0) {
                     makePair(pair);
                     change = true;
-                } else if (workingArray[0].oppIDs.length === 0) {
-                    let pair = workingArray.shift();
+                } else if (pair.oppIDs.length === 0) {
                     singletonArray.push(pair.id);
                     change = true;
                 }
             }
         } while (change === true)
-
+log("WA after pairing")
+log(workingArray)
+log("Singleton Array")
+log(singletonArray)
         //now should only have ids with no OppIDs(due to being assigned already)
         //see if any 2 singletons match up
         _.each(singletonArray,id1 => {            
@@ -5171,25 +5243,28 @@ log(target)
         })
         //sort array grouping units
         CCArray.sort((a,b) => {
-            let aU = ModelArray[a.attackerIDs[0]].unitID;
+            let aU = ModelArray[a.initIDs[0]].unitID;
             let aUI = unitIDs.indexOf(aU);
-            let bU = ModelArray[b.attackerIDs[0]].unitID;
+            let bU = ModelArray[b.initIDs[0]].unitID;
             let bUI = unitIDs.indexOf(bU);
             if (aUI < bUI) {return -1};
             if (aUI > bUI) {return 1};
             let unit = UnitArray[aU];
-            aUI = unit.modelIDs.indexOf(a.attackerIDs[0]);
-            bUI = unit.modelIDs.indexOf(b.attackerIDs[0]);
+            aUI = unit.modelIDs.indexOf(a.initIDs[0]);
+            bUI = unit.modelIDs.indexOf(b.initIDs[0]);
             return aUI - bUI;
         })
-        //sort attackerIDs - higher rank last and defenderIDs - higher ranks first
+        //sort - higher rank last and  - higher ranks first
+        //sort - higher rank last for player with initiative and higher rank first for other
+
+
         _.each(CCArray,group => {
-            group.attackerIDs.sort((a,b) => {
+            group.initIDs.sort((a,b) => {
                 let aM = ModelArray[a].rank;
                 let bM = ModelArray[b].rank;
                 return aM - bM;
             })
-            group.defenderIDs.sort((a,b) => {
+            group.otherIDs.sort((a,b) => {
                 let aM = ModelArray[a].rank;
                 let bM = ModelArray[b].rank;
                 return bM - aM;
@@ -5257,11 +5332,11 @@ log(target)
         };
     };
 
-    const SurroundingHexes = (id,garrison) => {
+    const SurroundingHexes = (id) => {
         let object = ModelArray[id];
         if (!object) {return};
         let hex = hexMap[object.hexLabel];
-        if (hex.structureID !== "" && garrison === true) {
+        if (hex.structureID !== "" && object.garrison !== "") {
             //infantry in structure - change object to structure
             object = ModelArray[hex.structureID];
         }
