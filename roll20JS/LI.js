@@ -799,6 +799,7 @@ const LI = (()=> {
             //weapons
             let weaponArray = [];
             let infoArray = [];
+            let rend = 0;
 
             for (let i=1;i<6;i++) {
                 let wname = attributeArray["weapon"+i+"name"];
@@ -837,6 +838,9 @@ const LI = (()=> {
                 }
                 if (traits.includes("Barrage")) {
                     indirectWeapon = true;
+                }
+                if (traits.includes("Rend")) {
+                    rend++;
                 }
 
                 
@@ -979,6 +983,7 @@ const LI = (()=> {
             this.movement = parseInt(attributeArray.movement) || 0;
 
             this.weaponArray = weaponArray;
+            this.rend = rend;
             this.structureInfo = structureInfo;
             this.height = height;
             this.scale = scale;
@@ -1631,6 +1636,7 @@ const LI = (()=> {
                     coverSave: 7,
                     hitLevel: 0, //0 is no minus to hit, 1 = -1 for under size 3, 2 = -1 for all but Titan, 3 = -1 for all, 4 = Structure
                     los: true,
+                    obstacle: false,
                 };
                 hexMap[label] = hexInfo;
                 columnLabel += 2;
@@ -1684,8 +1690,9 @@ const LI = (()=> {
                         if (polygon.class === "Difficult" || polygon.class === "Dangerous") {
                             temp.hitLevel = Math.max(temp.hitLevel,2);
                         }
-                        if (polygon.class === "Obstacle") {
+                        if (polygon.class.includes("Obstacle")) {
                             temp.hitLevel = Math.max(temp.hitLevel,1);
+                            temp.obstalce = true;
                         }
                         if (polygon.name.includes("Hill")) {
                             temp.elevation = Math.max(temp.elevation,polygon.height);
@@ -4920,6 +4927,7 @@ log(target)
             })
         }
         PrintCard();
+
         SetupCard("Close Combat","",initiativeFaction);
 
         let wins = [0,0,0]; //by player
@@ -5175,12 +5183,6 @@ log(target)
                     let model2 = ModelArray[id2];
                     //check for 2nd rank for garrison attacks
                     let md = ModelDistance(model,model2);
-if (md.otherHex1) {
-    log(model.name + "/" + model2.name + "-> OH1: " + md.otherHex1.label())
-}
-if (md.otherHex2) {
-    log(model.name + "/" + model2.name + "-> OH2: " + md.otherHex2.label())
-}
                     let garFlag = false;
                     if (model.garrison !== "" && md.hex1 !== md.hex2) {
                         let checkHexes = [md.hex1];
@@ -5344,6 +5346,57 @@ if (md.otherHex2) {
     const IndividualCombat = (id1,num1,id2,num2) => {
         let models = [ModelArray[id1],ModelArray[id2]];
         let dice = [2+num1,2+num2];
+        let caf = [models[0].caf,models[1].caf];
+        let diceTips = ["",""];
+        let cafTips = ["",""];
+        if (num1 > 0) {
+            diceTips[0] = "<br>Fight# " + (num1 + 1) + " +" + num1 + " Dice";
+        }
+        if (num2 > 0) {
+            diceTips[1] = "<br>Fight# " + (num2 + 1) + " +" + num2 + " Dice";
+        }
+
+        for (let p=0;p<2;p++) {
+            let o = (p===0) ? 1:0;
+            let model = models[p];
+            let otherModel = models[o];
+            let obstacle = hexMap[otherModel.hexLabel].obstacle;
+            let unit = UnitArray[model.unitID];
+            let otherUnit = UnitArray[otherModel.unitID];
+            if (model.rend > 0) {
+                dice[p] += model.rend;
+                diceTips[p] += "<br>Rend +" + model.rend + " Dice"
+            }            
+            if (model.garrison !== "") {
+                let structure = ModelArray[model.garrison];
+                if (otherModel.special.includes("Phosphex") === false) {
+                    caf[p] += structure.structureInfo.cafBonus;
+                    cafTips[p] += "<br>Structure Bonus +" + structure.structureInfo.cafBonus;
+                } else {
+                    cafTips[o] += "<br>Phosphex";
+                }
+                if (otherModel.special.includes("Jet Packs") && otherUnit.order === "Charge") {
+                    caf[o]++;
+                    cafTips[o] += "<br>Jet Packs vs. Garrison +1";
+                }
+            }
+            if (unit.order === "Charge" && model.token.get(SM.moved) === true && obstacle === false) {
+                if (obstacle === false) {
+                    if (model.special.includes("Furious Charge")) {
+                        caf[p] += 2;
+                        cafTips[p] += "<br>Furious Charge +2";
+                    } else {
+                        caf[p]++
+                        cafTips[p] += "<br>Charge +1";
+                    }
+                } else {
+                    cafTips[o] += "<br>Defending Obstacle";
+                }
+            }
+
+        }
+
+
         //mods for models
         dice = [Math.min(dice[0],6),Math.min(dice[1],6)];
     
@@ -5351,21 +5404,37 @@ if (md.otherHex2) {
         let rolls = [[],[]];
         let total = [0,0];
         for (let p=0;p<2;p++) {
+            let o = (p===0) ? 1:0;
             for (let i=0;i<dice[p];i++) {
                 let roll = randomInteger(6);
-                //any rerolls
-    
                 rolls[p].push(roll);
                 total[p] += roll;
             }
-            total[p] += models[p].caf;
+            rolls[p].sort();
+            total[p] += caf[p];
             tips[p] = "<br>" + models[p].name + ": Total of " + total[p];
             tips[p] += "<br>Rolls: " + rolls[p].toString();
-            tips[p] += "<br>CAF: " + models[p].caf;
+            tips[p] += diceTips[p];
+            tips[p] += "<br>Total CAF: " + caf[p];
+            tips[p] += cafTips[p];
         }
-        
+
+        for (let p=1;p>=0;p--) {
+            //model with initiative can reroll last, in case changes winning #s
+            let o = (p===0) ? 1:0;
+            rolls[p].sort();
+            if (models[p].special.includes("Macro-extinction") && models[o].size > 2) {
+                if (total[p] < total[o] || (total[p] === total[o] && rolls[p][0] === 1)) {
+                    let reroll = randomInteger(6);
+                    total[p] -= rolls[p][0];
+                    total[p] += reroll;
+                    tips[p] += "<br>Reroll from Macro-Extinction: " + reroll;
+                }
+            }
+        }
+
         let winner,verb;
-        let tip = '[🎲](#" class="showtip" title="' + tips[0] + tips[1] + ')';
+        let tip = '[🎲](#" class="showtip" title="' + tips[0] + "<br>-------------" + tips[1] + ')';
     
     //adjust for multiple wounds
         if (total[0] === total[1]) {
