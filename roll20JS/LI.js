@@ -4882,10 +4882,12 @@ log(target)
     const CloseCombat = (msg) => {
         let modelID = msg.selected[0]._id;
         let initialModel = ModelArray[modelID]; 
-        let initialFaction = state.LI.factionNames[state.LI.initiativePlayer][0];
+        let initiativePlayer = parseInt(state.LI.initiativePlayer);
+        let otherPlayer = (initiativePlayer === 0) ? 1:0;
+        let initiativeFaction = state.LI.factionNames[initiativePlayer][0];
         
         let CCArray = BuildCCArray(modelID);
-        SetupCard("Close Combat Array","",initialFaction);
+        SetupCard("Close Combat Array","",initiativeFaction);
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
             if (i > 0) {
@@ -4900,33 +4902,32 @@ log(target)
             })
         }
         PrintCard();
-return
-        SetupCard("Close Combat","",initialModel.faction);
+        SetupCard("Close Combat","",initiativeFaction);
 
-        let wins = [0,0]; //by player
+        let wins = [0,0,0]; //by player
 
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
-            let p0IDs = group.p0IDs;
-            let p1IDs = group.p1IDs;
+            let initIDs = group.initIDs;
+            let otherIDs = group.otherIDs;
             outputCard.body.push("[U]Combat " + (i+1) + "[/u]")
 
             let pair = true;
-            do {
-                let p0Num = 0;
-                let p1Num = 0;
+            let iNum = 0;
+            let oNum = 0;
 
-                let p0ID = p0IDs[p0Num];
-                let p1ID = p1IDs[p1Num];
-                let winner = IndividualCombat(p0ID,p0Num,p1ID,p1Num);
+            do {
+                let ID1 = initIDs[iNum];
+                let ID2 = otherIDs[oNum];
+                let winner = IndividualCombat(ID1,iNum,ID2,oNum);
                 wins[winner]++;
 
                 if (winner === 0) {
-                    p1Num++;
-                } else if (winner === 1) {
-                    p0Num++;
+                    oNum++;
+                } else {
+                    iNum++;
                 }
-                if (p0Num >= p0IDs.length || p1Num >= p1IDs.length) {
+                if (iNum >= initIDs.length || oNum >= otherIDs.length) {
                     pair = false;
                 }
             } while (pair === true);
@@ -4934,17 +4935,19 @@ return
 
         outputCard.body.push("[hr]")
         if (wins[0] > wins[1]) {
-
+            outputCard.body.push(state.LI.factionNames[initiativePlayer][0] + " Wins");
 
 
 
         } else if (wins[0] < wins[1]) {
+            outputCard.body.push(state.LI.factionNames[otherPlayer][0] + " Wins");
 
 
 
 
         } else {
             //tie
+            outputCard.body.push("Tie");
 
 
 
@@ -4953,7 +4956,7 @@ return
         }
 
 
-
+        PrintCard();
 
 
 
@@ -5148,7 +5151,6 @@ return
 //log("Nids: " + nids.length)
 
             if (nids.length > 0) {        
-                nids:
                 for (let n=0;n<nids.length;n++) {
                     let id2 = nids[n];
                     let model2 = ModelArray[id2];
@@ -5302,7 +5304,56 @@ return
         return CCArray;
     }
     
+    const IndividualCombat = (id1,num1,id2,num2) => {
+        let models = [ModelArray[id1],ModelArray[id2]];
+        let dice = [2+num1,2+num2];
+        //mods for models
+        dice = [Math.min(dice[0],6),Math.min(dice[1],6)];
     
+        let tips = ["",""];
+        let rolls = [[],[]];
+        let total = [0,0];
+        for (let p=0;p<2;p++) {
+            for (let i=0;i<dice[p];i++) {
+                let roll = randomInteger(6);
+                //any rerolls
+    
+                rolls[p].push(roll);
+                total[p] += roll;
+            }
+            total[p] += models[p].caf;
+            tips[p] = "<br>" + models[p].name + ": Total of " + total[p];
+            tips[p] += "<br>Rolls: " + rolls[p].toString();
+            tips[p] += "<br>CAF: " + models[p].caf;
+        }
+        
+        let winner,verb;
+        let tip = '[🎲](#" class="showtip" title="' + tips[0] + tips[1] + ')';
+    
+    //adjust for multiple wounds
+        if (total[0] === total[1]) {
+            out = tip + " " + models[0].name + " vs. " + models[1].name + " ends in a Tie";
+            winner = 2;
+        } else if (total[0] > total[1]) {
+            verb = (models[1].type === "Infantry" || models[1].type === "Cavalry") ? " kills ":" destroys ";
+            out = tip + " " + models[0].name + verb + models[1].name;
+            winner = 0;
+        } else if (total[0] < total[1]) {
+            verb = (models[0].type === "Infantry" || models[0].type === "Cavalry") ? " kills ":" destroys ";
+            out = tip + " " + models[1].name + verb + models[0].name;
+            winner = 1;
+        }
+        outputCard.body.push(out);
+        return winner;
+    }
+    
+    
+
+
+
+
+
+
 
     const changeGraphic = (tok,prev) => {
         if (tok.get('subtype') === "token") {
