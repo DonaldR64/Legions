@@ -1233,6 +1233,7 @@ const LI = (()=> {
     const ModelDistance = (model1,model2) => {
         let hexes1 = [model1.hex];
         let hexes2 = [model2.hex];
+        let structureModel;
         if (model1.large === true) {
             hexes1 = model1.largeHexList;
         }
@@ -1241,14 +1242,14 @@ const LI = (()=> {
         }
         if (model1.type === "Infantry" && hexMap[model1.hexLabel].structureID.length > 0) {
             //Infantry in structure, use structure hexes for LOS
-            let structureModel = ModelArray[hexMap[model1.hexLabel].structureID];
+            structureModel = ModelArray[hexMap[model1.hexLabel].structureID];
             if (structureModel) {
                 hexes1 = structureModel.largeHexList;
             }
         } 
         if (model2.type === "Infantry" && hexMap[model2.hexLabel].structureID.length > 0) {
             //Infantry in structure, use structure hexes for LOS
-            let structureModel = ModelArray[hexMap[model2.hexLabel].structureID];
+            structureModel = ModelArray[hexMap[model2.hexLabel].structureID];
             if (structureModel) {
                 hexes2 = structureModel.largeHexList;
             }
@@ -1256,6 +1257,7 @@ const LI = (()=> {
         let closestDist = Infinity;
         let closestHex1 = model1.hex;
         let closestHex2 = model2.hex;
+        let otherHex1,otherHex2;
 
         for (let i=0;i<hexes1.length;i++) {
             let hex1 = hexes1[i];
@@ -1266,6 +1268,12 @@ const LI = (()=> {
                     closestDist = dist;
                     closestHex1 = hex1;
                     closestHex2 = hex2;
+                } 
+                if (dist === 1 && hexes2.length>1 && hex2.label() !== closestHex2.label()) {
+                    otherHex1 = hex2;
+                }
+                if (dist === 1 && hexes1.length>1 && hex1.label() !== closestHex1.label()) {
+                    otherHex2 = hex1;
                 }
             }
         }
@@ -1277,6 +1285,8 @@ const LI = (()=> {
             arc: arc,
             hex1: closestHex1,
             hex2: closestHex2,
+            otherHex1: otherHex1,
+            otherHex2: otherHex2,
         }
         return info;
     }
@@ -4880,8 +4890,16 @@ log(target)
 
  
     const CloseCombat = (msg) => {
+        if (!msg.selected) {
+            sendChat("","Select a Token")
+            return
+        };
         let modelID = msg.selected[0]._id;
         let initialModel = ModelArray[modelID]; 
+        if (initialModel.type === "Structure" || initialModel.type === "System Unit") {
+            sendChat("","Select a Token")
+            return
+        }
         let initiativePlayer = parseInt(state.LI.initiativePlayer);
         let otherPlayer = (initiativePlayer === 0) ? 1:0;
         let initiativeFaction = state.LI.factionNames[initiativePlayer][0];
@@ -4933,28 +4951,21 @@ log(target)
             } while (pair === true);
         }
 
-        outputCard.body.push("[hr]")
+        outputCard.body.push("[hr]");
+        let line;
         if (wins[0] > wins[1]) {
-            outputCard.body.push(state.LI.factionNames[initiativePlayer][0] + " Wins");
-
-
+            line = "[" + Factions[state.LI.factionNames[initiativePlayer]].backgroundColour + "]"
+            line += state.LI.factionNames[initiativePlayer][0] + " Wins the Combat[/#]";
+             
 
         } else if (wins[0] < wins[1]) {
-            outputCard.body.push(state.LI.factionNames[otherPlayer][0] + " Wins");
-
-
-
-
+            line = "[" + Factions[state.LI.factionNames[otherPlayer]].backgroundColour + "]"
+            line += state.LI.factionNames[otherPlayer][0] + " Wins the Combat[/#]";
         } else {
             //tie
-            outputCard.body.push("Tie");
-
-
-
-
-
+            outputCard.body.push("The Combat ends in a Tie");
         }
-
+        outputCard.body.push(line)
 
         PrintCard();
 
@@ -5126,23 +5137,31 @@ log(target)
             let surroundingHexes = SurroundingHexes(id);
             let nids = [];
             _.each(surroundingHexes,hex => {
-                if (hexMap[hex.label()].structureID !== "") {
+                if (hexMap[hex.label()].structureID !== "" && model.type === "Infantry") {
+                    //if the model isnt infantry dont add
                     let garUnitIDs = Garrisons(hexMap[hex.label()].structureID,"Query");
                     _.each(garUnitIDs,uID => {
                         let gu = UnitArray[uID];
                         if (gu) {
                             if (gu.player !== model.player) {
                                 _.each(gu.modelIDs,id => {
-                                    nids.push(id);
+                                    if (ModelArray[id].type === "Infantry") {
+                                        //in case overlap issue
+                                        nids.push(id);
+                                    }
                                 })
                             }
                         }
                     });
                 } else {
                     _.each(hexMap[hex.label()].modelIDs,hid => {
-                        if (ModelArray[hid].player !== model.player) {
-                            nids.push(hid);
-                        }
+                        let m2 = ModelArray[hid];
+                        if (m2.player !== model.player) {
+                            if (model.garrison === "" || m2.type === "Infantry") {
+                                //if the model is in garrison, only add opponent if its infantry
+                                nids.push(hid);
+                            } 
+                        }                      
                     })
                 }
             });
@@ -5156,25 +5175,43 @@ log(target)
                     let model2 = ModelArray[id2];
                     //check for 2nd rank for garrison attacks
                     let md = ModelDistance(model,model2);
+if (md.otherHex1) {
+    log(model.name + "/" + model2.name + "-> OH1: " + md.otherHex1.label())
+}
+if (md.otherHex2) {
+    log(model.name + "/" + model2.name + "-> OH2: " + md.otherHex2.label())
+}
                     let garFlag = false;
                     if (model.garrison !== "" && md.hex1 !== md.hex2) {
-                        let m3IDs = hexMap[md.hex1.label()].modelIDs;
-                        _.each(m3IDs,m3id => {
-                            let model3 = ModelArray[m3id];
-                            if (model3.player === model2.player) {
-                                //log("M3: " + model3.name)
-                                garFlag = true;
-                            }
-                        })
+                        let checkHexes = [md.hex1];
+                        if (md.otherHex1) {
+                            checkHexes.push(md.otherHex1);
+                        }
+                        for (let j=0;j<checkHexes.length;j++) {
+                            let m3IDs = hexMap[checkHexes[j].label()].modelIDs;
+                            _.each(m3IDs,m3id => {
+                                let model3 = ModelArray[m3id];
+                                if (model3.player === model2.player) {
+                                    //log("M3: " + model3.name)
+                                    garFlag = true;
+                                }
+                            })
+                        }
                     } else if (model2.garrison !== "" && md.hex1 !== md.hex2) {
-                        let m3IDs = hexMap[md.hex2.label()].modelIDs;
-                        _.each(m3IDs,m3id => {
-                            let model3 = ModelArray[m3id];
-                            if (model3.player === model.player) {
-                                //log("M3: " + model3.name)
-                                garFlag = true;
-                            }
-                        })
+                        let checkHexes = [md.hex2];
+                        if (md.otherHex2) {
+                            checkHexes.push(md.otherHex2);
+                        }
+                        for (let j=0;j<checkHexes.length;j++) {
+                            let m3IDs = hexMap[checkHexes[j].label()].modelIDs;
+                            _.each(m3IDs,m3id => {
+                                let model3 = ModelArray[m3id];
+                                if (model3.player === model.player) {
+                                    //log("M3: " + model3.name)
+                                    garFlag = true;
+                                }
+                            })
+                        }
                     }
                     if (garFlag === true) {
                         continue;
@@ -5223,7 +5260,7 @@ log(target)
         let CCArray = [];
         let workingArray = DeepCopy(modelInfo);
         let singletonArray = [];
- 
+ /*
         SetupCard("Pre Sort","","Neutral");
         outputCard.body.push("Working Array");
         _.each(workingArray,group => {
@@ -5236,7 +5273,7 @@ log(target)
             outputCard.body.push(line);
         })
         PrintCard();
-
+*/
 //log(workingArray)
         let change = false;
         do {
@@ -5336,11 +5373,11 @@ log(target)
             winner = 2;
         } else if (total[0] > total[1]) {
             verb = (models[1].type === "Infantry" || models[1].type === "Cavalry") ? " kills ":" destroys ";
-            out = tip + " " + models[0].name + verb + models[1].name;
+            out = "[" + Factions[models[0].faction].backgroundColour+"]" + tip + " " + models[0].name + verb + models[1].name + "[/#]";
             winner = 0;
         } else if (total[0] < total[1]) {
             verb = (models[0].type === "Infantry" || models[0].type === "Cavalry") ? " kills ":" destroys ";
-            out = tip + " " + models[1].name + verb + models[0].name;
+            out = "[" + Factions[models[1].faction].backgroundColour+"]" + tip + " " + models[1].name + verb + models[0].name + "[/#]";
             winner = 1;
         }
         outputCard.body.push(out);
