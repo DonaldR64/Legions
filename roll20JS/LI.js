@@ -5019,11 +5019,11 @@ return
 
         const placeInGroup = (id1) => {
             let model = ModelArray[id1];
-log("Place in Group for " + model.name)
+//log("Place in Group for " + model.name)
             let group = modelInfo.find(group => {
                 return group.id === id1;
             });
-log(group)
+//log(group)
             //sort on lowest # of opponents
             let bestGroups = [];
             let number = 1000;
@@ -5055,7 +5055,7 @@ log(group)
                     }
                 }
             });
-log(bestGroups)
+//log(bestGroups)
             if (bestGroups.length > 1) {
                 //if player with Initiative, sort based on rank of allies - highest
                 //otherwise sort based on rank of opponents - lowest
@@ -5144,15 +5144,39 @@ log(bestGroups)
                 }
             });
             nids = [...new Set(nids)];
-log(model.name)
-log("Nids: " + nids.length)
+//log(model.name)
+//log("Nids: " + nids.length)
 
             if (nids.length > 0) {        
+                nids:
                 for (let n=0;n<nids.length;n++) {
                     let id2 = nids[n];
                     let model2 = ModelArray[id2];
                     //check for 2nd rank for garrison attacks
-                    //pending
+                    let md = ModelDistance(model,model2);
+                    let garFlag = false;
+                    if (model.garrison !== "" && md.hex1 !== md.hex2) {
+                        let m3IDs = hexMap[md.hex1.label()].modelIDs;
+                        _.each(m3IDs,m3id => {
+                            let model3 = ModelArray[m3id];
+                            if (model3.player === model2.player) {
+                                //log("M3: " + model3.name)
+                                garFlag = true;
+                            }
+                        })
+                    } else if (model2.garrison !== "" && md.hex1 !== md.hex2) {
+                        let m3IDs = hexMap[md.hex2.label()].modelIDs;
+                        _.each(m3IDs,m3id => {
+                            let model3 = ModelArray[m3id];
+                            if (model3.player === model.player) {
+                                //log("M3: " + model3.name)
+                                garFlag = true;
+                            }
+                        })
+                    }
+                    if (garFlag === true) {
+                        continue;
+                    }
 
                     let info = modelInfo.find(element => {
                         return element.id === id;
@@ -5191,7 +5215,7 @@ log("Nids: " + nids.length)
                 };
             }
         } while (unmatchedIDs.length > 0);
-log("Pre Sort")
+//log("Pre Sort")
         log(modelInfo)
 
         let CCArray = [];
@@ -5211,7 +5235,7 @@ log("Pre Sort")
         })
         PrintCard();
 
-log(workingArray)
+//log(workingArray)
         let change = false;
         do {
             change = false;
@@ -5220,7 +5244,7 @@ log(workingArray)
                     return a.oppIDs.length - b.oppIDs.length;
                 });
                 let pair = workingArray.shift();
-log(pair)
+//log(pair)
                 if (pair.oppIDs.length > 0) {
                     makePair(pair);
                     change = true;
@@ -5230,10 +5254,10 @@ log(pair)
                 }
             }
         } while (change === true)
-log("WA after pairing")
-log(workingArray)
-log("Singleton Array")
-log(singletonArray)
+//log("WA after pairing")
+//log(workingArray)
+//log("Singleton Array")
+//log(singletonArray)
         //now should only have ids with no OppIDs(due to being assigned already)
         //see if any 2 singletons match up
         _.each(singletonArray,id1 => {            
