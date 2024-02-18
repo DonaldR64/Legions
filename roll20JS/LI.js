@@ -4885,7 +4885,6 @@ log(target)
         let initialFaction = state.LI.factionNames[state.LI.initiativePlayer][0];
         
         let CCArray = BuildCCArray(modelID);
-return
         SetupCard("Close Combat Array","",initialFaction);
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
@@ -5177,12 +5176,12 @@ log("Nids: " + nids.length)
                             id: id2,
                             oppIDs: [id],
                         }
+                        modelInfo.push(info2);
                     } else {
                         if (info2.oppIDs.includes(id) === false) {
                             info2.oppIDs.push(id);
                         }
                     }
-                    modelInfo.push(info2);
                     if (unitIDs.includes(model2.unitID) === false) {
                         unitIDs.push(model2.unitID);
                         _.each(UnitArray[model2.unitID].modelIDs,id => {
@@ -5235,9 +5234,6 @@ log("WA after pairing")
 log(workingArray)
 log("Singleton Array")
 log(singletonArray)
-
-
-return
         //now should only have ids with no OppIDs(due to being assigned already)
         //see if any 2 singletons match up
         _.each(singletonArray,id1 => {            
