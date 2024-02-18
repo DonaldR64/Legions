@@ -1508,40 +1508,28 @@ const LI = (()=> {
             let out = "";
             let line = outputCard.body[i];
             if (!line || line === "") {continue};
-            if (line.includes("[INLINE")) {
-                let end = line.indexOf("]");
-                let substring = line.substring(0,end+1);
-                let num = substring.replace(/[^\d]/g,"");
-                if (!num) {num = 1};
+            line = line.replace(/\[hr(.*?)\]/gi, '<hr style="width:95%; align:center; margin:0px 0px 5px 5px; border-top:2px solid $1;">');
+            line = line.replace(/\[\#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})\](.*?)\[\/[\#]\]/g, "<span style='color: #$1;'>$2</span>"); // [#xxx] or [#xxxx]...[/#] for color codes. xxx is a 3-digit hex code
+            line = line.replace(/\[[Uu]\](.*?)\[\/[Uu]\]/g, "<u>$1</u>"); // [U]...[/u] for underline
+            line = line.replace(/\[[Bb]\](.*?)\[\/[Bb]\]/g, "<b>$1</b>"); // [B]...[/B] for bolding
+            line = line.replace(/\[[Ii]\](.*?)\[\/[Ii]\]/g, "<i>$1</i>"); // [I]...[/I] for italics
+            let lineBack = (i % 2 === 0) ? "#D3D3D3" : "#EEEEEE";
+            let fontColour = "#000000";
+            let index1 = line.indexOf("%%");
+            if (index1 > -1) {
+                let index2 = line.lastIndexOf("%%") + 2;
+                let substring = line.substring(index1,index2);
+                let faction = substring.replace(/%%/g,"");
                 line = line.replace(substring,"");
-                out += `<div style="display: table-row; background: #FFFFFF;; `;
-                out += `"><div style="display: table-cell; padding: 0px 0px; font-family: Arial; font-style: normal; font-weight: normal; font-size: 14px; `;
-                out += `"><span style="line-height: normal; color: #000000; `;
-                out += `"> <div style='text-align: center; display:block;'>`;
-                out += line + " ";
-
-                for (let q=0;q<num;q++) {
-                    let info = outputCard.inline[inline];
-                    out += `<a style ="background-color: ` + Factions[outputCard.faction].backgroundColour + `; padding: 5px;`
-                    out += `color: ` + Factions[outputCard.faction].fontColour + `; text-align: center; vertical-align: middle; border-radius: 5px;`;
-                    out += `border-color: ` + Factions[outputCard.faction].borderColour + `; font-family: Tahoma; font-size: x-small; `;
-                    out += `"href = "` + info.action + `">` + info.phrase + `</a>`;
-                    inline++;                    
-                }
-                out += `</div></span></div></div>`;
-            } else {
-                line = line.replace(/\[hr(.*?)\]/gi, '<hr style="width:95%; align:center; margin:0px 0px 5px 5px; border-top:2px solid $1;">');
-                line = line.replace(/\[\#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})\](.*?)\[\/[\#]\]/g, "<span style='color: #$1;'>$2</span>"); // [#xxx] or [#xxxx]...[/#] for color codes. xxx is a 3-digit hex code
-                line = line.replace(/\[[Uu]\](.*?)\[\/[Uu]\]/g, "<u>$1</u>"); // [U]...[/u] for underline
-                line = line.replace(/\[[Bb]\](.*?)\[\/[Bb]\]/g, "<b>$1</b>"); // [B]...[/B] for bolding
-                line = line.replace(/\[[Ii]\](.*?)\[\/[Ii]\]/g, "<i>$1</i>"); // [I]...[/I] for italics
-                let lineBack = (i % 2 === 0) ? "#D3D3D3" : "#EEEEEE";
-                out += `<div style="display: table-row; background: ` + lineBack + `;; `;
-                out += `"><div style="display: table-cell; padding: 0px 0px; font-family: Arial; font-style: normal; font-weight: normal; font-size: 14px; `;
-                out += `"><span style="line-height: normal; color: #000000; `;
-                out += `"> <div style='text-align: center; display:block;'>`;
-                out += line + `</div></span></div></div>`;                
-            }
+                lineBack = Factions[faction].backgroundColour;
+                fontColour = Factions[faction].fontColour;
+            }    
+            out += `<div style="display: table-row; background: ` + lineBack + `;; `;
+            out += `"><div style="display: table-cell; padding: 0px 0px; font-family: Arial; font-style: normal; font-weight: normal; font-size: 14px; `;
+            out += `"><span style="line-height: normal; color: ` + fontColour + `; `;
+            out += `"> <div style='text-align: center; display:block;'>`;
+            out += line + `</div></span></div></div>`;                
+            
             output += out;
         }
 
@@ -4945,13 +4933,33 @@ log(target)
             do {
                 let ID1 = initIDs[iNum];
                 let ID2 = otherIDs[oNum];
-                let winner = IndividualCombat(ID1,iNum,ID2,oNum);
+                let results = IndividualCombat(ID1,iNum,ID2,oNum);
+                let winner = results.winner;
+                let killed = results.killed;
+                
                 wins[winner]++;
 
                 if (winner === 0) {
-                    oNum++;
-                } else {
-                    iNum++;
+                    if (killed[1] === true) {
+                        oNum++;
+                    } else {
+                        iNum++;
+                    }
+                } else if (winner === 1) {
+                    if (killed[0] === true) {
+                        iNum++;
+                    } else {
+                        oNum++;
+                    }
+                } else if (winner === 2) {
+                    if (initIDs.length > otherIDs.length) {
+                        iNum++;
+                    } else if (otherIDs.length > initIDs.length) {
+                        oNum++;
+                    } else {
+                        iNum++;
+                        oNum++;
+                    }
                 }
                 if (iNum >= initIDs.length || oNum >= otherIDs.length) {
                     pair = false;
@@ -4960,20 +4968,34 @@ log(target)
         }
 
         outputCard.body.push("[hr]");
-        let line;
+        outputCard.body.push("[hr]");
+log("Wins")
+log(wins)
+        let loser;
+        let winner = 2;
         if (wins[0] > wins[1]) {
-            line = "[" + Factions[state.LI.factionNames[initiativePlayer]].backgroundColour + "]"
-            line += state.LI.factionNames[initiativePlayer][0] + " Wins the Combat[/#]";
-             
-
+            winner = 0;
         } else if (wins[0] < wins[1]) {
-            line = "[" + Factions[state.LI.factionNames[otherPlayer]].backgroundColour + "]"
-            line += state.LI.factionNames[otherPlayer][0] + " Wins the Combat[/#]";
-        } else {
-            //tie
-            outputCard.body.push("The Combat ends in a Tie");
+            winner = 1;
         }
-        outputCard.body.push(line)
+        if (winner === 2) {
+            outputCard.body.push("The Combat ends in a Tie");
+        } else {
+            loser = (winner === 0) ? 1:0;
+            let winningFaction = state.LI.factionNames[winner][0];
+            let losingFaction = state.LI.factionNames[loser][0];
+            let winningPlayer = TraitorForces.includes(winningFaction) ? 1:0;
+            let losingPlayer = TraitorForces.includes(losingFaction) ? 1:0;
+
+            outputCard.body.push("%%" + winningFaction + "%%" + winningFaction + " Win the Combat")
+            //morale
+
+
+
+            
+
+
+        }
 
         PrintCard();
 
@@ -4999,7 +5021,6 @@ log(target)
         //in CCArray, 0 will be player with initiative
 
         let unmatchedIDs = [];
-        let matchedIDs = [];
         _.each(initialUnit.modelIDs,id => {
             unmatchedIDs.push(id);
         })
@@ -5324,8 +5345,6 @@ log(target)
         })
         //sort - higher rank last and  - higher ranks first
         //sort - higher rank last for player with initiative and higher rank first for other
-
-
         _.each(CCArray,group => {
             group.initIDs.sort((a,b) => {
                 let aM = ModelArray[a].rank;
@@ -5345,15 +5364,18 @@ log(target)
     
     const IndividualCombat = (id1,num1,id2,num2) => {
         let models = [ModelArray[id1],ModelArray[id2]];
+        let wounds = [1,1];
+        wounds[0] = parseInt(models[0].token.get("bar1_value") || 1);
+        wounds[1] = parseInt(models[1].token.get("bar1_value") || 1);
         let dice = [2+num1,2+num2];
         let caf = [models[0].caf,models[1].caf];
         let diceTips = ["",""];
         let cafTips = ["",""];
         if (num1 > 0) {
-            diceTips[0] = "<br>Fight# " + (num1 + 1) + " +" + num1 + " Dice";
+            diceTips[0] = "<br>+" + num1 + " Dice from Fight #" + (num1+1);
         }
         if (num2 > 0) {
-            diceTips[1] = "<br>Fight# " + (num2 + 1) + " +" + num2 + " Dice";
+            diceTips[1] = "<br>+" + num2 + " Dice from Fight #" + (num2+1);
         }
 
         for (let p=0;p<2;p++) {
@@ -5365,7 +5387,7 @@ log(target)
             let otherUnit = UnitArray[otherModel.unitID];
             if (model.rend > 0) {
                 dice[p] += model.rend;
-                diceTips[p] += "<br>Rend +" + model.rend + " Dice"
+                diceTips[p] += "<br>+" + model.rend + " Dice from Rend"
             }            
             if (model.garrison !== "") {
                 let structure = ModelArray[model.garrison];
@@ -5433,24 +5455,38 @@ log(target)
             }
         }
 
-        let winner,verb;
         let tip = '[🎲](#" class="showtip" title="' + tips[0] + "<br>-------------" + tips[1] + ')';
     
-    //adjust for multiple wounds
-        if (total[0] === total[1]) {
-            out = tip + " " + models[0].name + " vs. " + models[1].name + " ends in a Tie";
-            winner = 2;
-        } else if (total[0] > total[1]) {
-            verb = (models[1].type === "Infantry" || models[1].type === "Cavalry") ? " kills ":" destroys ";
-            out = "[" + Factions[models[0].faction].backgroundColour+"]" + tip + " " + models[0].name + verb + models[1].name + "[/#]";
+        let loser,verb;
+        let killed = [false,false];
+
+        let winner = 2;
+        if (total[0] > total[1]) {
             winner = 0;
         } else if (total[0] < total[1]) {
-            verb = (models[0].type === "Infantry" || models[0].type === "Cavalry") ? " kills ":" destroys ";
-            out = "[" + Factions[models[1].faction].backgroundColour+"]" + tip + " " + models[1].name + verb + models[0].name + "[/#]";
             winner = 1;
         }
-        outputCard.body.push(out);
-        return winner;
+        if (winner === 2) {
+            outputCard.body.push(tip + " " + models[0].name + " vs. " + models[1].name + " ends in a Tie");
+        } else {
+            loser = (winner === 0) ? 1:0;
+            let hp = wounds[loser] -1;
+            models[loser].token.set("bar1_value",hp);
+            if (hp > 0) {
+                verb = " wounds ";
+            } else {
+                verb = (models[loser].type === "Infantry" || models[loser].type === "Cavalry") ? " kills ":" destroys ";
+                //kill token, amend etc
+                killed[loser] = true;
+            }
+            outputCard.body.push("%%" + models[winner].faction + "%%" + tip + " " + models[winner].name + verb + models[loser].name);
+        }
+
+        let results = {
+            winner: winner,
+            killed: killed,
+        }
+        return results;
     }
     
     
