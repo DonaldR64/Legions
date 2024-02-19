@@ -5013,9 +5013,50 @@ log(wins)
             } else if (winningUnits.length > 0 && losingUnits.length === 0) {
                 outputCard.body.push("All of " + losingFaction + " Detachments are destroyed");
             } else if (winningUnits.length > 0 && losingUnits.length > 0) {
-                CheckArray = losingUnits;
-                outputCard.body.push("Losing Detachments now have to take Morale Checks");
-                ButtonInfo("Start Morale Checks","!Morale");
+                CheckArray = [];
+                _.each(losingUnits,unit => {
+                    let exception;
+                    let unitLeader = ModelArray[unit.modelIDs[0]];
+                    let morale = unitLeader.morale;
+                    if (morale === 0) {
+                        exception = unit.name + " does not take Morale Checks";
+                    }
+                    let implacable = false;
+                    _.each(unit.modelIDs,id => {
+                        if (ModelArray[id].special.includes("Implacable")) {
+                            exception = unit.name + " has Implacable. It may Withdraw if it wished, but does not take a Morale Check";
+                        }
+                    });
+                    if (unitLeader.garrison !== "") {
+                        let contact = false;
+                        wuLoop1:
+                        for (let i=0;i<winningUnits.length;i++) {
+                            let wUnit = winningUnits[i];
+                            for (let j=0;j<wUnit.modelIDs.length;j++) {
+                                let wModel = ModelArray[wUnit.modelIDs[j]];
+                                let dist = ModelDistance(unitLeader,wModel);
+                                if (dist < 1) {
+                                    contact = true;
+                                    break wuLoop1;
+                                }
+                            }
+                        }
+                        if (contact === false) {
+                            exception = unit.name + " is Garrisonned and has no Enemy in Contact. It does not take a Morale Check and remains in the Structure";
+                        }
+                    }
+                    if (exception) {
+                        outputCard.body.push(exception);
+                    } else {
+                        CheckArray.push(unit.id);
+                    }
+                });
+                if (CheckArray.length > 0) {
+                    outputCard.body.push("Some Losing Detachments now have to take Morale Checks");
+                    ButtonInfo("Start Morale Checks","!Morale;Close Combat");
+                } else (CheckArray.length === 0) {
+                    outputCard.body.push("No Morale Checks are neccessary");
+                }
             }
         }
         PrintCard();
