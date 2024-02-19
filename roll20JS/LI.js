@@ -5048,15 +5048,18 @@ log(wins)
             //remove ID2s from other groups oppIDs
             CCArray.push(group);
             if (workingArray.length > 0) {
-                _.each(workingArray,info => {
-                    if (info) {
-                        if (info.id === id2) {
-                            workingArray.splice(workingArray.indexOf(info),1);
-                        } else if (info.oppIDs.includes(id2)) {
-                            info.oppIDs.splice(info.oppIDs.indexOf(id2),1);
-                        }
-                    }
+                //remove ID2s entry
+                workingArray = workingArray.filter(element => {
+                    return element.id !== id2;
                 });
+                //remove ID from other oppIDs
+                if (workingArray.length > 0) {
+                    _.each(workingArray,info => {
+                        info.oppIDs = info.oppIDs.filter(id => {
+                            return id !== id2;
+                        })
+                    })
+                }
             }
         };
 
@@ -5283,7 +5286,7 @@ log(wins)
         let CCArray = [];
         let workingArray = DeepCopy(modelInfo);
         let singletonArray = [];
- /*
+ 
         SetupCard("Pre Sort","","Neutral");
         outputCard.body.push("Working Array");
         _.each(workingArray,group => {
@@ -5296,7 +5299,7 @@ log(wins)
             outputCard.body.push(line);
         })
         PrintCard();
-*/
+
 //log(workingArray)
         let change = false;
         do {
@@ -5308,9 +5311,11 @@ log(wins)
                 let pair = workingArray.shift();
 //log(pair)
                 if (pair.oppIDs.length > 0) {
+//log(ModelArray[pair.id].name + " / " + ModelArray[pair.oppIDs[0]].name)
                     makePair(pair);
                     change = true;
                 } else if (pair.oppIDs.length === 0) {
+//log(ModelArray[pair.id].name)
                     singletonArray.push(pair.id);
                     change = true;
                 }
