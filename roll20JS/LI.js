@@ -4999,27 +4999,26 @@ log(wins)
 
             outputCard.body.push("%%" + winningFaction + "%%" + winningFaction + " Win the Combat")
             //morale for losing player's units if appropriate
-            
-
-
-
-            
-
-
+            let winningUnits = units[winningPlayer].filter(unit => {
+                return unit.modelIDs.length > 0;
+            })
+            let losingUnits = units[losingPlayer].filter(unit => {
+                return unit.modelIDs.length > 0;
+            });
+            if (winningUnits.length === 0 && losingUnits.length === 0) {
+                outputCard.body.push("There was no winner as all detachments destroyed");
+            } else if (winningUnits.length === 0 && losingUnits.length > 0) {
+                outputCard.body.push("All of " + winningFaction + " detachments were destroyed");
+                outputCard.body.push("As a result, " + losingFaction + " does not need to take Morale Tests");
+            } else if (winningUnits.length > 0 && losingUnits.length === 0) {
+                outputCard.body.push("All of " + losingFaction + " Detachments are destroyed");
+            } else if (winningUnits.length > 0 && losingUnits.length > 0) {
+                CheckArray = losingUnits;
+                outputCard.body.push("Losing Detachments now have to take Morale Checks");
+                ButtonInfo("Start Morale Checks","!Morale");
+            }
         }
-
         PrintCard();
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
     }
 
 
