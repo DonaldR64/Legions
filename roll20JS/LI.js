@@ -789,7 +789,7 @@ const LI = (()=> {
             let large = false;
             let vertices = TokenVertices(token);
 
-            if (token.get("width") > 100 || token.get("height") > 100) {
+            if (token.get("width") > 120 || token.get("height") > 120) {
                 large = true;
                 let w = token.get("width")/2;
                 let h = token.get("height")/2;
@@ -1117,11 +1117,13 @@ const LI = (()=> {
 
         }
 
-        moraleCheck() {
-            if (this.moraleCheck = true) {
-                return; //only one per turn
+        checkMorale(reason) {
+            if (this.moraleCheck === true) {
+                return; //only one per phase
             }
             let needed = 7;
+            let roll = randomInteger(6);
+            let roll2 = randomInteger(6);
             _.each(this.modelIDs,modelID => {
                 let model = ModelArray[modelID];
                 needed = Math.min(needed,model.morale);
@@ -1132,33 +1134,48 @@ const LI = (()=> {
                 tip += "<br>Automatic";
             }
             if (formation.broken === true && needed > 0) {
-                tip += "<br>Formation Broken +1";
-                needed += 1;
+                if (reason === "Close Combat") {
+                    tip += "<br>Formation Broken"
+                    tip += "<br>Takes lower roll of " + roll + " or " + roll2;
+                    roll = Math.min(roll,roll2);
+                } else {
+                    tip += "<br>Formation Broken +1";
+                    needed += 1;
+                }
             }
-            //other mods
 
-            let roll = randomInteger(6);
             tip = "Roll: " + roll + " vs. " + needed + "+" + tip;
             tip = '[🎲](#" class="showtip" title="' + tip + ')';
             if (roll < needed) {
                 outputCard.body.push(tip + " [#ff0000]Morale Check Failed[/#]");
-                if (order === "Fall Back") {
-                    outputCard.body.push("[#ff0000]Detachment remains on Fallback[/#]");
-                } else {
-                    outputCard.body.push("[#ff0000]Detachment goes on Fallback[/#]");
-                }
-                let mark = SM[this.order.toLowerCase()];
-                _.each(this.modelIDs,id => {
-                    let model = ModelArray[id];
-                    if (model) {
-                        model.token.set(mark,false);
-                        model.token.set(SM.fallback,true);
-                        if (id === this.modelIDs[0]) {
-                            model.token.set("aura1_color",Colours.black);
-                        }
+                if (reason !== "Close Combat") {
+                    if (order === "Fall Back") {
+                        outputCard.body.push("[#ff0000]Detachment remains on Fallback[/#]");
+                    } else {
+                        outputCard.body.push("[#ff0000]Detachment goes on Fallback[/#]");
                     }
-                });
-                this.order = "Fallback";
+                    let mark = SM[this.order.toLowerCase()];
+                    _.each(this.modelIDs,id => {
+                        let model = ModelArray[id];
+                        if (model) {
+                            model.token.set(mark,false);
+                            model.token.set(SM.fallback,true);
+                            if (id === this.modelIDs[0]) {
+                                model.token.set("aura1_color",Colours.black);
+                            }
+                        }
+                    });
+                    this.order = "Fallback";
+                } else {
+                    _.each(this.modelIDs,id => {
+                        ModelArray[id].token.set("tint_color",Colours.red);
+                    }) 
+                    outputCard.body.push("The Detachment must make a Withdrawal Move");
+                    let wRoll = randomInteger(6);
+                    outputCard.body.push("Each model must move their movement + " + wRoll + '"');
+                    outputCard.body.push("This should be directly towards their starting edge");
+                    outputCard.body.push("If on Advance, cannot fire");
+                }
                 this.moraleCheck = true;
                 return "Failed";
             } else {
@@ -1388,10 +1405,9 @@ const LI = (()=> {
         //clear Old hexes, if any
         for (let h=0;h<model.largeHexList.length;h++) {
             let chlabel = model.largeHexList[h].label();
-            let index = hexMap[chlabel].modelIDs.indexOf(model.id);
-            if (index > -1) {
-                hexMap[chlabel].modelIDs.splice(index,1);
-            }                    
+            hexMap[chlabel].modelIDs = hexMap[chlabel].modelIDs.filter(id => {
+                id !== model.id;
+            })                 
         }        
         model.largeHexList = [];
     }
@@ -2254,20 +2270,16 @@ const LI = (()=> {
         } else {
             if (Tag[1] === "Morale") {
                 let unitID = Tag[2];
+                let reason = Tag[3];
                 let unit = UnitArray[unitID];
-                let result = unit.moraleCheck();
-                let flip;
-                if (result === "Passed") {
-                    unit.order = "";
-                    flip = false;
-                } else {
-                    unit.order = "Fallback";
-                    flip = true;
-                }
-                _.each(unit.modelIDs,id => {
-                    let model = ModelArray[id];
-                    model.token.set(SM.fallback,flip);
-                });
+                if (unit) {
+                    SetupCard("Results",unit.name,unit.faction);                  
+                    let result = unit.checkMorale(reason);
+                    if (CheckArray.length > 0) {
+                        ButtonInfo("Next Unit","!Morale;" + reason);
+                    }
+                    PrintCard();
+                } 
             }
         }
     }
@@ -3159,9 +3171,8 @@ const LI = (()=> {
             outputCard.body.push("Reserves remaining offtable cannot be activated until end");
         } else if (phase === "First Fire") {
             ResetActivations(phase);
-
         } else if (phase === "Close Combat") {
-            
+            ResetActivations(phase);
         } else if (phase === "Advancing Fire") {
             ResetActivations(phase);
             
@@ -3199,6 +3210,7 @@ const LI = (()=> {
 
     const ResetActivations = (phase) => {
         _.each(UnitArray,unit => {
+            unit.moraleCheck = false;
             let unitLeader = ModelArray[unit.modelIDs[0]];
             if (unitLeader) {
                 if (phase === "Movement" && (unit.order === "Advance" || unit.order === "March" || unit.order === "Charge")) {
@@ -4883,6 +4895,25 @@ log(target)
         
     }
 
+    const Morale = (msg) => {
+        let Tag = msg.content.split(";");
+        let reason = Tag[1];
+        let unitID = CheckArray.shift();
+        if (unitID) {
+            let unit = UnitArray[unitID];
+            SetupCard(unit.name,"Morale Check",unit.faction);
+            let unitLeader = ModelArray[unit.modelIDs[0]];
+            let location = unitLeader.location;
+            sendPing(location.x,location.y, Campaign().get('playerpageid'), null, true);                  
+            outputCard.body.push("Click Button when ready");
+            ButtonInfo("Morale Check","!RollD6;Morale;" + unitID + ";" + reason);
+            PrintCard();
+        }
+    }
+
+
+
+
  
     const CloseCombat = (msg) => {
         if (!msg.selected) {
@@ -4920,7 +4951,7 @@ log(target)
 
         let wins = [0,0,0]; //by player
 
-        let units = [[],[]];
+        let unitIDs = [[],[]];
 
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
@@ -4935,13 +4966,13 @@ log(target)
             do {
                 let ID1 = initIDs[iNum];
                 let m1 = ModelArray[ID1];
-                if (units[m1.player].includes(m1.unitID) === false) {
-                    units[m1.player].push(m1.unitID);
+                if (unitIDs[m1.player].includes(m1.unitID) === false) {
+                    unitIDs[m1.player].push(m1.unitID);
                 }
                 let ID2 = otherIDs[oNum];
                 let m2 = ModelArray[ID2];
-                if (units[m2.player].includes(m2.unitID) === false) {
-                    units[m2.player].push(m2.unitID);
+                if (unitIDs[m2.player].includes(m2.unitID) === false) {
+                    unitIDs[m2.player].push(m2.unitID);
                 }
                 let results = IndividualCombat(ID1,iNum,ID2,oNum);
                 let winner = results.winner;
@@ -4979,8 +5010,7 @@ log(target)
 
         outputCard.body.push("[hr]");
         outputCard.body.push("[hr]");
-log("Wins")
-log(wins)
+
         let loser;
         let winner = 2;
         if (wins[0] > wins[1]) {
@@ -4999,70 +5029,65 @@ log(wins)
 
             outputCard.body.push("%%" + winningFaction + "%%" + winningFaction + " Win the Combat")
             //morale for losing player's units if appropriate
-            let winningUnits = units[winningPlayer].filter(unit => {
-                return unit.modelIDs.length > 0;
+            let winningUnitIDs = unitIDs[winningPlayer].filter(unitID => {
+                return UnitArray[unitID].modelIDs.length > 0;
             })
-            let losingUnits = units[losingPlayer].filter(unit => {
-                return unit.modelIDs.length > 0;
+            let losingUnitIDs = unitIDs[losingPlayer].filter(unitID => {
+                return UnitArray[unitID].modelIDs.length > 0;
             });
-            if (winningUnits.length === 0 && losingUnits.length === 0) {
+            if (winningUnitIDs.length === 0 && losingUnitIDs.length === 0) {
                 outputCard.body.push("There was no winner as all detachments destroyed");
-            } else if (winningUnits.length === 0 && losingUnits.length > 0) {
+            } else if (winningUnitIDs.length === 0 && losingUnitIDs.length > 0) {
                 outputCard.body.push("All of " + winningFaction + " detachments were destroyed");
                 outputCard.body.push("As a result, " + losingFaction + " does not need to take Morale Tests");
-            } else if (winningUnits.length > 0 && losingUnits.length === 0) {
+            } else if (winningUnitIDs.length > 0 && losingUnitIDs.length === 0) {
                 outputCard.body.push("All of " + losingFaction + " Detachments are destroyed");
-            } else if (winningUnits.length > 0 && losingUnits.length > 0) {
+            } else if (winningUnitIDs.length > 0 && losingUnitIDs.length > 0) {
                 CheckArray = [];
-                _.each(losingUnits,unit => {
+                _.each(losingUnitIDs,unitID => {
+                    let unit = UnitArray[unitID];
                     let exception;
                     let unitLeader = ModelArray[unit.modelIDs[0]];
                     let morale = unitLeader.morale;
                     if (morale === 0) {
                         exception = unit.name + " does not take Morale Checks";
                     }
-                    let implacable = false;
                     _.each(unit.modelIDs,id => {
                         if (ModelArray[id].special.includes("Implacable")) {
                             exception = unit.name + " has Implacable. It may Withdraw if it wished, but does not take a Morale Check";
                         }
                     });
                     if (unitLeader.garrison !== "") {
-                        let contact = false;
                         wuLoop1:
-                        for (let i=0;i<winningUnits.length;i++) {
-                            let wUnit = winningUnits[i];
+                        for (let i=0;i<winningUnitIDs.length;i++) {
+                            let wUnit = UnitArray[winningUnits[i]];
                             for (let j=0;j<wUnit.modelIDs.length;j++) {
                                 let wModel = ModelArray[wUnit.modelIDs[j]];
                                 let dist = ModelDistance(unitLeader,wModel);
                                 if (dist < 1) {
-                                    contact = true;
+                                    exception = unit.name + " is Garrisonned and has no Enemy in Contact. It does not take a Morale Check and remains in the Structure";
                                     break wuLoop1;
                                 }
                             }
-                        }
-                        if (contact === false) {
-                            exception = unit.name + " is Garrisonned and has no Enemy in Contact. It does not take a Morale Check and remains in the Structure";
                         }
                     }
                     if (exception) {
                         outputCard.body.push(exception);
                     } else {
-                        CheckArray.push(unit.id);
+                        CheckArray.push(unitID);
                     }
                 });
                 if (CheckArray.length > 0) {
-                    let noun = (CheckArray.length < losingUnits.length) ? "Some ":"All ";
+                    let noun = (CheckArray.length < losingUnitIDs.length) ? "Some ":"All ";
                     outputCard.body.push(noun + "Losing Detachments now have to take Morale Checks");
                     ButtonInfo("Start Morale Checks","!Morale;Close Combat");
-                } else (CheckArray.length === 0) {
+                } else if (CheckArray.length === 0) {
                     outputCard.body.push("No Morale Checks are neccessary");
                 }
             }
         }
         PrintCard();
     }
-
 
     const BuildCCArray = (id) => {
         let startTime = Date.now();
@@ -5576,10 +5601,9 @@ log(wins)
                 model.hex = newHex;
                 model.hexLabel = newHexLabel;
                 model.location = newLocation;
-                let index = hexMap[oldHexLabel].modelIDs.indexOf(tok.id);
-                if (index > -1) {
-                    hexMap[oldHexLabel].modelIDs.splice(index,1);
-                }
+                hexMap[oldHexLabel].modelIDs = hexMap[oldHexLabel].modelIDs.filter(id => {
+                    return id !== tok.id;
+                })
                 hexMap[newHexLabel].modelIDs.push(tok.id);
                 if (model.large === true) {
                     model.vertices = TokenVertices(tok);
@@ -5629,6 +5653,7 @@ log(wins)
                 }
             })
         })
+log(object.name + ": " + surroundingHexLabels.toString())
         return surroundingHexes;
     }
 
@@ -5666,7 +5691,7 @@ log(wins)
             case '!ClearState':
                 ClearState();
                 break;
-            case '!Roll':
+            case '!RollD6':
                 RollD6(msg);
                 break;
             case '!UnitCreation':
@@ -5719,6 +5744,9 @@ log(wins)
                 break;
             case '!CloseCombat':
                 CloseCombat(msg);
+                break;
+            case '!Morale':
+                Morale(msg);
                 break;
 
         }
