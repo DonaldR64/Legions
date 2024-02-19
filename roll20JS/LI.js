@@ -1143,7 +1143,7 @@ const LI = (()=> {
                     needed += 1;
                 }
             }
-
+            needed = Math.max(2,Math.min(needed,6));
             tip = "Roll: " + roll + " vs. " + needed + "+" + tip;
             tip = '[🎲](#" class="showtip" title="' + tip + ')';
             if (roll < needed) {
