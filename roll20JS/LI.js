@@ -5052,7 +5052,8 @@ log(wins)
                     }
                 });
                 if (CheckArray.length > 0) {
-                    outputCard.body.push("Some Losing Detachments now have to take Morale Checks");
+                    let noun = (CheckArray.length < losingUnits.length) ? "Some ":"All ";
+                    outputCard.body.push(noun + "Losing Detachments now have to take Morale Checks");
                     ButtonInfo("Start Morale Checks","!Morale;Close Combat");
                 } else (CheckArray.length === 0) {
                     outputCard.body.push("No Morale Checks are neccessary");
