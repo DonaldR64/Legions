@@ -4920,6 +4920,8 @@ log(target)
 
         let wins = [0,0,0]; //by player
 
+        let units = [[],[]];
+
         for (let i=0;i<CCArray.length;i++) {
             let group = CCArray[i];
             let initIDs = group.initIDs;
@@ -4932,7 +4934,15 @@ log(target)
 
             do {
                 let ID1 = initIDs[iNum];
+                let m1 = ModelArray[ID1];
+                if (units[m1.player].includes(m1.unitID) === false) {
+                    units[m1.player].push(m1.unitID);
+                }
                 let ID2 = otherIDs[oNum];
+                let m2 = ModelArray[ID2];
+                if (units[m2.player].includes(m2.unitID) === false) {
+                    units[m2.player].push(m2.unitID);
+                }
                 let results = IndividualCombat(ID1,iNum,ID2,oNum);
                 let winner = results.winner;
                 let killed = results.killed;
@@ -4989,7 +4999,7 @@ log(wins)
 
             outputCard.body.push("%%" + winningFaction + "%%" + winningFaction + " Win the Combat")
             //morale
-
+            
 
 
             
