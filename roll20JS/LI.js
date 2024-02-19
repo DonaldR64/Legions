@@ -4998,8 +4998,9 @@ log(wins)
             let losingPlayer = TraitorForces.includes(losingFaction) ? 1:0;
 
             outputCard.body.push("%%" + winningFaction + "%%" + winningFaction + " Win the Combat")
-            //morale
+            //morale for losing player's units if appropriate
             
+
 
 
             
