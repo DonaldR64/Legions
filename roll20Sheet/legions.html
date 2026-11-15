@@ -497,7 +497,7 @@
             let name = values.character_name;
             name = name.split("//")[0].trim();
 
-            let specials = values.special || "";
+            let specials = values.special || "Nil";
             specials = specials.split(",");
             let special = new Array(10);
             for (let i=0;i<specials.length;i++) {
