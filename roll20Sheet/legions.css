@@ -21,7 +21,7 @@
 }
 
 
-input[type="hidden"][name="attr_allegiance"][value="Traitor Auxilia"] ~ .mysheet {
+input[type="hidden"][name="attr_allegiance"][value="Traitor"] ~ .mysheet {
   background-color: #000000;
 }
 input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .mysheet {
@@ -129,6 +129,9 @@ section {
 
 input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .header :is(h1,h3){
   color: black;
+}
+input[type="hidden"][name="attr_allegiance"][value="Traitor"] ~ .header :is(h1,h3){
+  color: white;
 }
 
 .special {
