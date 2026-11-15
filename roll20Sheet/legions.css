@@ -15,8 +15,8 @@
 
 
 .mysheet {
-    width: 820px;
-    height: 820px;
+    width: 800px;
+    height: 800px;
     padding: 15px 0px 0px 15px;
 }
 
@@ -392,7 +392,7 @@ input[type="hidden"][value="Equipped"].weapon10-status ~ .weapon10{
   color: white;
 }
 
-input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Space Wolves"],[value="Legio Tempestus"],[value="House Raven"],[value="Loyalist Auxilia"]) ~ .spheader h2 {
+input[type="hidden"][name="attr_faction"][value="Loyalist Auxilia"] ~ .spheader h2 {
   color: black;
 }
 
@@ -400,9 +400,7 @@ input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Space 
 .spbody h4 {
   color: white;
 }
-input[type="hidden"][name="attr_faction"]:is([value="Deathguard"],[value="Space Wolves"],[value="Legio Tempestus"],[value="House Raven"],[value="Loyalist Auxilia"]) ~ .spbody {
-  color: black;
-}
+
 .item span {
   font-size: 14px;
 }
