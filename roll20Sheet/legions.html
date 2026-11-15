@@ -14,19 +14,8 @@
             <label for="attr_faction">Faction:</label>
             <select name="attr_faction">
                 <option value="" selected disabled hidden>Choose here</option>
-                <option value="Ultramarines">Ultramarines</option>
-                <option value="Blood Angels">Blood Angels</option>
-                <option value="Deathguard">Deathguard</option>
-                <option value="Salamanders">Salamanders</option>
-                <option value="Traitor Auxilia">Traitor Auxilia</option>
-                <option value="Loyalist Auxilia">Loyalist Auxilia</option>
-                <option value="House Malinax">House Malinax</option>
-                <option value="Legio Mortis">Legio Mortis</option>
-                <option value="House Raven">House Raven</option>
-                <option value="Legio Tempestus">Legio Tempestus</option>
-
-
-
+                <option value="Loyalist">Loyalist</option>
+                <option value="Traitor">Traitor</option>
             </select>
         </div>
         <div class="col">
@@ -236,17 +225,15 @@
     <input type="hidden" name="attr_faction"/>
 
     <div class="mysheet">
-      <div class="attributes">
-
         <main>
         <input type="hidden" name="attr_faction"/>
           <section class="header f-center">
             <h1><span name="attr_character_name"></span></h1>
-            <h3><span name="attr_side"></span><span name="attr_type"></span><span> [</span><span name="attr_scale"></span><span>]</span></h3>
+            <h3><span name="attr_faction"></span> <span name="attr_type"></span><span> [</span><span name="attr_scale"></span><span>]</span></h3>
           </section>
 
           <section class="common f-center">
-              <img alt="Character Avatar" name="attr_character_avatar"/>
+            <img alt="Character Avatar" name="attr_character_avatar" style="width:auto;height:370px; bottom: 0;"/>
           </section>
 
           <section class="att">
@@ -388,7 +375,6 @@
             </div>
           </section>
         </main>
-      </div>
     </div>    
 </div>
 
@@ -464,9 +450,7 @@
     });
 
     on("change:attrs sheet:opened", function() { 
-        getAttrs(["faction","special","type"], function(values) {
-            let faction = values.faction;
-            let factionImage,side;
+        getAttrs(["special","type"], function(values) {
             let type = values.type;
             let scale = 1;
             if (type === "Vehicle") {scale = 2};
@@ -474,58 +458,12 @@
             if (type === "Knight") {scale = 4};
             if (type === "Titan") {scale = 5};
 
-            if (faction === "Ultramarines") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/353049529/KtPvktw8dgMFRyHJIW-i6w/thumb.png?1690989195";
-                side = "Loyalist ";
-            }
-            if (faction === "Blood Angels") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/354261572/BMAsmC28Ap91qYIfra71yw/thumb.png?1691796541";
-                side = "Loyalist "
-            }
-            if (faction === "Deathguard") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/353239057/GIITPAhD-JdRRD2D6BREWw/thumb.png?1691112406";
-                side = "Traitor ";
-            } 
-            if (faction === "Space Wolves") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/360961940/GOg8nIXa8AfvA3v69KT-Vw/thumb.png?1695929748";
-                side = "Loyalist ";
-            }    
-            if (faction === "Salamanders") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/274614673/_-mcGObetfMZtFANsG7nKA/thumb.png?1646767013";
-                side = "Loyalist ";
-            }   
-            if (faction === "Traitor Auxilia") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/378070096/oShLaPkIOEq0P5y7YHHAmg/thumb.png?1706671346";
-                side = "Traitor ";
-            }   
-            if (faction === "Loyalist Auxilia") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/378123051/2-4fggKmqRdzsZiyLZetiQ/thumb.png?1706720638";
-                side = "Loyalist ";
-            }   
-            if (faction === "House Malinax") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/378121188/9nwrVJIN-ugGtz4PWL9Vng/thumb.png?1706719575";
-                side = "Traitor ";
-            }   
-            if (faction === "Legio Mortis") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/378121193/B0eCWKgF2pwdXXDCSlZp_Q/thumb.png?1706719579";
-                side = "Traitor ";
-            }   
-            if (faction === "Legio Tempestus") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/378121631/1G4APSKHrkuaGKsjJdC7dw/thumb.png?1706719812";
-                side = "Loyalist ";
-            }   
-            if (faction === "House Raven") {
-                factionImage = "https://s3.amazonaws.com/files.d20.io/images/378121596/GWag5rKj43mvsXnd4ah5dw/thumb.png?1706719790";
-                side = "Loyalist ";
-            }   
 
             let special = values.special;
             special = special.split(",");
 
             setAttrs({
                 "scale": scale,
-                "factionImage": factionImage,
-                "side": side,
                 "special0": special[0],
                 "special1": special[1],
                 "special2": special[2],
