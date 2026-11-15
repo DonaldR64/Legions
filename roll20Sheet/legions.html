@@ -329,6 +329,7 @@
                 <h4><span name="attr_weapon1traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon2equipped" class="weapon2-status" value="Off">
+            <input type="hidden" name="attr_wpn2colour" class="wpn2colour" value="white">
             <div class="weapon2">
                 <h4><span name="attr_weapon2name"></span></h4>
                 <h4><span name="attr_weapon2range"></span></h4>
@@ -338,6 +339,7 @@
                 <h4><span name="attr_weapon2traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon3equipped" class="weapon3-status" value="Off">
+            <input type="hidden" name="attr_wpn3colour" class="wpn3colour" value="white">
             <div class="weapon3">
                 <h4><span name="attr_weapon3name"></span></h4>
                 <h4><span name="attr_weapon3range"></span></h4>
@@ -347,6 +349,7 @@
                 <h4><span name="attr_weapon3traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon4equipped" class="weapon4-status" value="Off">
+            <input type="hidden" name="attr_wpn4colour" class="wpn4colour" value="white">
             <div class="weapon4">
                 <h4><span name="attr_weapon4name"></span></h4>
                 <h4><span name="attr_weapon4range"></span></h4>
@@ -356,6 +359,7 @@
                 <h4><span name="attr_weapon4traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon5equipped" class="weapon5-status" value="Off">
+            <input type="hidden" name="attr_wpn5colour" class="wpn5colour" value="white">
             <div class="weapon5">
                 <h4><span name="attr_weapon5name"></span></h4>
                 <h4><span name="attr_weapon5range"></span></h4>
@@ -365,6 +369,7 @@
                 <h4><span name="attr_weapon5traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon6equipped" class="weapon6-status" value="Off">
+            <input type="hidden" name="attr_wpn6colour" class="wpn6colour" value="white">
             <div class="weapon6">
                 <h4><span name="attr_weapon6name"></span></h4>
                 <h4><span name="attr_weapon6range"></span></h4>
@@ -374,6 +379,7 @@
                 <h4><span name="attr_weapon6traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon7equipped" class="weapon7-status" value="Off">
+            <input type="hidden" name="attr_wpn7colour" class="wpn7colour" value="white">
             <div class="weapon7">
                 <h4><span name="attr_weapon7name"></span></h4>
                 <h4><span name="attr_weapon7range"></span></h4>
@@ -383,6 +389,7 @@
                 <h4><span name="attr_weapon7traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon8equipped" class="weapon8-status" value="Off">
+            <input type="hidden" name="attr_wpn8colour" class="wpn8colour" value="white">
             <div class="weapon8">
                 <h4><span name="attr_weapon8name"></span></h4>
                 <h4><span name="attr_weapon8range"></span></h4>
@@ -392,6 +399,7 @@
                 <h4><span name="attr_weapon8traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon9equipped" class="weapon9-status" value="Off">
+            <input type="hidden" name="attr_wpn9colour" class="wpn9colour" value="white">
             <div class="weapon9">
                 <h4><span name="attr_weapon9name"></span></h4>
                 <h4><span name="attr_weapon9range"></span></h4>
@@ -401,6 +409,7 @@
                 <h4><span name="attr_weapon9traits"></span></h4>
             </div>
             <input type="hidden" name="attr_weapon10equipped" class="weapon10-status" value="Off">
+            <input type="hidden" name="attr_wpn10colour" class="wpn10colour" value="white">
             <div class="weapon10">
                 <h4><span name="attr_weapon10name"></span></h4>
                 <h4><span name="attr_weapon10range"></span></h4>
@@ -486,7 +495,7 @@
     });
 
     on("change:attrs sheet:opened", function() { 
-        getAttrs(["special","type","character_name"], function(values) {
+        getAttrs(["special","type","character_name","weapon2name","weapon3name","weapon4name","weapon5name","weapon6name","weapon7name","weapon8name","weapon9name","weapon10name"], function(values) {
             let type = values.type;
             let scale = 1;
             if (type === "Vehicle") {scale = 2};
@@ -504,6 +513,41 @@
                 special[i] = specials[i];
             }
 
+
+            let w2name = values.weapon2name;
+            let w3name = values.weapon3name;
+            let w4name = values.weapon4name;
+            let w5name = values.weapon5name;
+            let w6name = values.weapon6name;
+            let w7name = values.weapon7name;
+            let w8name = values.weapon8name;
+            let w9name = values.weapon9name;
+            let w10name = values.weapon10name;
+
+            let w2c = "white";
+            if (!w2name || w2name === "") {w2c = "lightgrey"};
+            let w3c = (w2c === "white") ? "lightgrey":"white";
+            if (!w3name || w3name === "") {w3c = w2c};
+            let w4c = (w3c === "white") ? "lightgrey":"white";
+            if (!w4name || w3name === "") {w4c = w3c};
+            let w5c = (w4c === "white") ? "lightgrey":"white";
+            if (!w5name || w4name === "") {w5c = w4c};
+            let w6c = (w5c === "white") ? "lightgrey":"white";
+            if (!w6name || w5name === "") {w6c = w5c};
+            let w7c = (w6c === "white") ? "lightgrey":"white";
+            if (!w7name || w7name === "") {w7c = w6c};
+            let w8c = (w7c === "white") ? "lightgrey":"white";
+            if (!w8name || w8name === "") {w8c = w7c};
+            let w9c = (w8c === "white") ? "lightgrey":"white";
+            if (!w9name || w9name === "") {w9c = w8c};
+            let w10c = (w9c === "white") ? "lightgrey":"white";
+            if (!w10name || w10name === "") {w10c = w9c};
+
+
+
+
+
+
             setAttrs({
                 "scale": scale,
                 "special0": special[0],
@@ -518,6 +562,15 @@
                 "special9": special[9],
                 "displayname": name,
 
+                "wpn2colour": w2c,
+                "wpn3colour": w3c,
+                "wpn4colour": w4c,
+                "wpn5colour": w5c,
+                "wpn6colour": w6c,
+                "wpn7colour": w7c,
+                "wpn8colour": w8c,
+                "wpn9colour": w9c,
+                "wpn10colour": w10c,
 
             });
         });    

@@ -364,6 +364,16 @@ input[type="hidden"][value="Off"].weapon2-status ~ .weapon2{
     padding: 3px;
 }
 
+input[type="hidden"][value="white"].wpn2colour ~ .weapon2{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn2colour ~ .weapon2{
+    background-color: lightgrey;
+}
+
+
+
+
 /* Weapon 3 */
 input[type="hidden"][value="Off"].weapon3-status ~ .weapon3{
     display: none;
@@ -371,7 +381,8 @@ input[type="hidden"][value="Off"].weapon3-status ~ .weapon3{
 input[type="hidden"][value="Equipped"].weapon3-status ~ .weapon3{
     display: grid;
 }
-  
+
+
 .weapon3 {
     display: grid;
     grid-gap: 1px;
@@ -381,6 +392,16 @@ input[type="hidden"][value="Equipped"].weapon3-status ~ .weapon3{
     align-items: center;
     padding: 3px;
 }
+
+  
+input[type="hidden"][value="white"].wpn3colour ~ .weapon3{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn3colour ~ .weapon3{
+    background-color: lightgrey;
+}
+
+
 
 /* Weapon 4 */
 input[type="hidden"][value="Off"].weapon4-status ~ .weapon4{
@@ -400,6 +421,15 @@ input[type="hidden"][value="Equipped"].weapon4-status ~ .weapon4{
     padding: 3px;
 }
 
+input[type="hidden"][value="white"].wpn4colour ~ .weapon4{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn4colour ~ .weapon4{
+    background-color: lightgrey;
+}
+
+
+
 /* Weapon 5 */
 input[type="hidden"][value="Off"].weapon5-status ~ .weapon5{
     display: none;
@@ -417,6 +447,17 @@ input[type="hidden"][value="Equipped"].weapon5-status ~ .weapon5{
     align-items: center;
     padding: 3px;
 }
+
+  
+input[type="hidden"][value="white"].wpn5colour ~ .weapon5{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn5colour ~ .weapon5{
+    background-color: lightgrey;
+}
+
+
+
 
 /* Weapon 6 */
 input[type="hidden"][value="Off"].weapon6-status ~ .weapon6{
@@ -436,6 +477,19 @@ input[type="hidden"][value="Equipped"].weapon6-status ~ .weapon6{
     padding: 3px;
 }
 
+  
+input[type="hidden"][value="white"].wpn6colour ~ .weapon6{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn6colour ~ .weapon6{
+    background-color: lightgrey;
+}
+
+
+
+
+
+
 /* Weapon 7 */
 input[type="hidden"][value="Off"].weapon7-status ~ .weapon7{
     display: none;
@@ -453,6 +507,17 @@ input[type="hidden"][value="Equipped"].weapon7-status ~ .weapon7{
     align-items: center;
     padding: 3px;
 }
+
+  
+input[type="hidden"][value="white"].wpn7colour ~ .weapon7{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn7colour ~ .weapon7{
+    background-color: lightgrey;
+}
+
+
+
 
 /* Weapon 8 */
 input[type="hidden"][value="Off"].weapon8-status ~ .weapon8{
@@ -472,6 +537,17 @@ input[type="hidden"][value="Equipped"].weapon8-status ~ .weapon8{
     padding: 3px;
 }
 
+  
+input[type="hidden"][value="white"].wpn8colour ~ .weapon8{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn8colour ~ .weapon8{
+    background-color: lightgrey;
+}
+
+
+
+
 /* Weapon 9 */
 input[type="hidden"][value="Off"].weapon9-status ~ .weapon9{
     display: none;
@@ -489,6 +565,18 @@ input[type="hidden"][value="Equipped"].weapon9-status ~ .weapon9{
     align-items: center;
     padding: 3px;
 }
+
+  
+input[type="hidden"][value="white"].wpn9colour ~ .weapon9{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn9colour ~ .weapon9{
+    background-color: lightgrey;
+}
+
+
+
+
 
 /* Weapon 10 */
 input[type="hidden"][value="Off"].weapon10-status ~ .weapon10{
@@ -508,6 +596,13 @@ input[type="hidden"][value="Equipped"].weapon10-status ~ .weapon10{
     padding: 3px;
 }
 
+  
+input[type="hidden"][value="white"].wpn10colour ~ .weapon10{
+    background-color: white;
+}
+input[type="hidden"][value="lightgrey"].wpn10colour ~ .weapon10{
+    background-color: lightgrey;
+}
 
 
 
