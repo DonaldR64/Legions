@@ -127,7 +127,7 @@ section {
   color: white;
 }
 
-input[type="hidden"][name="attr_faction"][value="Loyalist"] ~ .header :is(h1,h3){
+input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .header :is(h1,h3){
   color: black;
 }
 
@@ -374,9 +374,6 @@ input[type="hidden"][value="Equipped"].weapon10-status ~ .weapon10{
   color: white;
 }
 
-input[type="hidden"][name="attr_faction"][value="Loyalist Auxilia"] ~ .spheader h2 {
-  color: black;
-}
 
 
 .spbody h4 {
