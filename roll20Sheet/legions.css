@@ -116,24 +116,6 @@ section {
 /*------------- Section-specific CSS -------------*/
 
 
-.flag {
-  grid-area: flag;
-  align-items: center;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  border-style: none;
-}
-
-.flag2 {
-  grid-area: flag2;
-  align-items: center;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  border-style: none;
-}
-
 .header {
   grid-area: header;
   flex-direction: center;
