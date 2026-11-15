@@ -247,7 +247,7 @@
         <main>
         <input type="hidden" name="attr_allegiance"/>
           <section class="header f-center">
-            <h1><span name="attr_character_name"></span></h1>
+            <h1><span name="attr_displayname"></span></h1>
             <h3><span name="attr_faction"></span> <span name="attr_type"></span><span> [</span><span name="attr_scale"></span><span>]</span></h3>
             <h3><span name="attr_legion"></span></h3>
 
@@ -486,7 +486,7 @@
     });
 
     on("change:attrs sheet:opened", function() { 
-        getAttrs(["special","type"], function(values) {
+        getAttrs(["special","type","character_name"], function(values) {
             let type = values.type;
             let scale = 1;
             if (type === "Vehicle") {scale = 2};
@@ -494,6 +494,8 @@
             if (type === "Knight") {scale = 4};
             if (type === "Titan") {scale = 5};
 
+            let name = values.character_name;
+            name = name.split("//")[0].trim();
 
             let specials = values.special || "";
             specials = specials.split(",");
@@ -514,7 +516,7 @@
                 "special7": special[7],
                 "special8": special[8],
                 "special9": special[9],
-
+                "displayname": name,
 
 
             });
