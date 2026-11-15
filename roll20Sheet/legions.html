@@ -14,10 +14,30 @@
             <label for="attr_faction">Faction:</label>
             <select name="attr_faction">
                 <option value="" selected disabled hidden>Choose here</option>
+                <option value="Legiones Astartes">Legiones Astartes</option>
+                <option value="Solar Auxillia">Solar Auxillia</option>
+
+
+
+            </select>
+            <br>
+            <label for="attr_allegiance">Allegiance:</label>
+            <select name="attr_allegiance">
+                <option value="" selected disabled hidden>Choose here</option>
                 <option value="Loyalist">Loyalist</option>
                 <option value="Traitor">Traitor</option>
             </select>
+            <label for="attr_legion">Legion (optional):</label>
+            <select name="attr_legion">
+                <option value="" selected disabled hidden>Choose here</option>
+                <option value="Blood Angels">Blood Angels</option>
+                <option value="Death Guard">Death Guard</option>
+            </select>
+
+
+
         </div>
+        
         <div class="col">
             <h3>Attributes</h3>
             <label>Movement:</label><input type="number" name="attr_movement">
@@ -230,6 +250,10 @@
           <section class="header f-center">
             <h1><span name="attr_character_name"></span></h1>
             <h3><span name="attr_faction"></span> <span name="attr_type"></span><span> [</span><span name="attr_scale"></span><span>]</span></h3>
+            <h3><span name="attr_legion"></span></h3>
+
+
+
           </section>
 
           <section class="common f-center">

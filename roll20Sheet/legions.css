@@ -21,10 +21,10 @@
 }
 
 
-input[type="hidden"][name="attr_faction"][value="Traitor Auxilia"] ~ .mysheet {
+input[type="hidden"][name="attr_allegiance"][value="Traitor Auxilia"] ~ .mysheet {
   background-color: #000000;
 }
-input[type="hidden"][name="attr_faction"][value="Loyalist"] ~ .mysheet {
+input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .mysheet {
   background-color: #d4af37;
 }
 
