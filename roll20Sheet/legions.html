@@ -495,8 +495,12 @@
             if (type === "Titan") {scale = 5};
 
 
-            let special = values.special;
-            special = special.split(",");
+            let specials = values.special || "";
+            specials = specials.split(",");
+            let special = new Array(10);
+            for (let i=0;i<specials.length;i++) {
+                special[i] = specials[i];
+            }
 
             setAttrs({
                 "scale": scale,
