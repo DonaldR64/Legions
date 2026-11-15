@@ -247,6 +247,9 @@ input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .header :is(h1,
   width: 100%;
   height: 100%;
 }
+.move h3 {
+  color: darkred;
+}
 .save {
   grid-column: 2/3;
   grid-row: 3/-1;
@@ -257,6 +260,9 @@ input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .header :is(h1,
   border-width: 1px;
   width: 100%;
   height: 100%;
+}
+.save h3 {
+  color: darkred;
 }
 .caf {
   grid-column: 3/4;
@@ -269,6 +275,9 @@ input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .header :is(h1,
   width: 100%;
   height: 100%;
 }
+.caf h3 {
+  color: darkred;
+}
 .morale {
   grid-column: 4/5;
   grid-row: 3/-1;
@@ -279,6 +288,9 @@ input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .header :is(h1,
   border-width: 1px;
   width: 100%;
   height: 100%;
+}
+.morale h3 {
+  color: darkred;
 }
 .wounds {
   grid-column: 5/-1;
@@ -291,7 +303,9 @@ input[type="hidden"][name="attr_allegiance"][value="Loyalist"] ~ .header :is(h1,
   width: 100%;
   height: 100%;
 }
-
+.wounds h3 {
+  color: darkred;
+}
 
 
 
