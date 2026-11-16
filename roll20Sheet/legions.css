@@ -137,7 +137,6 @@ input[type="hidden"][name="attr_allegiance"][value="Traitor"] ~ .header :is(h1,h
 .special {
   grid-area: special;
   display: flex;
-  justify-content: center;
   align-items: center;
   background-color: white;
 }
